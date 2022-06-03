@@ -1,5 +1,6 @@
 # MOLUSC v.20220321
 # Mackenna Wood, UNC Chapel Hill
+import os
 import numpy as np
 import scipy as scipy
 import scipy.stats as stats
@@ -17,6 +18,7 @@ import sys
 import argparse
 import gc
 import warnings
+import yaml
 from astropy.utils.exceptions import AstropyWarning
 warnings.simplefilter('error', category=RuntimeWarning)
 warnings.simplefilter('ignore', category=AstropyWarning)
@@ -1305,7 +1307,7 @@ class GUI(tk.Frame):
 	# Help button functions
 	@ staticmethod
 	def help_age():
-		message = """Optional. Estimate of the age of the star. This will effect the modeled magnitude of the stars. 
+		message = """Optional. Estimate of the age of the star. This will effect the modeled magnitude of the stars.
 		If none is entered an age of 5 Gyr will be assumed."""
 		tk.messagebox.showinfo('Star Age Help', message)
 
@@ -1685,6 +1687,18 @@ class Application:
 			ascii.write(all_table, (self.prefix + "_all.csv"), format='csv', names=cols, overwrite=True)
 			self.print_out(('Generated binary parameters saved to: ' + self.prefix + '_all.csv'))
 
+		# Write out run inputs to a yaml file
+		yaml_data = {"Star":{"RA":self.star_ra,"Dec":self.star_dec,
+							 "Age":self.star_age,"Mass":self.star_mass},
+					 "num_generated":self.num_generated,
+					 "file_prefix":self.prefix
+					}
+
+		yaml_fname = f"{self.prefix}_params.yml"
+		with open(yaml_fname,"w") as f:
+			yaml.dump(yaml_data,f)
+		self.print_out(('Run parameters saved to: ' + self.prefix + '_params.yml'))
+
 		if self.using_gui: self.gui.update_status('Finished - Successful')
 		self.restore_defaults()
 		return
@@ -1804,7 +1818,7 @@ class Application:
 			return True
 		elif error_code == -41:
 			# RUWE Distribution file not found
-			self.print_out("""ERROR: RUWE Normalization file not found\nThe file should be named table_u0_g_col.txt 
+			self.print_out("""ERROR: RUWE Normalization file not found\nThe file should be named table_u0_g_col.txt
 			and located in the folder the code is being run from.""")
 			if self.using_gui:
 				self.gui.update_status('Finished - Unsuccessful')
@@ -1821,7 +1835,7 @@ class Application:
 			return True
 		elif error_code == -43:
 			# RUWE Distribution file not found
-			self.print_out("""ERROR: RUWE distribution file not found\nThe file should be named RuweTableGP.txt 
+			self.print_out("""ERROR: RUWE distribution file not found\nThe file should be named RuweTableGP.txt
 			and located in the folder the code is being run from.""")
 			if self.using_gui:
 				self.gui.update_status('Finished - Unsuccessful')
@@ -1916,13 +1930,13 @@ class Application:
 		if args.transit:
 			self.limits[3] = 'transit'
 
-		if not self.ao_filename[0] and not self.rv_filename and not self.ruwe_check and not self.gaia_check and not self.star_jitter:
+		if not self.ao_filename[0] and not self.rv_filename and not self.ruwe_check and not self.gaia_check and not self.added_jitter:
 			print('At least one analysis type needs to be chosen')
 			return False
 		if self.ao_filename[0] and not self.filter:
 			print('AO given without filter')
 			return False
-		if self.star_jitter != -1 and not self.rv_filename:
+		if self.added_jitter != -1 and not self.rv_filename:
 			print('RV File needs to be given for stellar jitter test')
 			return False
 
@@ -2934,7 +2948,10 @@ class RV:
 
 		else:  # Parallel
 			# Determine cpu count
-			cpu_count = mp.cpu_count()-1
+			try:
+				cpu_count = len(os.sched_getaffinity(0))-1
+			except AttributeError:
+				cpu_count = mp.cpu_count()-1
 
 			contrast_check = [True if x <= 5 else False for x in contrast]
 

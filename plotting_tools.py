@@ -7,6 +7,7 @@ from astropy.table import Table
 import scipy.optimize
 from scipy.ndimage.filters import gaussian_filter
 from matplotlib import rcParams
+import yaml
 
 rcParams['font.family'] = 'serif'
 rcParams['font.serif'] = ['Georgia']
@@ -14,16 +15,7 @@ rcParams['font.weight'] = 'bold'
 rcParams['axes.labelweight'] = 'bold'
 rcParams['axes.linewidth'] = 1
 
-# Input files
-survivors_file = 'output_kept.csv'
-all_file = 'output_all.csv'
-# Output files
-out_file = 'output_corner.pdf'  # writeout file for the corner plots
-out_file2 = 'output_dtct_lims.pdf' # writeout file for the detection limit plots
-out_file3 = 'output_srv.pdf' # writeout file for the survivor plots
-# Other
-n = 5000000  # number of companions generated in run
-mass = 1.01  # target mass in solar masses
+
 
 # Convenience functions
 def jup_mass_to_sol(jupiter_mass):
@@ -42,8 +34,8 @@ def a_to_period(a):
     # Returns period (days) of an equal mass, solar-mass binary with a given semi-major axis
     G = 39.478 # Gravitational constant in AU^3/years^2*M_solar
     return np.sqrt((4*np.pi**2 * a**3) / (2*G)) * 365
-  
-  def corner(file_in, file_out=None, given_params='auto', n_gen=5000000, smoothing=False, color='blue'):
+
+def corner(file_in, file_out=None, given_params='auto', n_gen=5000000, smoothing=False, color='blue'):
     # Creates a corner plot showing period, mass ratio, eccentricity and inclination
     # Plot is a 4x4 array of subplots, with the bottom left triangle showing contour plots of 2D parameter spaces
     # The diagonal subplots show histograms of each of the parameters. The top right triangle lists the surviving
@@ -464,7 +456,27 @@ def survivor(survivors_file, all_file, param, file_out=None):
   plt.show()
   return
 
-# Comment and uncomment as needed
-# corner(survivors_file,  n_gen=n, given_params='all', smoothing=True, file_out=out_file)
-# detection_limits(survivors_file, mass, file_out=out_file2
-# survivor(survivors_file, all_file, param='P', file_out=out_file3)
+if __name__=="__main__":
+
+    yaml_fname = "rv_test_params.yml"
+    with open(yaml_fname,"r") as f:
+        params = yaml.safe_load(f)
+
+    # Run info
+    file_base = params["file_prefix"] #yaml_fname.split("_")[0]
+    n = params["num_generated"]  # number of companions generated in run
+    mass = params["Star"]["Mass"]  # target mass in solar masses
+
+
+    # Input files
+    survivors_file = f'{file_base}_kept.csv'
+    all_file = f'{file_base}_all.csv'
+    # Output files
+    out_file = f'{file_base}_corner.pdf'  # writeout file for the corner plots
+    out_file2 = f'{file_base}_dtct_lims.pdf' # writeout file for the detection limit plots
+    out_file3 = f'{file_base}_srv.pdf' # writeout file for the survivor plots
+
+
+    corner(survivors_file,  n_gen=n, given_params='all', smoothing=True, file_out=out_file)
+    detection_limits(survivors_file, mass, file_out=out_file2)
+    survivor(survivors_file, all_file, param='P', file_out=out_file3)
