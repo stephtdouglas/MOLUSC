@@ -1,5 +1,6 @@
 # MOLUSC Survivors Plotter
 # Mackenna Wood, UNC Chapel Hill
+import os
 import numpy as np
 import math as math
 import matplotlib.pyplot as plt
@@ -310,7 +311,7 @@ def corner(file_in, file_out=None, given_params='auto', n_gen=5000000, smoothing
 
     if file_out is not None:
         plt.savefig(file_out, bbox_inches='tight', pad_inches=0.25)
-    plt.show()
+    # plt.show()
 
     return 0
 
@@ -382,7 +383,7 @@ def detection_limits(file_in, star_mass, file_out=None, mark_P=None):
     if file_out:
         plt.savefig(file_out, bbox_inches='tight', pad_inches=0.2)
 
-    plt.show()
+    # plt.show()
 
     return
 
@@ -453,7 +454,7 @@ def survivor(survivors_file, all_file, param, file_out=None):
 
   if file_out:
       plt.savefig(file_out, bbox_inches='tight', pad_inches=0.2)
-  plt.show()
+  # plt.show()
   return
 
 if __name__=="__main__":
@@ -476,7 +477,12 @@ if __name__=="__main__":
     out_file2 = f'{file_base}_dtct_lims.pdf' # writeout file for the detection limit plots
     out_file3 = f'{file_base}_srv.pdf' # writeout file for the survivor plots
 
-
-    corner(survivors_file,  n_gen=n, given_params='all', smoothing=True, file_out=out_file)
-    detection_limits(survivors_file, mass, file_out=out_file2)
-    survivor(survivors_file, all_file, param='P', file_out=out_file3)
+    if os.path.exists(survivors_file):
+        corner(survivors_file,  n_gen=n, given_params='all', smoothing=True, file_out=out_file)
+        detection_limits(survivors_file, mass, file_out=out_file2)
+        if os.path.exists(all_file):
+            survivor(survivors_file, all_file, param='P', file_out=out_file3)
+        else:
+            print(f"\t{all_file} not found; no survivor plot produced")
+    else:
+        print(f"\t{survivors_file} not found; no plots produced")
