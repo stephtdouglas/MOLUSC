@@ -1,5 +1,6 @@
 # MOLUSC v.20220321
 # Mackenna Wood, UNC Chapel Hill
+from datetime import datetime
 import os
 import numpy as np
 import scipy as scipy
@@ -23,6 +24,8 @@ from astropy.utils.exceptions import AstropyWarning
 warnings.simplefilter('error', category=RuntimeWarning)
 warnings.simplefilter('ignore', category=AstropyWarning)
 warnings.simplefilter('ignore', category=scipy.linalg.misc.LinAlgWarning)
+
+today = datetime.today().isoformat().split("T")[0]
 
 # Parallel Functions
 def calculate_RV_parallel(period, mass_ratio, a, e, cos_i, arg_peri, phase, MJD, calc):
@@ -1691,7 +1694,8 @@ class Application:
 		yaml_data = {"Star":{"RA":self.star_ra,"Dec":self.star_dec,
 							 "Age":self.star_age,"Mass":self.star_mass},
 					 "num_generated":self.num_generated,
-					 "file_prefix":self.prefix
+					 "file_prefix":self.prefix,
+					 "run_date":today
 					}
 
 		yaml_fname = f"{self.prefix}_params.yml"
@@ -1873,7 +1877,13 @@ class Application:
 	def parse_input(self):
 		# Read in command line inputs
 		# Create Parser
-		my_parser = argparse.ArgumentParser(description='Find limits on the orbital parameters of unseen companions')
+		parser = argparse.ArgumentParser(description='Find limits on the orbital parameters of unseen companions')
+
+		subparsers = parser.add_subparsers(dest='command')
+		my_parser = subparsers.add_parser('cl')
+		yaml_parser = subparsers.add_parser('yml')
+
+		#### One option: inputting all info on the command line
 		# Add arguments
 		#  Required arguments (Positional)
 		my_parser.add_argument('prefix', help='The prefix to be used on the output files')
@@ -1900,35 +1910,88 @@ class Application:
 		my_parser.add_argument('--ruwe', action='store_true', help='Apply the RUWE test')
 		my_parser.add_argument('--gaia', action='store_true', help='Apply the GAIA contrast test')
 		# Other options
+		my_parser.add_argument('--transit', action='store_true', help='Turn on transit limits')
 		my_parser.add_argument('-v','--verbose', action='store_true', help='Turn on extra output')
 		my_parser.add_argument('-a', '--all', action='store_true', help='Write out all generated companions')
-		my_parser.add_argument('--transit', action='store_true', help='Turn on transit limits')
+
+		#### Second option: provide a yaml file with all options
+		yaml_parser.add_argument("yml_file",help="full path to the yaml file with input values",
+								 type=str)
+		yaml_parser.add_argument('-v','--verbose', action='store_true', help='Turn on extra output')
+		yaml_parser.add_argument('-a', '--all', action='store_true', help='Write out all generated companions')
+
 		# Run parser
-		args = my_parser.parse_args()
-		# Input the inputs
-		#  Analysis Options
-		self.rv_filename = args.rv
-		self.resolution = float(args.resolution)
-		self.ao_filename = [args.ao]
-		self.filter = args.filter
-		self.ruwe_check = args.ruwe
-		self.gaia_check = args.gaia
-		# Output Options
-		self.prefix = args.prefix
-		self.extra_output = args.verbose
-		self.all_output = args.all
-		# Stellar Info
-		self.num_generated = args.n
-		self.star_ra = args.ra
-		self.star_dec = args.dec
-		self.star_mass = args.mass
-		self.star_age = args.age
-		self.added_jitter = float(args.jitter)
-		self.rv_floor = args.rv_floor
-		# Limits
-		self.limits = [None]*21
-		if args.transit:
-			self.limits[3] = 'transit'
+		args = parser.parse_args()
+
+		if args.command == "cl":
+			# Input the inputs
+			#  Analysis Options
+			self.rv_filename = args.rv
+			self.resolution = float(args.resolution)
+			self.ao_filename = [args.ao]
+			self.filter = args.filter
+			self.ruwe_check = args.ruwe
+			self.gaia_check = args.gaia
+			# Output Options
+			self.prefix = args.prefix
+			self.extra_output = args.verbose
+			self.all_output = args.all
+			# Stellar Info
+			self.num_generated = args.n
+			self.star_ra = args.ra
+			self.star_dec = args.dec
+			self.star_mass = args.mass
+			self.star_age = args.age
+			self.added_jitter = float(args.jitter)
+			self.rv_floor = args.rv_floor
+			# Limits
+			self.limits = [None]*21
+			if args.transit:
+				self.limits[3] = 'transit'
+		elif args.command == "yml":
+
+			with open(args.yml_file,"r") as f:
+				data = yaml.safe_load(f)
+
+			print(data)
+			# Input the inputs
+			#  Analysis Options
+			if data["rv_params"]["fit"]==True:
+				self.rv_filename = data["rv_params"]["rv_file"]
+				self.resolution = data["rv_params"]["resolution"]
+				self.rv_floor = data["rv_params"]["rv_floor"]
+			else:
+				self.rv_filename = False
+				self.resolution = 50000
+				self.rv_floor = 20
+
+			if data["ao_params"]["fit"]==True:
+				self.ao_filename = [data["ao_params"]["ao_file"]]
+				self.filter = data["ao_params"]["filter"]
+			else:
+				self.ao_filename = []
+				self.filter = None
+
+			self.ruwe_check = data["ruwe_params"]["fit"]
+			self.gaia_check = data["gaia_params"]["fit"]
+			# Output Options
+			self.prefix = data["file_prefix"]
+			self.extra_output = args.verbose
+			self.all_output = args.all
+			# Stellar Info
+			self.num_generated = data["num_generated"]
+			self.star_ra = data["star"]["ra"]
+			self.star_dec = data["star"]["dec"]
+			self.star_mass = data["star"]["mass"]
+			self.star_age = data["star"]["age"]
+			self.added_jitter = data["star"]["jitter"]
+			# Limits
+			self.limits = [None]*21
+			if data["transit"]==True:
+				self.limits[3] = 'transit'
+		else:
+			print('Invalid command')
+			return False
 
 		if not self.ao_filename[0] and not self.rv_filename and not self.ruwe_check and not self.gaia_check and not self.added_jitter:
 			print('At least one analysis type needs to be chosen')
@@ -1936,9 +1999,13 @@ class Application:
 		if self.ao_filename[0] and not self.filter:
 			print('AO given without filter')
 			return False
-		if self.added_jitter != -1 and not self.rv_filename:
-			print('RV File needs to be given for stellar jitter test')
+		if self.ao_filename[0] and not (self.filter in ['J','K','H','G', 'Bp','Rp','R','I','L','LL','M']):
+			print("Unknown filter. Filter must be one of ['J','K','H','G', 'Bp','Rp','R','I','L','LL','M']")
 			return False
+		# TODO: this needs to be changed to account for the yaml input
+		# if self.added_jitter != -1 and not self.rv_filename:
+		# 	print('RV File needs to be given for stellar jitter test')
+		# 	return False
 
 		return True
 

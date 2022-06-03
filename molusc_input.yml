@@ -1,0 +1,23 @@
+# Right now this is just the defaults from the GUI.py file
+file_prefix: yml_test
+num_generated: 10000
+transit: False
+star:
+  ra: 13h50m06.28s
+  dec: -40d50m08.9s
+  mass: 1.3
+  age: 0.015
+  jitter: 20
+rv_params:
+  fit: False
+  rv_file: ../example_rvs.txt
+  rv_floor: 20
+  resolution: 50000
+ao_params:
+  fit: True
+  ao_file: ../example_contrast.txt
+  filter: K
+ruwe_params:
+  fit: False
+gaia_params:
+  fit: False
