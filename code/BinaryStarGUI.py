@@ -1522,7 +1522,7 @@ class Application:
 					self.print_out(('Analyzing contrast curve in ' + self.ao_filename[i]))
 					ao = AO(self.ao_filename[i], comps, self.star_mass, self.star_age, self.star_ra, self.star_dec, self.filter[i])
 					# Determine distance
-					failure = self.error_check(ao.get_distance(self.star_ra, self.star_dec))
+					failure = self.error_check(ao.get_distance(self.star_ra, self.star_dec, self.parallax))
 					if failure: return
 					if self.extra_output: self.print_out(('Calculated distance to star: %.0f pc' % (ao.star_distance*4.84e-6)))
 					# Read contrast file
@@ -1582,7 +1582,7 @@ class Application:
 			#todo improve gaia contrast
 			gaia = AO('gaia_contrast.txt', comps, self.star_mass, self.star_age, self.star_ra, self.star_dec, 'G', gaia=True)
 			# Determine distance
-			failure = self.error_check(gaia.get_distance(self.star_ra, self.star_dec))
+			failure = self.error_check(gaia.get_distance(self.star_ra, self.star_dec, self.parallax))
 			if failure: return
 			if self.extra_output: self.print_out(('Calculated distance to star: %.0f pc' % (gaia.star_distance*4.84e-6)))
 			# Read contrast file
@@ -1698,10 +1698,10 @@ class Application:
 					 "run_date":today
 					}
 
-		yaml_fname = f"{self.prefix}_params.yml"
+		yaml_fname = f"{self.prefix}_params_output.yml"
 		with open(yaml_fname,"w") as f:
 			yaml.dump(yaml_data,f)
-		self.print_out(('Run parameters saved to: ' + self.prefix + '_params.yml'))
+		self.print_out(('Run parameters saved to: ' + self.prefix + '_params_output.yml'))
 
 		if self.using_gui: self.gui.update_status('Finished - Successful')
 		self.restore_defaults()
@@ -1948,12 +1948,21 @@ class Application:
 			self.limits = [None]*21
 			if args.transit:
 				self.limits[3] = 'transit'
+
+			# Gaia data
+			self.gmag = np.nan
+			self.color = np.nan
+			self.n_good_obs = 0
+			self.astrometric_chi2 = np.nan
+			self.parallax = np.nan
+			self.parallax_error = np.nan
+			self.ln_ruwe = np.nan
+
 		elif args.command == "yml":
 
 			with open(args.yml_file,"r") as f:
 				data = yaml.safe_load(f)
 
-			print(data)
 			# Input the inputs
 			#  Analysis Options
 			if data["rv_params"]["fit"]==True:
@@ -1969,11 +1978,30 @@ class Application:
 				self.ao_filename = [data["ao_params"]["ao_file"]]
 				self.filter = data["ao_params"]["filter"]
 			else:
-				self.ao_filename = []
+				self.ao_filename = [False]
 				self.filter = None
 
 			self.ruwe_check = data["ruwe_params"]["fit"]
 			self.gaia_check = data["gaia_params"]["fit"]
+
+			# Gaia data
+			if np.isfinite(data["gaia_params"]["gmag"]):
+				self.gmag = data["gaia_params"]["gmag"]
+				self.color = data["gaia_params"]["color"]
+				self.n_good_obs = data["gaia_params"]["n_good_obs"]
+				self.astrometric_chi2 = data["gaia_params"]["astrometric_chi2"]
+				self.parallax = data["gaia_params"]["parallax"]
+				self.parallax_error = data["gaia_params"]["parallax_error"]
+				self.ln_ruwe = np.log(data["gaia_params"]["ruwe"])
+			else:
+				self.gmag = np.nan
+				self.color = np.nan
+				self.n_good_obs = 0
+				self.astrometric_chi2 = np.nan
+				self.parallax = np.nan
+				self.parallax_error = np.nan
+				self.ln_ruwe = np.nan
+
 			# Output Options
 			self.prefix = data["file_prefix"]
 			self.extra_output = args.verbose
@@ -1992,6 +2020,8 @@ class Application:
 		else:
 			print('Invalid command')
 			return False
+
+		print(self.ruwe_check,self.gaia_check)
 
 		if not self.ao_filename[0] and not self.rv_filename and not self.ruwe_check and not self.gaia_check and not self.added_jitter:
 			print('At least one analysis type needs to be chosen')
@@ -2700,48 +2730,54 @@ class AO:
 		mag = f_mag(star_mass)
 		return mag
 
-	def get_distance(self, star_RA, star_DEC):
-		coordinate = SkyCoord(star_RA, star_DEC, frame='icrs')
-		width = u.Quantity(10, u.arcsecond)
-		height = u.Quantity(10, u.arcsecond)
-		job_str = ("SELECT TOP 10 DISTANCE(POINT('ICRS', %f, %f), POINT('ICRS', ra, dec)) AS dist, * FROM gaiaedr3.gaia_source WHERE 1=CONTAINS(POINT('ICRS', %f, %f),CIRCLE('ICRS', ra, dec, 0.08333333)) ORDER BY dist ASC)" % (coordinate.ra.degree, coordinate.dec.degree, coordinate.ra.degree, coordinate.dec.degree))
-		job = Gaia.launch_job(job_str)
-		gaia_info = job.get_results()
-		if gaia_info:
-			if len(gaia_info) > 1:
-				# Multiple possible sources. Sort by search distance and take the closest one. Print warning.
-				# Nearest neighbor distance is set to distance between chosen source and it's closest neighbor in the search region
-				gaia_info.sort('dist')
-				parallax = gaia_info['parallax'][0]
-				picked_coord = SkyCoord(gaia_info['ra'][0], gaia_info['dec'][0], unit='degree')
-				# Convert star parallax to distance in AU: d[AU] = 1/p["] * 206265 AU/parsec
-				star_distance = 1 / (parallax / 1000) * 206265
-				self.star_distance = star_distance
-
-				# Find nearest neighbor
-				#    calculate distance between the picked star and all other stars in search radius
-				gaia_info['separation'] = [picked_coord.separation(SkyCoord(x['ra'], x['dec'], unit='degree')).mas for x in gaia_info]
-				#    sort the search results by separation from picked star (the picked star should have a separation of zero)
-				gaia_info.sort('separation')
-				#    choose the closest one to the picked star
-				nearest_neighbor_dist = gaia_info['separation'][1]  # distance to n.n. in mas
-				#   convert from mas to AU
-				self.nearest_neighbor_dist = round(self.star_distance * np.tan(np.radians(nearest_neighbor_dist/(3.6e6))), 1)  # distance to n.n. in AU
-				return -52
-			else:
-				# Only once source in search area. Nearest neighbor distance is set to search width
-				parallax = gaia_info['parallax'][0]
-				# Convert star parallax to distance in AU: d[AU] = 1/p[as] * 206265AU/parsec
-				star_distance = 1 / (parallax / 1000) * 206265
-				self.star_distance = star_distance
-
-				# Set nearest neighbor distance to search distance
-				nearest_neighbor_dist = width.to('mas').value
-				#   convert from mas to AU
-				self.nearest_neighbor_dist = round(self.star_distance * np.tan(np.radians(nearest_neighbor_dist/(3.6e6))), 1)  # distance to n.n. in AU
-				return 0
+	def get_distance(self, star_RA, star_DEC, parallax=np.nan):
+		if np.isfinite(parallax):
+			# Convert star parallax to distance in AU: d[AU] = 1/p["] * 206265 AU/parsec
+			star_distance = 1 / (parallax / 1000) * 206265
+			self.star_distance = star_distance
+			self.nearest_neighbor_dist = np.nan
 		else:
-			return -51
+			coordinate = SkyCoord(star_RA, star_DEC, frame='icrs')
+			width = u.Quantity(10, u.arcsecond)
+			height = u.Quantity(10, u.arcsecond)
+			job_str = ("SELECT TOP 10 DISTANCE(POINT('ICRS', %f, %f), POINT('ICRS', ra, dec)) AS dist, * FROM gaiaedr3.gaia_source WHERE 1=CONTAINS(POINT('ICRS', %f, %f),CIRCLE('ICRS', ra, dec, 0.08333333)) ORDER BY dist ASC)" % (coordinate.ra.degree, coordinate.dec.degree, coordinate.ra.degree, coordinate.dec.degree))
+			job = Gaia.launch_job(job_str)
+			gaia_info = job.get_results()
+			if gaia_info:
+				if len(gaia_info) > 1:
+					# Multiple possible sources. Sort by search distance and take the closest one. Print warning.
+					# Nearest neighbor distance is set to distance between chosen source and it's closest neighbor in the search region
+					gaia_info.sort('dist')
+					parallax = gaia_info['parallax'][0]
+					picked_coord = SkyCoord(gaia_info['ra'][0], gaia_info['dec'][0], unit='degree')
+					# Convert star parallax to distance in AU: d[AU] = 1/p["] * 206265 AU/parsec
+					star_distance = 1 / (parallax / 1000) * 206265
+					self.star_distance = star_distance
+
+					# Find nearest neighbor
+					#    calculate distance between the picked star and all other stars in search radius
+					gaia_info['separation'] = [picked_coord.separation(SkyCoord(x['ra'], x['dec'], unit='degree')).mas for x in gaia_info]
+					#    sort the search results by separation from picked star (the picked star should have a separation of zero)
+					gaia_info.sort('separation')
+					#    choose the closest one to the picked star
+					nearest_neighbor_dist = gaia_info['separation'][1]  # distance to n.n. in mas
+					#   convert from mas to AU
+					self.nearest_neighbor_dist = round(self.star_distance * np.tan(np.radians(nearest_neighbor_dist/(3.6e6))), 1)  # distance to n.n. in AU
+					return -52
+				else:
+					# Only once source in search area. Nearest neighbor distance is set to search width
+					parallax = gaia_info['parallax'][0]
+					# Convert star parallax to distance in AU: d[AU] = 1/p[as] * 206265AU/parsec
+					star_distance = 1 / (parallax / 1000) * 206265
+					self.star_distance = star_distance
+
+					# Set nearest neighbor distance to search distance
+					nearest_neighbor_dist = width.to('mas').value
+					#   convert from mas to AU
+					self.nearest_neighbor_dist = round(self.star_distance * np.tan(np.radians(nearest_neighbor_dist/(3.6e6))), 1)  # distance to n.n. in AU
+					return 0
+			else:
+				return -51
 
 	def load_stellar_model(self, filter, star_age):
 		print('LOADING STELLAR MODEL...')
@@ -3448,34 +3484,44 @@ class RUWE:
 		return new_model
 
 	def get_gaia_info(self):
-		#   Query Gaia for parallax, g_mag, color, astrometric_chi2 and n_good_obs, calculate RUWE
-		coordinate = SkyCoord(self.star_ra, self.star_dec, frame='icrs')
-		width = u.Quantity(10, u.arcsecond)
-		height = u.Quantity(10, u.arcsecond)
-		job_str = ("SELECT TOP 10 DISTANCE(POINT('ICRS', %f, %f), POINT('ICRS', ra, dec)) AS dist, * FROM gaiaedr3.gaia_source WHERE 1=CONTAINS(POINT('ICRS', %f, %f),CIRCLE('ICRS', ra, dec, 0.08333333)) ORDER BY dist ASC)" % (
-			coordinate.ra.degree, coordinate.dec.degree, coordinate.ra.degree, coordinate.dec.degree))
-		job = Gaia.launch_job(job_str)
-		gaia_info = job.get_results()
-		if gaia_info and len(gaia_info) >= 1:
-			# Only one star fits the coordinates, all is well
-			self.gmag = gaia_info['phot_g_mean_mag'][0]
-			self.color = gaia_info['bp_rp'][0]
-			self.n_good_obs = gaia_info['astrometric_n_good_obs_al'][0]
-			self.astrometric_chi2 = gaia_info['astrometric_chi2_al'][0]
-			self.parallax = gaia_info['parallax'][0]
-			self.parallax_error = gaia_info['parallax_error'][0]
-			self.ln_ruwe = np.log(gaia_info['ruwe'][0])
-
+		if np.isfinite(self.gmag):
 			#    Check if magnitude, color and Gaia solution are valid for calculating RUWE
-			if 3.6 <= self.gmag <= 21. and -1 <= self.color <= 10 and gaia_info['astrometric_params_solved'][0] == 31:
+			if 3.6 <= self.gmag <= 21. and -1 <= self.color <= 10:
 				# All is well
 				return
 			else:
 				# The magnitude or color is outside of bounds
 				return -53
+
 		else:
-			# No Gaia results
-			return -51
+			#   Query Gaia for parallax, g_mag, color, astrometric_chi2 and n_good_obs, calculate RUWE
+			coordinate = SkyCoord(self.star_ra, self.star_dec, frame='icrs')
+			width = u.Quantity(10, u.arcsecond)
+			height = u.Quantity(10, u.arcsecond)
+			job_str = ("SELECT TOP 10 DISTANCE(POINT('ICRS', %f, %f), POINT('ICRS', ra, dec)) AS dist, * FROM gaiaedr3.gaia_source WHERE 1=CONTAINS(POINT('ICRS', %f, %f),CIRCLE('ICRS', ra, dec, 0.08333333)) ORDER BY dist ASC)" % (
+				coordinate.ra.degree, coordinate.dec.degree, coordinate.ra.degree, coordinate.dec.degree))
+			job = Gaia.launch_job(job_str)
+			gaia_info = job.get_results()
+			if gaia_info and len(gaia_info) >= 1:
+				# Only one star fits the coordinates, all is well
+				self.gmag = gaia_info['phot_g_mean_mag'][0]
+				self.color = gaia_info['bp_rp'][0]
+				self.n_good_obs = gaia_info['astrometric_n_good_obs_al'][0]
+				self.astrometric_chi2 = gaia_info['astrometric_chi2_al'][0]
+				self.parallax = gaia_info['parallax'][0]
+				self.parallax_error = gaia_info['parallax_error'][0]
+				self.ln_ruwe = np.log(gaia_info['ruwe'][0])
+
+				#    Check if magnitude, color and Gaia solution are valid for calculating RUWE
+				if 3.6 <= self.gmag <= 21. and -1 <= self.color <= 10 and gaia_info['astrometric_params_solved'][0] == 31:
+					# All is well
+					return
+				else:
+					# The magnitude or color is outside of bounds
+					return -53
+			else:
+				# No Gaia results
+				return -51
 
 	def read_dist(self):
 		file_name = 'RuweTableGP.txt'

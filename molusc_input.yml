@@ -1,5 +1,5 @@
 # Right now this is just the defaults from the GUI.py file
-file_prefix: yml_test
+file_prefix: yml_test2
 num_generated: 10000
 transit: False
 star:
@@ -10,7 +10,7 @@ star:
   jitter: 20
 rv_params:
   fit: False
-  rv_file: ../example_rvs.txt
+  rv_file: ../example_rv.txt
   rv_floor: 20
   resolution: 50000
 ao_params:
@@ -21,3 +21,11 @@ ruwe_params:
   fit: False
 gaia_params:
   fit: False
+  ID: 6113920619134019456
+  gmag: 9.615366
+  color: 0.839709
+  n_good_obs: 151
+  astrometric_chi2: 225.52
+  parallax: 8.0170
+  parallax_error: 0.0182
+  ruwe: 0.869
