@@ -1567,6 +1567,14 @@ class Application:
 			failure = self.error_check(ruwe.read_dist())
 			if failure: return
 			# Get Gaia information
+			if np.isfinite(self.gmag):
+				ruwe.gmag = self.gmag
+				ruwe.color = self.color
+				ruwe.n_good_obs = self.n_good_obs
+				ruwe.astrometric_chi2 = self.astrometric_chi2
+				ruwe.parallax = self.parallax
+				ruwe.parallax_error = self.parallax_error
+				ruwe.ln_ruwe = self.ln_ruwe
 			failure = self.error_check(ruwe.get_gaia_info())
 			if failure: return
 			# Perform Test

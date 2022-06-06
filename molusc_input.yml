@@ -9,7 +9,7 @@ star:
   age: 0.015
   jitter: 20
 rv_params:
-  fit: False
+  fit: True
   rv_file: ../example_rv.txt
   rv_floor: 20
   resolution: 50000
@@ -18,9 +18,9 @@ ao_params:
   ao_file: ../example_contrast.txt
   filter: K
 ruwe_params:
-  fit: False
+  fit: True
 gaia_params:
-  fit: False
+  fit: True
   ID: 6113920619134019456
   gmag: 9.615366
   color: 0.839709
