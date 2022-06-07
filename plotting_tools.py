@@ -459,19 +459,21 @@ def survivor(survivors_file, all_file, param, file_out=None):
 
 if __name__=="__main__":
 
-    yaml_fname = "rv_test_params.yml"
+    # yaml_fname = "code/yml_test2_params_output.yml"
+    yaml_fname = "code/prae_test_params_output.yml"
     with open(yaml_fname,"r") as f:
         params = yaml.safe_load(f)
 
     # Run info
+    file_dir = "code/"
     file_base = params["file_prefix"] #yaml_fname.split("_")[0]
     n = params["num_generated"]  # number of companions generated in run
     mass = params["Star"]["Mass"]  # target mass in solar masses
 
 
     # Input files
-    survivors_file = f'{file_base}_kept.csv'
-    all_file = f'{file_base}_all.csv'
+    survivors_file = f'{file_dir}{file_base}_kept.csv'
+    all_file = f'{file_dir}{file_base}_all.csv'
     # Output files
     out_file = f'{file_base}_corner.pdf'  # writeout file for the corner plots
     out_file2 = f'{file_base}_dtct_lims.pdf' # writeout file for the detection limit plots

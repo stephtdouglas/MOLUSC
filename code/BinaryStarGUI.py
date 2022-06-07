@@ -1703,7 +1703,16 @@ class Application:
 							 "Age":self.star_age,"Mass":self.star_mass},
 					 "num_generated":self.num_generated,
 					 "file_prefix":self.prefix,
-					 "run_date":today
+					 "run_date":today,
+					 "gaia_params":{"gmag": self.gmag,
+					 				"color": self.color,
+									"n_good_obs": self.n_good_obs,
+									"astrometric_chi2": self.astrometric_chi2,
+									"parallax": self.parallax,
+									"parallax_error": self.parallax_error,
+									"ruwe": float(np.exp(self.ln_ruwe)),
+									"ln_ruwe": float(self.ln_ruwe),
+									"fit":self.gaia_check}
 					}
 
 		yaml_fname = f"{self.prefix}_params_output.yml"
