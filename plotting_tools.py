@@ -15,15 +15,15 @@ rcParams['axes.labelweight'] = 'bold'
 rcParams['axes.linewidth'] = 1
 
 # Input files
-survivors_file = 'output_kept.csv'
-all_file = 'output_all.csv'
+survivors_file = r'G:/Shared drives/DouglasGroup/Jared Sofair 2022/MOLUSC/MOLUSC Outputs/Tables/EPIC211885995_kept.csv'
+all_file = r'G:/Shared drives/DouglasGroup/Jared Sofair 2022/MOLUSC/MOLUSC Outputs/Tables/EPIC211885995_all.csv'
 # Output files
-out_file = 'output_corner.pdf'  # writeout file for the corner plots
-out_file2 = 'output_dtct_lims.pdf' # writeout file for the detection limit plots
-out_file3 = 'output_srv.pdf' # writeout file for the survivor plots
+out_file = r'G:/Shared drives/DouglasGroup/Jared Sofair 2022/MOLUSC/MOLUSC Outputs/Graphs/EPIC211885995_output_corner.pdf'  # writeout file for the corner plots
+out_file2 = r'G:/Shared drives/DouglasGroup/Jared Sofair 2022/MOLUSC/MOLUSC Outputs/Graphs/EPIC211885995_output_dtct_lims.pdf' # writeout file for the detection limit plots
+out_file3 = r'G:/Shared drives/DouglasGroup/Jared Sofair 2022/MOLUSC/MOLUSC Outputs/Graphs/EPIC211885995_output_srv.pdf' # writeout file for the survivor plots
 # Other
-n = 5000000  # number of companions generated in run
-mass = 1.01  # target mass in solar masses
+n = 1000  # number of companions generated in run
+mass = 0.626  # target mass in solar masses
 
 # Convenience functions
 def jup_mass_to_sol(jupiter_mass):
@@ -43,284 +43,284 @@ def a_to_period(a):
     G = 39.478 # Gravitational constant in AU^3/years^2*M_solar
     return np.sqrt((4*np.pi**2 * a**3) / (2*G)) * 365
   
-  def corner(file_in, file_out=None, given_params='auto', n_gen=5000000, smoothing=False, color='blue'):
-    # Creates a corner plot showing period, mass ratio, eccentricity and inclination
-    # Plot is a 4x4 array of subplots, with the bottom left triangle showing contour plots of 2D parameter spaces
-    # The diagonal subplots show histograms of each of the parameters. The top right triangle lists the surviving
-    # fraction (i.e. len(file_in)/n_gen
-    # Inputs:
-    #       file_in - this is the "kept" csv output by MOLUSC
-    #       file_out - optional, name of the file to write the plot to
-    #       given_params - optional, can be "all", "auto" or a list of parameters to plot e.g. ['P','e']. "all" is
-    #           equivalent to ['P','e','q','cos_i']. "auto" chooses parameters based on their ranges, keeping those that
-    #           have not been limited to single values
-    #       n_gen - number of companions generated to produce the output, used to calculate survivor fraction
-    #       smoothing - boolean, decides whether to apply gaussian filter smoothing
-    #       color - decides what color scheme to make the plot, can be "blue", "purple", "green", or "gray"
-    # Outputs:
-    #       corner plot, saved to file_out if applicable
-    fs = 18  # fontsize
-    rcParams['xtick.labelsize'] = 'large'
-    rcParams['ytick.labelsize'] = 'large'
+def corner(file_in, file_out=None, given_params='auto', n_gen=5000000, smoothing=False, color='blue'):
+  # Creates a corner plot showing period, mass ratio, eccentricity and inclination
+  # Plot is a 4x4 array of subplots, with the bottom left triangle showing contour plots of 2D parameter spaces
+  # The diagonal subplots show histograms of each of the parameters. The top right triangle lists the surviving
+  # fraction (i.e. len(file_in)/n_gen
+  # Inputs:
+  #       file_in - this is the "kept" csv output by MOLUSC
+  #       file_out - optional, name of the file to write the plot to
+  #       given_params - optional, can be "all", "auto" or a list of parameters to plot e.g. ['P','e']. "all" is
+  #           equivalent to ['P','e','q','cos_i']. "auto" chooses parameters based on their ranges, keeping those that
+  #           have not been limited to single values
+  #       n_gen - number of companions generated to produce the output, used to calculate survivor fraction
+  #       smoothing - boolean, decides whether to apply gaussian filter smoothing
+  #       color - decides what color scheme to make the plot, can be "blue", "purple", "green", or "gray"
+  # Outputs:
+  #       corner plot, saved to file_out if applicable
+  fs = 18  # fontsize
+  rcParams['xtick.labelsize'] = 'large'
+  rcParams['ytick.labelsize'] = 'large'
 
-    # Arrange Data
-    t = Table.read(file_in, format='ascii.csv')
+  # Arrange Data
+  t = Table.read(file_in, format='ascii.csv')
 
-    P = t['period(days)']
-    mass_ratio = t['mass ratio']
-    e = t['eccentricity']
-    cos_i = abs(t['cos_i'])
-    a  = t['semi-major axis(AU)']
-    # Get data ranges
-    P_range = [min(P), max(P)]
-    e_range = [min(e), max(e)]
-    a_range =  [min(a), max(a)]
-    i_range = [min(cos_i), max(cos_i)]
-    m_range = [min(mass_ratio), max(mass_ratio)]
+  P = t['period(days)']
+  mass_ratio = t['mass ratio']
+  e = t['eccentricity']
+  cos_i = abs(t['cos_i'])
+  a  = t['semi-major axis(AU)']
+  # Get data ranges
+  P_range = [min(P), max(P)]
+  e_range = [min(e), max(e)]
+  a_range =  [min(a), max(a)]
+  i_range = [min(cos_i), max(cos_i)]
+  m_range = [min(mass_ratio), max(mass_ratio)]
 
-    # Choose color scheme
-    if color == 'blue':  # default option
-        c1 = '#2a567b'  # border color
-        c2 = '#9dc9ee'  # face color
-        colors2 = ['white', '#9dc9ee', '#2a567b']  # contour colors for 2-level
-        colors3 = ['white', '#9dc9ee', '#4d9de0', '#2a567b']  # contour colors
-    elif color == 'purple':
-        c1 = '#483b57'
-        c2 = '#c6bcd3'
-        colors2 = ['white', '#c6bcd3', '#483b57']
-        colors3 = ['white', '#c6bcd3', '#836c9f', '#483b57']
-    elif color == 'green':
-        c1 = '#26724a'
-        c2 = '#94d5b2'
-        colors2 = ['white', '#94d5b2', '#26724a']
-        colors3 = ['white', '#94d5b2', '#3bb273', '#26724a']
-    elif color == 'gray':
-        c1 = '#3b3b3b'
-        c2 = '#b9b9b9'
-        colors2 = ['white', '#b9b9b9', '#3b3b3b']
-        colors3 = ['white', '#b9b9b9', 'gray', '#3b3b3b']
-    else:
-        print('Unrecognized color. Using blue')
-        c1 = '#2a567b'  # border color
-        c2 = '#9dc9ee'  # face color
-        colors2 = ['white', '#9dc9ee', '#2a567b']  # contour colors for 2-level
-        colors3 = ['white', '#9dc9ee', '#4d9de0', '#2a567b']  # contour colors
+  # Choose color scheme
+  if color == 'blue':  # default option
+      c1 = '#2a567b'  # border color
+      c2 = '#9dc9ee'  # face color
+      colors2 = ['white', '#9dc9ee', '#2a567b']  # contour colors for 2-level
+      colors3 = ['white', '#9dc9ee', '#4d9de0', '#2a567b']  # contour colors
+  elif color == 'purple':
+      c1 = '#483b57'
+      c2 = '#c6bcd3'
+      colors2 = ['white', '#c6bcd3', '#483b57']
+      colors3 = ['white', '#c6bcd3', '#836c9f', '#483b57']
+  elif color == 'green':
+      c1 = '#26724a'
+      c2 = '#94d5b2'
+      colors2 = ['white', '#94d5b2', '#26724a']
+      colors3 = ['white', '#94d5b2', '#3bb273', '#26724a']
+  elif color == 'gray':
+      c1 = '#3b3b3b'
+      c2 = '#b9b9b9'
+      colors2 = ['white', '#b9b9b9', '#3b3b3b']
+      colors3 = ['white', '#b9b9b9', 'gray', '#3b3b3b']
+  else:
+      print('Unrecognized color. Using blue')
+      c1 = '#2a567b'  # border color
+      c2 = '#9dc9ee'  # face color
+      colors2 = ['white', '#9dc9ee', '#2a567b']  # contour colors for 2-level
+      colors3 = ['white', '#9dc9ee', '#4d9de0', '#2a567b']  # contour colors
 
-    # Determine which parameters to plot
-    params = []
-    data_list = []
+  # Determine which parameters to plot
+  params = []
+  data_list = []
 
-    if given_params == 'all':
-        params = ['P (days)', 'e', 'cos(i)', 'q']
-        data_list = [P, e, cos_i, mass_ratio]
-    elif given_params == 'auto':
-        if P_range[1]-P_range[0] > 1:
-            params.append('P (days)')
-            data_list.append(P)
-        if e_range[1]-e_range[0] > 0.05:
-            params.append('e')
-            data_list.append(e)
-        if i_range[1]-i_range[0] > 0.1:
-            params.append('sin(i)')
-            data_list.append(cos_i)
-        if m_range[1] - m_range[0] > 0.05:
-            params.append('q')
-            data_list.append(mass_ratio)
-    else:
-        list_params = given_params
-        for x in list_params:
-            if x == 'P':
-                params.append('P (days)')
-                data_list.append(P)
-            elif x == 'e':
-                params.append('e')
-                data_list.append(e)
-            elif x == 'cos(i)' or x == 'cos_i' or x == 'cos i':
-                params.append('cos(i)')
-                data_list.append(cos_i)
-            elif x == 'mass ratio' or x == 'q':
-                params.append('q')
-                data_list.append(mass_ratio)
+  if given_params == 'all':
+      params = ['P (days)', 'e', 'cos(i)', 'q']
+      data_list = [P, e, cos_i, mass_ratio]
+  elif given_params == 'auto':
+      if P_range[1]-P_range[0] > 1:
+          params.append('P (days)')
+          data_list.append(P)
+      if e_range[1]-e_range[0] > 0.05:
+          params.append('e')
+          data_list.append(e)
+      if i_range[1]-i_range[0] > 0.1:
+          params.append('sin(i)')
+          data_list.append(cos_i)
+      if m_range[1] - m_range[0] > 0.05:
+          params.append('q')
+          data_list.append(mass_ratio)
+  else:
+      list_params = given_params
+      for x in list_params:
+          if x == 'P':
+              params.append('P (days)')
+              data_list.append(P)
+          elif x == 'e':
+              params.append('e')
+              data_list.append(e)
+          elif x == 'cos(i)' or x == 'cos_i' or x == 'cos i':
+              params.append('cos(i)')
+              data_list.append(cos_i)
+          elif x == 'mass ratio' or x == 'q':
+              params.append('q')
+              data_list.append(mass_ratio)
 
-    N = len(params)
-    if N < 2:
-        print('More than one unfixed parameter is required to make a corner plot.')
-        return -1
+  N = len(params)
+  if N < 2:
+      print('More than one unfixed parameter is required to make a corner plot.')
+      return -1
 
-    # Create data structure
-    data = np.vstack([np.transpose(x) for x in data_list]).transpose()
+  # Create data structure
+  data = np.vstack([np.transpose(x) for x in data_list]).transpose()
 
-    # Create nxn diagonal array of subplots
-    fig, axes = plt.subplots(N, N, figsize=(9, 7))
+  # Create nxn diagonal array of subplots
+  fig, axes = plt.subplots(N, N, figsize=(9, 7))
 
-    # Changes to apply to all axes
-    plt.subplots_adjust(wspace=.05, hspace=.05)  # Change spacing between axes
-    for i in range(N):
-        for j in range(N):
-            # Change axes line width
-            for axis in ['top', 'bottom', 'left', 'right']:
-                axes[i, j].spines[axis].set_linewidth(2)
-            # Change tick params
-            axes[i, j].tick_params(axis='both', direction='in', top=True, right=True, labelbottom=False, labelleft=False, width=1.5, length=4)
-            axes[i, j].tick_params(which='minor', length=0)
-            # Add Axis Labels
-            if i == (N-1):  # x axis labels
-                axes[i, j].tick_params(axis='x', labelbottom=True, labeltop=False, labelrotation=45)
-            if j == 0:  # y axis labels
-                axes[i, j].tick_params(axis='y', labelleft=True, labelright=False, labelrotation=45)
+  # Changes to apply to all axes
+  plt.subplots_adjust(wspace=.05, hspace=.05)  # Change spacing between axes
+  for i in range(N):
+      for j in range(N):
+          # Change axes line width
+          for axis in ['top', 'bottom', 'left', 'right']:
+              axes[i, j].spines[axis].set_linewidth(2)
+          # Change tick params
+          axes[i, j].tick_params(axis='both', direction='in', top=True, right=True, labelbottom=False, labelleft=False, width=1.5, length=4)
+          axes[i, j].tick_params(which='minor', length=0)
+          # Add Axis Labels
+          if i == (N-1):  # x axis labels
+              axes[i, j].tick_params(axis='x', labelbottom=True, labeltop=False, labelrotation=45)
+          if j == 0:  # y axis labels
+              axes[i, j].tick_params(axis='y', labelleft=True, labelright=False, labelrotation=45)
 
-    # Diagonal: Plot Survivor Histograms
-    n_bins = 15     # number bins for each histogram
-    for i in range(N):
-        # For each parameter I need to choose log or linear, set the bins and x scale appropriately and set x bounds
-        # For all parameters I plot the histogram, and the 16th, 50th and 84th percentile lines, and set the y bounds
-        bins = n_bins  # default
-        if params[i] == 'P (days)':
-            # Period, log normal
-            bins = np.logspace(np.log10(P_range[0]), np.log10(P_range[-1]), n_bins)
-            axes[i, i].set_xscale('log')
-            axes[i, i].set_xbound(P_range[0], P_range[1])
-            if math.ceil(np.log10(a_range[1])) - math.floor(np.log10(a_range[0])) >= 15:
-                ticks = np.arange(math.floor(np.log10(P_range[0])), math.ceil(np.log10(P_range[1])) + 1, 4)[1:-1]
-            elif math.ceil(np.log10(a_range[1])) - math.floor(np.log10(a_range[0])) >= 10:
-                ticks = np.arange(math.floor(np.log10(P_range[0])), math.ceil(np.log10(P_range[1])) + 1, 3)[1:-1]
-            elif math.ceil(np.log10(a_range[1])) - math.floor(np.log10(a_range[0])) > 5:
-                ticks = np.arange(math.floor(np.log10(P_range[0])), math.ceil(np.log10(P_range[1])) + 1, 2)[1:-1]
-            else:
-                ticks = np.arange(math.floor(np.log10(P_range[0])), math.ceil(np.log10(P_range[1]))+1, 1)[1:-1]
-            ticks = [10.**x for x in ticks]
-            character = 'P'
-        elif params[i] == 'e':
-            # Eccentricity, uniform
-            bins = np.linspace(e_range[0], e_range[1], n_bins)
-            axes[i, i].set_xbound(e_range[0], e_range[1])
-            ticks = np.linspace(math.floor(e_range[0]), math.ceil(e_range[1]), 5)[1:-1]
-            character = 'e'
-        elif params[i] == 'a (AU)':
-            # Separation, log normal
-            bins = np.logspace(np.log10(a_range[0]), np.log10(a_range[-1]), n_bins)
-            axes[i, i].set_xscale('log')
-            axes[i, i].set_xbound(a_range[0], a_range[1])
-            if math.ceil(np.log10(a_range[1])) - math.floor(np.log10(a_range[0])) > 15:
-                ticks = np.arange(math.floor(np.log10(a_range[0])), math.ceil(np.log10(a_range[1])) + 1, 4)[1:-1]
-            elif math.ceil(np.log10(a_range[1])) - math.floor(np.log10(a_range[0])) > 11:
-                ticks = np.arange(math.floor(np.log10(a_range[0])), math.ceil(np.log10(a_range[1])) + 1, 3)[1:-1]
-            elif math.ceil(np.log10(a_range[1])) - math.floor(np.log10(a_range[0])) > 6:
-                ticks = np.arange(math.floor(np.log10(a_range[0])), math.ceil(np.log10(a_range[1])) + 1, 2)[1:-1]
-            else:
-                ticks = np.arange(math.floor(np.log10(a_range[0])), math.ceil(np.log10(a_range[1]))+1, 1)[1:-1]
-            ticks = [10.**x for x in ticks]
-            character = 'a'
-        elif params[i] == 'cos(i)':
-            # sin(i), uniform
-            bins = np.linspace(i_range[0], i_range[1], n_bins)
-            axes[i, i].set_xbound(i_range[0], i_range[1])
-            ticks = np.linspace(math.floor(i_range[0]), math.ceil(i_range[1]), 5)[1:-1]
-            character = 'cos(i)'
-        elif params[i] == 'q':
-            # mass ratio, uniform
-            bins = np.linspace(m_range[0], m_range[1], n_bins)
-            axes[i, i].set_xbound(round(m_range[0]), round(m_range[1]))
-            ticks = np.linspace(math.floor(m_range[0]), math.ceil(m_range[1]), 5)[1:-1]
-            character = 'M'
+  # Diagonal: Plot Survivor Histograms
+  n_bins = 15     # number bins for each histogram
+  for i in range(N):
+      # For each parameter I need to choose log or linear, set the bins and x scale appropriately and set x bounds
+      # For all parameters I plot the histogram, and the 16th, 50th and 84th percentile lines, and set the y bounds
+      bins = n_bins  # default
+      if params[i] == 'P (days)':
+          # Period, log normal
+          bins = np.logspace(np.log10(P_range[0]), np.log10(P_range[-1]), n_bins)
+          axes[i, i].set_xscale('log')
+          axes[i, i].set_xbound(P_range[0], P_range[1])
+          if math.ceil(np.log10(a_range[1])) - math.floor(np.log10(a_range[0])) >= 15:
+              ticks = np.arange(math.floor(np.log10(P_range[0])), math.ceil(np.log10(P_range[1])) + 1, 4)[1:-1]
+          elif math.ceil(np.log10(a_range[1])) - math.floor(np.log10(a_range[0])) >= 10:
+              ticks = np.arange(math.floor(np.log10(P_range[0])), math.ceil(np.log10(P_range[1])) + 1, 3)[1:-1]
+          elif math.ceil(np.log10(a_range[1])) - math.floor(np.log10(a_range[0])) > 5:
+              ticks = np.arange(math.floor(np.log10(P_range[0])), math.ceil(np.log10(P_range[1])) + 1, 2)[1:-1]
+          else:
+              ticks = np.arange(math.floor(np.log10(P_range[0])), math.ceil(np.log10(P_range[1]))+1, 1)[1:-1]
+          ticks = [10.**x for x in ticks]
+          character = 'P'
+      elif params[i] == 'e':
+          # Eccentricity, uniform
+          bins = np.linspace(e_range[0], e_range[1], n_bins)
+          axes[i, i].set_xbound(e_range[0], e_range[1])
+          ticks = np.linspace(math.floor(e_range[0]), math.ceil(e_range[1]), 5)[1:-1]
+          character = 'e'
+      elif params[i] == 'a (AU)':
+          # Separation, log normal
+          bins = np.logspace(np.log10(a_range[0]), np.log10(a_range[-1]), n_bins)
+          axes[i, i].set_xscale('log')
+          axes[i, i].set_xbound(a_range[0], a_range[1])
+          if math.ceil(np.log10(a_range[1])) - math.floor(np.log10(a_range[0])) > 15:
+              ticks = np.arange(math.floor(np.log10(a_range[0])), math.ceil(np.log10(a_range[1])) + 1, 4)[1:-1]
+          elif math.ceil(np.log10(a_range[1])) - math.floor(np.log10(a_range[0])) > 11:
+              ticks = np.arange(math.floor(np.log10(a_range[0])), math.ceil(np.log10(a_range[1])) + 1, 3)[1:-1]
+          elif math.ceil(np.log10(a_range[1])) - math.floor(np.log10(a_range[0])) > 6:
+              ticks = np.arange(math.floor(np.log10(a_range[0])), math.ceil(np.log10(a_range[1])) + 1, 2)[1:-1]
+          else:
+              ticks = np.arange(math.floor(np.log10(a_range[0])), math.ceil(np.log10(a_range[1]))+1, 1)[1:-1]
+          ticks = [10.**x for x in ticks]
+          character = 'a'
+      elif params[i] == 'cos(i)':
+          # sin(i), uniform
+          bins = np.linspace(i_range[0], i_range[1], n_bins)
+          axes[i, i].set_xbound(i_range[0], i_range[1])
+          ticks = np.linspace(math.floor(i_range[0]), math.ceil(i_range[1]), 5)[1:-1]
+          character = 'cos(i)'
+      elif params[i] == 'q':
+          # mass ratio, uniform
+          bins = np.linspace(m_range[0], m_range[1], n_bins)
+          axes[i, i].set_xbound(round(m_range[0]), round(m_range[1]))
+          ticks = np.linspace(math.floor(m_range[0]), math.ceil(m_range[1]), 5)[1:-1]
+          character = 'M'
 
-        # Plot for all
-        n, _ = np.histogram(data[:, i], bins=bins)
-        widths = [bins[i + 1] - bins[i] for i in range(len(bins) - 1)]
-        axes[i, i].bar(bins[:-1], n/sum(n), widths, align='edge', edgecolor=c1, linewidth=3, color=c2)
-        axes[i, i].bar(bins[:-1], n/sum(n), widths, align='edge', linewidth=0, color=c2)
-        lims = axes[i, i].get_ylim()
-        # plot median and 16th and 84th percentiles
-        axes[i, i].vlines([np.median(data[:, i]), np.percentile(data[:, i], 16.0), np.percentile(data[:, i], 84.0)],
-                          lims[0], lims[1], linestyle='--', color='k')
-        axes[i, i].set_ybound(lims[0], lims[1])
+      # Plot for all
+      n, _ = np.histogram(data[:, i], bins=bins)
+      widths = [bins[i + 1] - bins[i] for i in range(len(bins) - 1)]
+      axes[i, i].bar(bins[:-1], n/sum(n), widths, align='edge', edgecolor=c1, linewidth=3, color=c2)
+      axes[i, i].bar(bins[:-1], n/sum(n), widths, align='edge', linewidth=0, color=c2)
+      lims = axes[i, i].get_ylim()
+      # plot median and 16th and 84th percentiles
+      axes[i, i].vlines([np.median(data[:, i]), np.percentile(data[:, i], 16.0), np.percentile(data[:, i], 84.0)],
+                        lims[0], lims[1], linestyle='--', color='k')
+      axes[i, i].set_ybound(lims[0], lims[1])
 
-        # Set x ticks
-        axes[i, i].set_xticks(ticks)
+      # Set x ticks
+      axes[i, i].set_xticks(ticks)
 
-        # Add title printing the median and 16th and 84th percentile
-        # upper = np.percentile(data[:, i], 84.0) - np.median(data[:, i])
-        # lower = np.median(data[:, i]) - np.percentile(data[:, i], 16.0)
-        # title = character + r'= %.3f $\pm _{%.2f}^{%.2f}$' %(np.median(data[:, i]), lower, upper)
-        # axes[i, i].set_title(title)
+      # Add title printing the median and 16th and 84th percentile
+      # upper = np.percentile(data[:, i], 84.0) - np.median(data[:, i])
+      # lower = np.median(data[:, i]) - np.percentile(data[:, i], 16.0)
+      # title = character + r'= %.3f $\pm _{%.2f}^{%.2f}$' %(np.median(data[:, i]), lower, upper)
+      # axes[i, i].set_title(title)
 
-    # Add the x-axis label on the lowest diagonal, and y-axis label on highest diagonal
-    axes[N-1, N-1].set_xlabel(params[N-1], fontsize=fs)
-    axes[0, 0].set_ylabel('Frequency', fontsize=fs)
+  # Add the x-axis label on the lowest diagonal, and y-axis label on highest diagonal
+  axes[N-1, N-1].set_xlabel(params[N-1], fontsize=fs)
+  axes[0, 0].set_ylabel('Frequency', fontsize=fs)
 
-    # Lower Triangle: Plot Parameters
-    if len(P) <= 5000:  # For plots with less than 5000 survivors use a scatterplot
-        for i in range(N):
-            axes[i, 0].set_ylabel(params[i], fontsize=fs)
-            for j in range(i):
-                # Plot Data
-                # 1. Determine if either axis uses a log scale. Period and semi-major axis need log scales
-                if params[i] == 'P (days)' or params[i] == 'a (AU)':
-                    axes[i, j].set_yscale('log')
-                if params[j] == 'P (days)' or params[j] == 'a (AU)':
-                    axes[i, j].set_xscale('log')
-                # 2. Plot the scatterplot
-                axes[i, j].scatter(data[:,j],data[:,i], color=colors3[1], marker='.', s=0.3, alpha=.9)
-                # 3. Add x-axis labels
-                axes[(N-1), j].set_xlabel(params[j], fontsize=fs)
-    else:  # For more than 5000 survivors use a 2d histogram
-        for i in range(N):
-            if i > 0:  # Set y-axis labels
-                axes[i, 0].set_ylabel(params[i], fontsize=fs)
-            for j in range(0, i):
-                # 1. Determine if either axis uses a log scale. Period and semi-major axis need log scales
-                if params[i] == 'P (days)' or params[i] == 'a (AU)':
-                    ys = np.log10(data[:, i])
-                else:
-                    ys = data[:, i]
-                if params[j] == 'P (days)' or params[j] == 'a (AU)':
-                    xs = np.log10(data[:, j])
-                else:
-                    xs = data[:, j]
-                if not smoothing:
-                    # 2. Get the histogram counts and bins
-                    b = 30  # number of bins in histogram
-                    counts, x_bins, y_bins = np.histogram2d(xs, ys, bins=b)
-                else:
-                    # 2. Get the histogram counts and bins
-                    b = 50  # number of bins in histogram
-                    smoothing_factor = 1.1
-                    counts, x_bins, y_bins = np.histogram2d(xs, ys, bins=b)
-                    # 2b. Put the counts through a gaussian filter
-                    counts = gaussian_filter(counts, smoothing_factor)
-                # 3. Check the number of unique contours and set color scale accordingly
-                ls = np.unique([np.percentile(counts, 39.3), np.percentile(counts, 86), np.percentile(counts, 98)])
-                if len(ls) == 2:  c = colors2
-                else:  c = colors3
-                # 4. Plot the filled contour and contour lines
-                if params[i] == 'P (days)' or params[i] == 'a (AU)':
-                    ys = np.power(10, y_bins[:-1])
-                    axes[i, j].set_yscale('log')
-                else:
-                    ys = y_bins[:-1]
-                if params[j] == 'P (days)' or params[j] == 'a (AU)':
-                    xs = np.power(10, x_bins[:-1])
-                    axes[i, j].set_xscale('log')
-                else:
-                    xs = x_bins[:-1]
-                axes[i, j].contourf(xs, ys, counts.transpose(), levels=ls, extend='both', colors=c)
-                axes[i, j].contour(xs, ys, counts.transpose(), levels=ls, colors='k', alpha=0.8)
-                # 5. Add x-axis labels
-                axes[(N-1), j].set_xlabel(params[j], fontsize=fs)
-                # 6. Adjust x-axis ticks
-                axes[i, j].set_xticks(axes[j, j].get_xticks())
+  # Lower Triangle: Plot Parameters
+  if len(P) <= 5000:  # For plots with less than 5000 survivors use a scatterplot
+      for i in range(N):
+          axes[i, 0].set_ylabel(params[i], fontsize=fs)
+          for j in range(i):
+              # Plot Data
+              # 1. Determine if either axis uses a log scale. Period and semi-major axis need log scales
+              if params[i] == 'P (days)' or params[i] == 'a (AU)':
+                  axes[i, j].set_yscale('log')
+              if params[j] == 'P (days)' or params[j] == 'a (AU)':
+                  axes[i, j].set_xscale('log')
+              # 2. Plot the scatterplot
+              axes[i, j].scatter(data[:,j],data[:,i], color=colors3[1], marker='.', s=0.3, alpha=.9)
+              # 3. Add x-axis labels
+              axes[(N-1), j].set_xlabel(params[j], fontsize=fs)
+  else:  # For more than 5000 survivors use a 2d histogram
+      for i in range(N):
+          if i > 0:  # Set y-axis labels
+              axes[i, 0].set_ylabel(params[i], fontsize=fs)
+          for j in range(0, i):
+              # 1. Determine if either axis uses a log scale. Period and semi-major axis need log scales
+              if params[i] == 'P (days)' or params[i] == 'a (AU)':
+                  ys = np.log10(data[:, i])
+              else:
+                  ys = data[:, i]
+              if params[j] == 'P (days)' or params[j] == 'a (AU)':
+                  xs = np.log10(data[:, j])
+              else:
+                  xs = data[:, j]
+              if not smoothing:
+                  # 2. Get the histogram counts and bins
+                  b = 30  # number of bins in histogram
+                  counts, x_bins, y_bins = np.histogram2d(xs, ys, bins=b)
+              else:
+                  # 2. Get the histogram counts and bins
+                  b = 50  # number of bins in histogram
+                  smoothing_factor = 1.1
+                  counts, x_bins, y_bins = np.histogram2d(xs, ys, bins=b)
+                  # 2b. Put the counts through a gaussian filter
+                  counts = gaussian_filter(counts, smoothing_factor)
+              # 3. Check the number of unique contours and set color scale accordingly
+              ls = np.unique([np.percentile(counts, 39.3), np.percentile(counts, 86), np.percentile(counts, 98)])
+              if len(ls) == 2:  c = colors2
+              else:  c = colors3
+              # 4. Plot the filled contour and contour lines
+              if params[i] == 'P (days)' or params[i] == 'a (AU)':
+                  ys = np.power(10, y_bins[:-1])
+                  axes[i, j].set_yscale('log')
+              else:
+                  ys = y_bins[:-1]
+              if params[j] == 'P (days)' or params[j] == 'a (AU)':
+                  xs = np.power(10, x_bins[:-1])
+                  axes[i, j].set_xscale('log')
+              else:
+                  xs = x_bins[:-1]
+              axes[i, j].contourf(xs, ys, counts.transpose(), levels=ls, extend='both', colors=c)
+              axes[i, j].contour(xs, ys, counts.transpose(), levels=ls, colors='k', alpha=0.8)
+              # 5. Add x-axis labels
+              axes[(N-1), j].set_xlabel(params[j], fontsize=fs)
+              # 6. Adjust x-axis ticks
+              axes[i, j].set_xticks(axes[j, j].get_xticks())
 
-    # Upper Triangle:  Write survivor fraction, make invisible
-    axes[0, N-2].text(0, 1, ('Surviving Fraction: %.3f' %(len(t)/n_gen)), fontsize=20)
-    for i in range(N):
-        for j in range(0, i):
-            axes[j, i].axis('off')
+  # Upper Triangle:  Write survivor fraction, make invisible
+  axes[0, N-2].text(0, 1, ('Surviving Fraction: %.3f' %(len(t)/n_gen)), fontsize=20)
+  for i in range(N):
+      for j in range(0, i):
+          axes[j, i].axis('off')
 
-    if file_out is not None:
-        plt.savefig(file_out, bbox_inches='tight', pad_inches=0.25)
-    plt.show()
+  if file_out is not None:
+      plt.savefig(file_out, bbox_inches='tight', pad_inches=0.25)
+  plt.show()
 
-    return 0
+  return 0
 
 
 def detection_limits(file_in, star_mass, file_out=None, mark_P=None):
@@ -426,7 +426,8 @@ def survivor(survivors_file, all_file, param, file_out=None):
       N, _ = np.histogram(t_all['mass ratio'], bins=bins)
       scale = 'linear'
       axes[2].set_xlabel('Mass Ratio')
-
+#test
+#test
   widths = [bins[i + 1] - bins[i] for i in range(len(bins) - 1)]
 
   # Top plot, generated histogram
@@ -465,6 +466,7 @@ def survivor(survivors_file, all_file, param, file_out=None):
   return
 
 # Comment and uncomment as needed
-# corner(survivors_file,  n_gen=n, given_params='all', smoothing=True, file_out=out_file)
-# detection_limits(survivors_file, mass, file_out=out_file2
-# survivor(survivors_file, all_file, param='P', file_out=out_file3)
+if __name__ == '__main__':
+    corner(survivors_file,  n_gen=n, given_params='all', smoothing=True, file_out=out_file)
+    detection_limits(survivors_file, mass, file_out=out_file2)
+    survivor(survivors_file, all_file, param='P', file_out=out_file3)

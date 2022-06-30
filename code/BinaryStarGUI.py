@@ -17,6 +17,7 @@ import sys
 import argparse
 import gc
 import warnings
+import os
 from astropy.utils.exceptions import AstropyWarning
 warnings.simplefilter('error', category=RuntimeWarning)
 warnings.simplefilter('ignore', category=AstropyWarning)
@@ -1916,14 +1917,15 @@ class Application:
 		if args.transit:
 			self.limits[3] = 'transit'
 
-		if not self.ao_filename[0] and not self.rv_filename and not self.ruwe_check and not self.gaia_check and not self.star_jitter:
+
+		if not self.ao_filename[0] and not self.rv_filename and not self.ruwe_check and not self.gaia_check and not self.added_jitter:
 			print('At least one analysis type needs to be chosen')
 			return False
 		if self.ao_filename[0] and not self.filter:
 			print('AO given without filter')
 			return False
-		if self.star_jitter != -1 and not self.rv_filename:
-			print('RV File needs to be given for stellar jitter test')
+		if self.ao_filename[0] and not (self.filter in ['J','K','H','G', 'Bp','Rp','R','I','L','LL','M']):
+			print("Unknown filter. Filter must be one of ['J','K','H','G', 'Bp','Rp','R','I','L','LL','M']")
 			return False
 
 		return True
@@ -2667,7 +2669,7 @@ class AO:
 		# Read in file containing stellar model with the filter needed
 		if filter == 'J' or filter == 'H' or filter == 'K':  # 2MASS filters
 			model_chart = {}
-			BHAC_file = 'BHAC15_2MASS.txt'
+			BHAC_file = r'C:\Users\Jared\Documents\GitHub\MOLUSC\code\BHAC15_2MASS.txt'
 			with open(BHAC_file, 'r') as content_file:
 				content = content_file.read()
 			tables = content.split(
@@ -2692,7 +2694,7 @@ class AO:
 				model_chart[age] = year_chart
 		elif filter == 'R' or filter == 'I':
 			model_chart = {}
-			BHAC_file = 'BHAC15_CFHT.txt'
+			BHAC_file = r'C:\Users\Jared\Documents\GitHub\MOLUSC\code\BHAC15_CFHT.txt'
 			with open(BHAC_file, 'r') as content_file:
 				content = content_file.read()
 			tables = content.split(
@@ -2713,7 +2715,7 @@ class AO:
 				model_chart[age] = year_chart
 		elif filter == 'G' or filter == 'Rp' or filter ==  'Bp':
 			model_chart = {}
-			BHAC_file = 'BHAC15_GAIA.txt'
+			BHAC_file = r'C:\Users\Jared\Documents\GitHub\MOLUSC\code\BHAC15_GAIA.txt'
 			with open(BHAC_file, 'r') as content_file:
 				content = content_file.read()
 			tables = content.split(
@@ -2738,7 +2740,7 @@ class AO:
 		elif filter == 'L' or filter == 'LL' or filter == 'M':
 			print('MODEL:  CIT2')
 			model_chart = {}
-			BHAC_file = 'BHAC15_CIT2.txt'
+			BHAC_file = r'C:\Users\Jared\Documents\GitHub\MOLUSC\code\BHAC15_CIT2.txt'
 			with open(BHAC_file, 'r') as content_file:
 				content = content_file.read()
 			content = content[content.find('\n\n\n'):]  # Cut off the intro material
@@ -2932,9 +2934,13 @@ class RV:
 			# The degrees of freedom is equal to (N-1)+1, for the number of data points and the applied velocity shift
 			prob = [stats.chi2.cdf(chi_squared[i], len(self.MJD)-1) for i in range(0, num_generated)]
 
-		else:  # Parallel
-			# Determine cpu count
-			cpu_count = mp.cpu_count()-1
+		else:  
+            # Parallel
+    		# Determine cpu count
+			try:
+				cpu_count = len(os.sched_getaffinity(0))-1
+			except AttributeError:
+				cpu_count = mp.cpu_count()-1
 
 			contrast_check = [True if x <= 5 else False for x in contrast]
 
@@ -3128,7 +3134,7 @@ class RV:
 		# RV always loads G filter
 		if filter == 'J' or filter == 'H' or filter == 'K':  # 2MASS filters
 			model_chart = {}
-			BHAC_file = 'BHAC15_2MASS.txt'
+			BHAC_file = r'C:\Users\Jared\Documents\GitHub\MOLUSC\code\BHAC15_2MASS.txt'
 			with open(BHAC_file, 'r') as content_file:
 				content = content_file.read()
 			tables = content.split(
@@ -3154,7 +3160,7 @@ class RV:
 
 		elif filter == 'G' or filter == 'R' or filter == 'I':
 			model_chart = {}
-			BHAC_file = 'BHAC15_CFHT.txt'
+			BHAC_file = r'C:\Users\Jared\Documents\GitHub\MOLUSC\code\BHAC15_CFHT.txt'
 			with open(BHAC_file, 'r') as content_file:
 				content = content_file.read()
 			tables = content.split(
@@ -3320,7 +3326,7 @@ class RUWE:
 		# Read in file containing stellar model
 		# todo Interpolate to get the chart for the exact age or binned age or something that doesnt rely on the age being in the chart
 		model_chart = {}
-		BHAC_file = 'BHAC15_CFHT.txt'
+		BHAC_file = r'C:\Users\Jared\Documents\GitHub\MOLUSC\code\BHAC15_CFHT.txt'
 		with open(BHAC_file, 'r') as content_file:
 			content = content_file.read()
 		tables = content.split(
