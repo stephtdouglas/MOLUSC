@@ -9,17 +9,22 @@ from astropy.table import Table
 import numpy as np
 
 
-csv_path_drive = os.path.expanduser(r'G:\Shared drives\DouglasGroup\Jared Sofair 2022\CSV Files')
-csv_path_github = os.path.expanduser(r'C:\Users\Jared\Documents\GitHub\data-parser\CSV Files')
-contrast_path = os.path.expanduser(r'G:\Shared drives\DouglasGroup\Jared Sofair 2022\MOLUSC\Data Parser Tables')
+# csv_path_drive = os.path.expanduser(r'G:\Shared drives\DouglasGroup\Jared Sofair 2022\CSV Files')
+# csv_path_github = os.path.expanduser(r'C:\Users\Jared\Documents\GitHub\data-parser\CSV Files')
+# contrast_path = os.path.expanduser(r'G:\Shared drives\DouglasGroup\Jared Sofair 2022\MOLUSC\Data Parser Tables')
+csv_path_hpc = os.path.expanduser(r'../code')
+contrast_path_hpc = os.path.expanduser(r'../contrasts')
 
-anaconda_path = os.path.expanduser(r'C:\Users\Jared\anaconda3')
+# anaconda_path = os.path.expanduser(r'C:\Users\Jared\anaconda3')
+anaconda_path_hpc = os.path.expanduser(r'C:\Users\Jared\anaconda3')
 
-repo_path = os.path.expanduser(r'C:\Users\Jared\Documents\GitHub\MOLUSC')
-gui_path = os.path.join(repo_path, r'code\BinaryStarGUI.py')
+# repo_path = os.path.expanduser(r'C:\Users\Jared\Documents\GitHub\MOLUSC')
+repo_path_hpc = os.path.expanduser(r'../MOLUSC')
+gui_path = os.path.join(repo_path, r'code/BinaryStarGUI.py')
 batch_path = os.path.join(repo_path, r'batches')
 
-output_path = os.path.expanduser(r'G:\Shared drives\DouglasGroup\Jared Sofair 2022\MOLUSC\MOLUSC Outputs\Tables')
+# output_path_drive = os.path.expanduser(r'G:\Shared drives\DouglasGroup\Jared Sofair 2022\MOLUSC\MOLUSC Outputs\Tables')
+output_path_hpc = os.path.expanduser(r'../outputs/tables')
 
 pm = Table.read(os.path.join(csv_path_drive, r'Praesepe_Merged.csv'))
 targets = Table.read(os.path.join(csv_path_github, r'targets_abr.csv'))
