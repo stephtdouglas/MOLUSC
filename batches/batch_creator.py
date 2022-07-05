@@ -12,22 +12,22 @@ import numpy as np
 csv_path_drive = os.path.expanduser(r'G:\Shared drives\DouglasGroup\Jared Sofair 2022\CSV Files')
 csv_path_github = os.path.expanduser(r'C:\Users\Jared\Documents\GitHub\data-parser\CSV Files')
 contrast_path = os.path.expanduser(r'G:\Shared drives\DouglasGroup\Jared Sofair 2022\MOLUSC\Data Parser Tables')
-csv_path_hpc = os.path.expanduser(r'../csvs')
-contrast_path_hpc = os.path.expanduser(r'../contrasts')
+csv_path_hpc = os.path.expanduser(r'csvs')
+contrast_path_hpc = os.path.expanduser(r'contrasts')
 
 anaconda_path = os.path.expanduser(r'C:\Users\Jared\anaconda3')
 
 repo_path = os.path.expanduser(r'C:\Users\Jared\Documents\GitHub\MOLUSC')
 gui_path = os.path.join(repo_path, r'code/BinaryStarGUI.py')
 batch_path = os.path.join(repo_path, r'batches')
-repo_path_hpc = os.path.expanduser(r'../MOLUSC')
+repo_path_hpc = os.path.expanduser(r'.')
 gui_path_hpc = os.path.join(repo_path_hpc, r'code/BinaryStarGUI.py')
 batch_path_hpc = os.path.join(repo_path_hpc, r'batches')
 
 output_path_drive = os.path.expanduser(r'G:\Shared drives\DouglasGroup\Jared Sofair 2022\MOLUSC\MOLUSC Outputs\Tables')
-output_path_hpc = os.path.expanduser(r'../outputs/tables')
+output_path_hpc = os.path.expanduser(r'outputs/tables')
 
-pm = Table.read(os.path.join(csv_path_hpc, r'Praesepe_Merged.csv'))
+pm = Table.read(os.path.join(csv_path_hpc, r'praesepe_merged.csv'))
 targets = Table.read(os.path.join(csv_path_hpc, r'targets_abr.csv'))
 
 
@@ -106,10 +106,9 @@ def run_batch_stars(stars=["JS355"], analysis_options=["ao"], write_all=True, ex
     else:
         #%% Create .bat file, write line necessary to run the script for Linux
         with open(os.path.join(batch_path_hpc, r"batch_runner.bash"), 'w') as f:
-                       
+            f.write('#!/bin/bash\n')
             # Write the command for each star
             for star in stars:
-                    
                 f.write(f'# {star}\npython "{gui_path_hpc}" ') # Label for readability :)
                 
                 # Write all
@@ -137,4 +136,4 @@ def run_batch_stars(stars=["JS355"], analysis_options=["ao"], write_all=True, ex
                 f.write(f'--age {age} "{os.path.join(output_path_hpc, star.replace(" ", "_"))}" {ra} -- +{dec} {companions} {mass}\n\n')
 if __name__ == "__main__": # hehe
     all_targets = targets["name"]
-    run_batch_stars(all_targets, analysis_options=["ao"], filt="K", opsys='linux')
+    run_batch_stars(all_targets, analysis_options=["ao"], filt="K", companions=1000, opsys='linux')
