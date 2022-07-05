@@ -78,7 +78,6 @@ def run_batch_stars(stars=["JS355"], analysis_options=["ao"], write_all=True, ex
                 print(age)
                 f.write(f'--age {age} "{os.path.join(output_path_drive, star.replace(" ", "_"))}" {ra} -- +{dec} {companions} {mass}\n\n')
             f.write('pause')
-    
     # Choices:
         # Analysis options: HRI, RV, RUWE, Gaia
             # HRI:
@@ -136,7 +135,6 @@ def run_batch_stars(stars=["JS355"], analysis_options=["ao"], write_all=True, ex
                 mass = np.round(targets["M/Ms"][np.where(targets["name"] == star)[0][0]], 3)
                 age = targets["age"][np.where(targets["name"] == star)[0][0]]
                 f.write(f'--age {age} "{os.path.join(output_path_hpc, star.replace(" ", "_"))}" {ra} -- +{dec} {companions} {mass}\n\n')
-        
 if __name__ == "__main__": # hehe
     all_targets = targets["name"]
-    run_batch_stars(all_targets, analysis_options=["ao"], filt="K", opsys='win')
+    run_batch_stars(all_targets, analysis_options=["ao"], filt="K", opsys='linux')

@@ -2669,7 +2669,7 @@ class AO:
 		# Read in file containing stellar model with the filter needed
 		if filter == 'J' or filter == 'H' or filter == 'K':  # 2MASS filters
 			model_chart = {}
-			BHAC_file = r'BHAC15_2MASS.txt'
+			BHAC_file = r'code/BHAC15_2MASS.txt'
 			with open(BHAC_file, 'r') as content_file:
 				content = content_file.read()
 			tables = content.split(
@@ -2694,7 +2694,7 @@ class AO:
 				model_chart[age] = year_chart
 		elif filter == 'R' or filter == 'I':
 			model_chart = {}
-			BHAC_file = r'BHAC15_CFHT.txt'
+			BHAC_file = r'code/BHAC15_CFHT.txt'
 			with open(BHAC_file, 'r') as content_file:
 				content = content_file.read()
 			tables = content.split(
@@ -2715,7 +2715,7 @@ class AO:
 				model_chart[age] = year_chart
 		elif filter == 'G' or filter == 'Rp' or filter ==  'Bp':
 			model_chart = {}
-			BHAC_file = r'BHAC15_GAIA.txt'
+			BHAC_file = r'code/BHAC15_GAIA.txt'
 			with open(BHAC_file, 'r') as content_file:
 				content = content_file.read()
 			tables = content.split(
@@ -2740,7 +2740,7 @@ class AO:
 		elif filter == 'L' or filter == 'LL' or filter == 'M':
 			print('MODEL:  CIT2')
 			model_chart = {}
-			BHAC_file = r'BHAC15_CIT2.txt'
+			BHAC_file = r'code/BHAC15_CIT2.txt'
 			with open(BHAC_file, 'r') as content_file:
 				content = content_file.read()
 			content = content[content.find('\n\n\n'):]  # Cut off the intro material
@@ -3134,7 +3134,7 @@ class RV:
 		# RV always loads G filter
 		if filter == 'J' or filter == 'H' or filter == 'K':  # 2MASS filters
 			model_chart = {}
-			BHAC_file = r'BHAC15_2MASS.txt'
+			BHAC_file = r'code/BHAC15_2MASS.txt'
 			with open(BHAC_file, 'r') as content_file:
 				content = content_file.read()
 			tables = content.split(
@@ -3160,7 +3160,7 @@ class RV:
 
 		elif filter == 'G' or filter == 'R' or filter == 'I':
 			model_chart = {}
-			BHAC_file = r'BHAC15_CFHT.txt'
+			BHAC_file = r'code/BHAC15_CFHT.txt'
 			with open(BHAC_file, 'r') as content_file:
 				content = content_file.read()
 			tables = content.split(
@@ -3326,7 +3326,7 @@ class RUWE:
 		# Read in file containing stellar model
 		# todo Interpolate to get the chart for the exact age or binned age or something that doesnt rely on the age being in the chart
 		model_chart = {}
-		BHAC_file = r'BHAC15_CFHT.txt'
+		BHAC_file = r'code/BHAC15_CFHT.txt'
 		with open(BHAC_file, 'r') as content_file:
 			content = content_file.read()
 		tables = content.split(
