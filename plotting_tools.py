@@ -7,7 +7,6 @@ from astropy.table import Table
 import scipy.optimize
 from scipy.ndimage.filters import gaussian_filter
 from matplotlib import rcParams
-import os
 
 rcParams['font.family'] = 'serif'
 rcParams['font.serif'] = ['Georgia']
@@ -16,12 +15,12 @@ rcParams['axes.labelweight'] = 'bold'
 rcParams['axes.linewidth'] = 1
 
 # Input files
-# survivors_file = r'G:/Shared drives/DouglasGroup/Jared Sofair 2022/MOLUSC/MOLUSC Outputs/Tables/EPIC211885995_kept.csv'
-# all_file = r'G:/Shared drives/DouglasGroup/Jared Sofair 2022/MOLUSC/MOLUSC Outputs/Tables/EPIC211885995_all.csv'
+survivors_file = r'G:/Shared drives/DouglasGroup/Jared Sofair 2022/MOLUSC/MOLUSC Outputs/Tables/EPIC211885995_kept.csv'
+all_file = r'G:/Shared drives/DouglasGroup/Jared Sofair 2022/MOLUSC/MOLUSC Outputs/Tables/EPIC211885995_all.csv'
 # Output files
-# out_file1 = r'G:/Shared drives/DouglasGroup/Jared Sofair 2022/MOLUSC/MOLUSC Outputs/Graphs/EPIC211885995_output_corner.pdf'  # writeout file for the corner plots
-# out_file2 = r'G:/Shared drives/DouglasGroup/Jared Sofair 2022/MOLUSC/MOLUSC Outputs/Graphs/EPIC211885995_output_dtct_lims.pdf' # writeout file for the detection limit plots
-# out_file3 = r'G:/Shared drives/DouglasGroup/Jared Sofair 2022/MOLUSC/MOLUSC Outputs/Graphs/EPIC211885995_output_srv.pdf' # writeout file for the survivor plots
+out_file = r'G:/Shared drives/DouglasGroup/Jared Sofair 2022/MOLUSC/MOLUSC Outputs/Graphs/EPIC211885995_output_corner.pdf'  # writeout file for the corner plots
+out_file2 = r'G:/Shared drives/DouglasGroup/Jared Sofair 2022/MOLUSC/MOLUSC Outputs/Graphs/EPIC211885995_output_dtct_lims.pdf' # writeout file for the detection limit plots
+out_file3 = r'G:/Shared drives/DouglasGroup/Jared Sofair 2022/MOLUSC/MOLUSC Outputs/Graphs/EPIC211885995_output_srv.pdf' # writeout file for the survivor plots
 # Other
 n = 1000  # number of companions generated in run
 mass = 0.626  # target mass in solar masses
@@ -43,18 +42,7 @@ def a_to_period(a):
     # Returns period (days) of an equal mass, solar-mass binary with a given semi-major axis
     G = 39.478 # Gravitational constant in AU^3/years^2*M_solar
     return np.sqrt((4*np.pi**2 * a**3) / (2*G)) * 365
-
-def get_info(star, mass):
-    survivors_file = os.path.expanduser(f'outputs/tables/{star}_kept.csv')
-    all_file = os.path.expanduser(f'outputs/tables/{star}_kept.csv')
-    
-    out_file1 = os.path.expanduser(f'outputs/graphs/{star}_output_corner.pdf')
-    out_file2 = os.path.expanduser(f'outputs/graphs/{star}_output_dtct_lims.pdf')
-    out_file3 = os.path.expanduser(f'outputs/graphs/{star}_output_srv.pdf')
-    
-    info = [survivors_file, all_file, out_file1, out_file2, out_file3, mass]
-    return info
-
+  
 def corner(file_in, file_out=None, given_params='auto', n_gen=5000000, smoothing=False, color='blue'):
   # Creates a corner plot showing period, mass ratio, eccentricity and inclination
   # Plot is a 4x4 array of subplots, with the bottom left triangle showing contour plots of 2D parameter spaces
@@ -479,17 +467,6 @@ def survivor(survivors_file, all_file, param, file_out=None):
 
 # Comment and uncomment as needed
 if __name__ == '__main__':
-    
-    # Theory crafting the setup:
-        # Pass a list of stars, return survivor file, all file, out files 1-3
-        # If specified, get graphs 1-3 for star(s)
-        # Make sure to include n and mass
-        
-    star = "JS355"
-    info = get_info(star)
-    print(info)
-    
-    
-    # corner(files[0],  n_gen=n, given_params='all', smoothing=True, file_out=files[2])
-    # detection_limits(files[1], mass, file_out=files[3])
-    # survivor(files[0], files[1], param='P', file_out=files[4])
+    corner(survivors_file,  n_gen=n, given_params='all', smoothing=True, file_out=out_file)
+    detection_limits(survivors_file, mass, file_out=out_file2)
+    survivor(survivors_file, all_file, param='P', file_out=out_file3)
