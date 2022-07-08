@@ -1685,13 +1685,13 @@ class Application:
 			all_table = np.transpose(all_table)
 
             # Add columns containing generated companions and star mass
-			testtab = np.array([['mass'], [self.star_mass]])
-			print(f"test: {testtab}")
-			all_table = np.hstack((all_table, testtab))#, self.num_generated))
+#			testtab = np.array([['mass'], [self.star_mass]])
+#			print(f"test: {testtab}")
+#			all_table = np.hstack((all_table, testtab))#, self.num_generated))
 # 			print(mass_and_n)
 # 			mass_and_n.add_columns(cols=[self.star_mass, self.num_generated], names=['mass','n'])
 # 			cols = cols + ['mass']
-			print(f'Mass: {self.star_mass}, Num generated: {self.num_generated}')
+#			print(f'Mass: {self.star_mass}, Num generated: {self.num_generated}')
 # 			print(cols, "\n", all_table[0][0])
 # 			all_table = np.vstack((all_table, self.star_mass))
  			
@@ -3417,7 +3417,7 @@ class RUWE:
 			return -51
 
 	def read_dist(self):
-		file_name = 'RuweTableGP.txt'
+		file_name = 'code/RuweTableGP.txt'
 		t = Table.read(file_name, format='ascii', delimiter=' ')
 
 		self.ruwe_dist = t
