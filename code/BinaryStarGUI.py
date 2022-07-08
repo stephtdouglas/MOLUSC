@@ -1684,23 +1684,16 @@ class Application:
 			all_table = np.vstack((all_table, np.invert(keep)))
 			all_table = np.transpose(all_table)
 
-            # Add columns containing generated companions and star mass
-#			testtab = np.array([['mass'], [self.star_mass]])
-#			print(f"test: {testtab}")
-#			all_table = np.hstack((all_table, testtab))#, self.num_generated))
-# 			print(mass_and_n)
-# 			mass_and_n.add_columns(cols=[self.star_mass, self.num_generated], names=['mass','n'])
-# 			cols = cols + ['mass']
-#			print(f'Mass: {self.star_mass}, Num generated: {self.num_generated}')
-# 			print(cols, "\n", all_table[0][0])
-# 			all_table = np.vstack((all_table, self.star_mass))
- 			
-# 			cols = cols + ['n']
-# 			all_table = np.vstack((all_table, self.num_generated))
+            # Add columns containing generated companions and star mass and write table to csv
+			with open (os.path.join(self.prefix + "_all.csv"), 'w') as f:
+				
+				ascii.write(all_table, (self.prefix + "_all.csv"), format='csv', names=cols, overwrite=True)
+				f.seek(0,2)
 
-			ascii.write(all_table, (self.prefix + "_all.csv"), format='csv', names=cols, overwrite=True)
-            # Plan: add comments to the table containing mass and number of companions. can try opening the file and doing that
-# 			ascii.write(mass_and_n, (self.prefix + "_all.csv"), format='csv', names=['mass', 'n'], overwrite=False)
+				f.write(f'# n = {self.num_generated}\n')
+				f.write(f'# mass = {self.star_mass}\n')
+# 			ascii.write(all_table, (self.prefix + "_all.csv"), format='csv', names=cols, overwrite=True)
+
 			self.print_out(('Generated binary parameters saved to: ' + self.prefix + '_all.csv'))
 
 		if self.using_gui: self.gui.update_status('Finished - Successful')
