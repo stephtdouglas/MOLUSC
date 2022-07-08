@@ -1641,7 +1641,13 @@ class Application:
 			cols = cols + ['RV Amplitude','Binary Type']
 			keep_table = np.vstack((keep_table, np.array(rv.amp)[keep], np.array(rv.b_type)[keep]))
 		keep_table = np.transpose(keep_table)
-		ascii.write(keep_table, (self.prefix + "_kept.csv"), format='csv', names=cols, overwrite=True)
+        
+		with open (os.path.join(self.prefix + "_kept.csv"), 'w') as f:
+			ascii.write(keep_table, (self.prefix + "_kept.csv"), format='csv', names=cols, overwrite=True)
+			f.seek(0,2) # Go to the end of the file, then write n and mass
+			f.write(f'# n = {self.num_generated}\n')
+			f.write(f'# mass = {self.star_mass}\n')
+            
 		self.print_out(('Surviving binary parameters saved to: ' + self.prefix + '_kept.csv'))
 		#  Write out the input file
 		if self.all_output:
@@ -1688,11 +1694,9 @@ class Application:
 			with open (os.path.join(self.prefix + "_all.csv"), 'w') as f:
 				
 				ascii.write(all_table, (self.prefix + "_all.csv"), format='csv', names=cols, overwrite=True)
-				f.seek(0,2)
-
+				f.seek(0,2) # Go to the end of the file, then write n and mass
 				f.write(f'# n = {self.num_generated}\n')
 				f.write(f'# mass = {self.star_mass}\n')
-# 			ascii.write(all_table, (self.prefix + "_all.csv"), format='csv', names=cols, overwrite=True)
 
 			self.print_out(('Generated binary parameters saved to: ' + self.prefix + '_all.csv'))
 
