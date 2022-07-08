@@ -1563,14 +1563,6 @@ class Application:
 			failure = self.error_check(ruwe.read_dist())
 			if failure: return
 			# Get Gaia information
-			if np.isfinite(self.gmag):
-				ruwe.gmag = self.gmag
-				ruwe.color = self.color
-				ruwe.n_good_obs = self.n_good_obs
-				ruwe.astrometric_chi2 = self.astrometric_chi2
-				ruwe.parallax = self.parallax
-				ruwe.parallax_error = self.parallax_error
-				ruwe.ln_ruwe = self.ln_ruwe
 			failure = self.error_check(ruwe.get_gaia_info())
 			if failure: return
 			# Perform Test
@@ -1693,9 +1685,9 @@ class Application:
 			all_table = np.transpose(all_table)
 
             # Add columns containing generated companions and star mass
-# 			testtab = np.array([['mass'], [self.star_mass]])
-# 			print(f"test: {testtab}")
-# 			all_table = np.hstack((all_table, testtab))#, self.num_generated))
+			testtab = np.array([['mass'], [self.star_mass]])
+			print(f"test: {testtab}")
+			all_table = np.hstack((all_table, testtab))#, self.num_generated))
 # 			print(mass_and_n)
 # 			mass_and_n.add_columns(cols=[self.star_mass, self.num_generated], names=['mass','n'])
 # 			cols = cols + ['mass']
@@ -1706,12 +1698,7 @@ class Application:
 # 			cols = cols + ['n']
 # 			all_table = np.vstack((all_table, self.num_generated))
 
-			with open (os.path.join(self.prefix + "_all.csv"), 'w') as f:
-				f.seek(0,0)
-				f.write(f'# n = {self.num_generated}\n')
-				f.write(f'# mass = {self.star_mass}\n')
-				ascii.write(all_table, (self.prefix + "_all.csv"), format='csv', names=cols, overwrite=True)
-
+			ascii.write(all_table, (self.prefix + "_all.csv"), format='csv', names=cols, overwrite=True)
             # Plan: add comments to the table containing mass and number of companions. can try opening the file and doing that
 # 			ascii.write(mass_and_n, (self.prefix + "_all.csv"), format='csv', names=['mass', 'n'], overwrite=False)
 			self.print_out(('Generated binary parameters saved to: ' + self.prefix + '_all.csv'))
@@ -3430,7 +3417,7 @@ class RUWE:
 			return -51
 
 	def read_dist(self):
-		file_name = './code/RuweTableGP.txt'
+		file_name = 'RuweTableGP.txt'
 		t = Table.read(file_name, format='ascii', delimiter=' ')
 
 		self.ruwe_dist = t
