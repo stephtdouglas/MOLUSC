@@ -1685,12 +1685,12 @@ class Application:
 			keep_table = np.vstack((keep_table, np.array(rv.amp)[keep], np.array(rv.b_type)[keep]))
 		keep_table = np.transpose(keep_table)
         
-		with open (os.path.join(self.prefix + "_kept.csv"), 'w') as f:
-			ascii.write(keep_table, (self.prefix + "_kept.csv"), format='csv', names=cols, overwrite=True)
-			f.seek(0,2) # Go to the end of the file, then write n and mass
-			f.write(f'# n = {self.num_generated}\n')
-			f.write(f'# mass = {self.star_mass}\n')
-            
+# 		with open (os.path.join(self.prefix + "_kept.csv"), 'w') as f:
+# 			f.seek(0,2) # Go to the end of the file, then write n and mass
+# 			f.write(f'# n = {self.num_generated}\n')
+# 			f.write(f'# mass = {self.star_mass}\n')
+		ascii.write(keep_table, (self.prefix + "_kept.csv"), format='csv', names=cols, overwrite=True)
+
 		self.print_out(('Surviving binary parameters saved to: ' + self.prefix + '_kept.csv'))
 		
    	
@@ -1748,19 +1748,20 @@ class Application:
 			self.print_out(('Generated binary parameters saved to: ' + self.prefix + '_all.csv'))
 
 		# Write out run inputs to a yaml file
-		yaml_data = {"Star":{"RA":self.star_ra,"Dec":self.star_dec,
-							 "Age":self.star_age,"Mass":self.star_mass},
-					 "num_generated":self.num_generated,
-					 "file_prefix":self.prefix,
-					 "run_date":today,
+		yaml_data = {"Star":{"RA": self.star_ra,"Dec":self.star_dec,
+							 "Age": self.star_age,"Mass":self.star_mass},
+					 "num_generated": self.num_generated,
+					 "file_prefix": self.prefix,
+					 "run_date": today,
+                     "jitter": 0,
 					 
                      "ao_params":{"ao_file": self.ao_filename,
                                   "filter:": self.filter,
-                                  "fit": self.__ao_check.get()},
+                                  "fit": "self.__ao_check.get()"},
                      "rv_params":{"rv_file": self.rv_filename,
                                   "resolution": self.resolution,
                                   "rv_floor": self.rv_floor,
-                                  "fit": self.__rv_check.get()},
+                                  "fit": "self.__rv_check.get()"},
                      "gaia_params":{"gmag": self.gmag,
 					 				"color": self.color,
 									"n_good_obs": self.n_good_obs,
@@ -2054,11 +2055,11 @@ class Application:
 			self.all_output = args.all
 			# Stellar Info
 			self.num_generated = data["num_generated"]
-			self.star_ra = data["star"]["ra"]
-			self.star_dec = data["star"]["dec"]
-			self.star_mass = data["star"]["mass"]
-			self.star_age = data["star"]["age"]
-			self.added_jitter = data["star"]["jitter"]
+			self.star_ra = data["Star"]["RA"]
+			self.star_dec = data["Star"]["Dec"]
+			self.star_mass = data["Star"]["Mass"]
+			self.star_age = data["Star"]["Age"]
+			self.added_jitter = data["Star"]["jitter"]
 			# Limits
 			self.limits = [None]*21
 			if data["transit"]==True:

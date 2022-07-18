@@ -2,20 +2,19 @@
 # Mackenna Wood, UNC Chapel Hill
 import numpy as np
 import math as math
+import matplotlib as mpl
+import matplotlib.style
 import matplotlib.pyplot as plt
 from astropy.table import Table
 import scipy.optimize
 from scipy.ndimage.filters import gaussian_filter
 from matplotlib import rcParams
 import glob
+import yaml
 import os
 
-rcParams['font.family'] = 'serif'
-rcParams['font.serif'] = ['Georgia']
-rcParams['font.weight'] = 'bold'
-rcParams['axes.labelweight'] = 'bold'
-rcParams['axes.linewidth'] = 1
-
+# mpl.style.use(r'C:\Users\Jared\anaconda3\Lib\site-packages\matplotlib\mpl-data\stylelib\woodplotstyle.mplstyle')
+# mpl.style.use('classic')
 # Input files
 # survivors_file = r'G:/Shared drives/DouglasGroup/Jared Sofair 2022/MOLUSC/MOLUSC Outputs/Tables/JS355_kept.csv'
 # all_file = r'G:/Shared drives/DouglasGroup/Jared Sofair 2022/MOLUSC/MOLUSC Outputs/Tables/JS355_all.csv'
@@ -51,20 +50,21 @@ def get_info(star):
 
     survivors_file = os.path.expanduser(f'{output_path1}\{star}_kept.csv')
     all_file = os.path.expanduser(f'{output_path1}\{star}_all.csv')
-    
+    yaml_file = os.path.expanduser(f'{output_path1}\{star}_params_output.yml')
+
     out_file1 = os.path.expanduser(f'{output_path2}\{star}_output_corner.pdf')
     out_file2 = os.path.expanduser(f'{output_path2}\{star}_output_dtct_lims.pdf')
     out_file3 = os.path.expanduser(f'{output_path2}\{star}_output_srv.pdf')
     
-    # Get mass and n
-    # Have to open the file twice due to how f.readlines() acts
-    with open(survivors_file, 'r') as f:
-        mass = f.readlines()[-1][9:]
-        print(f"Mass: {mass}")
-    with open(survivors_file, 'r') as f:
-        n = f.readlines()[-2][6:]
-        print(f"n: {n}")
-    
+    # Get mass and n  
+    with open(yaml_file, 'r') as f:
+        try:
+            yaml_data = yaml.safe_load(f)
+            mass = yaml_data["Star"]["Mass"]
+            n = yaml_data["num_generated"]
+        except yaml.YAMLError as exc:
+            print(exc)
+            
     info = [survivors_file, all_file, out_file1, out_file2, out_file3, mass, n]
     # info[0] = survivors_file
     # info[1] = all_file
@@ -372,8 +372,8 @@ def detection_limits(star, file_out=True, mark_P=None):
     rcParams['ytick.labelsize'] = 'small'
     rcParams['axes.labelsize'] = 10
     file_in = get_info(star)[0]
-    star_mass = get_info(star)[5][5]
-    print(f"Star mass: {star_mass}")
+    star_mass = get_info(star)[5]
+    # print(f"Star mass: {star_mass}")
 
     fig, ax = plt.subplots(figsize=(3.352242, 2.514181))  # this is sized to fit in one column of AAS journal format
     # Read in survivor data
@@ -530,7 +530,7 @@ if __name__ == '__main__':
         # If specified, get graphs 1-3 for star(s)
         # Make sure to include n and mass
         
-    star = "JS364"
+    star = "JS355"
     # info = get_info(star)
     # print(info)
     # corner(star, given_params='all', smoothing=True, file_out=True)
