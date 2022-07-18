@@ -58,12 +58,14 @@ def get_info(star):
     
     # Get mass and n
     # Have to open the file twice due to how f.readlines() acts
-    # with open(survivors_file, 'r') as f:
-    #     mass = float(f.readlines()[-1][9:])
-    # with open(survivors_file, 'r') as f:
-    #     n = float(f.readlines()[-2][6:])
+    with open(survivors_file, 'r') as f:
+        mass = f.readlines()[-1][9:]
+        print(f"Mass: {mass}")
+    with open(survivors_file, 'r') as f:
+        n = f.readlines()[-2][6:]
+        print(f"n: {n}")
     
-    info = [survivors_file, all_file, out_file1, out_file2, out_file3, 0.5, 3]
+    info = [survivors_file, all_file, out_file1, out_file2, out_file3, mass, n]
     # info[0] = survivors_file
     # info[1] = all_file
     # info[2] = out_file1
@@ -370,12 +372,15 @@ def detection_limits(star, file_out=True, mark_P=None):
     rcParams['ytick.labelsize'] = 'small'
     rcParams['axes.labelsize'] = 10
     file_in = get_info(star)[0]
-    star_mass = get_info(star)[5]
+    star_mass = get_info(star)[5][5]
+    print(f"Star mass: {star_mass}")
 
     fig, ax = plt.subplots(figsize=(3.352242, 2.514181))  # this is sized to fit in one column of AAS journal format
     # Read in survivor data
     survivors = Table.read(file_in, format='ascii.csv')
     # Need to split into logarithmic period bins and take the 95th percentile of the masses in each bin
+    # survivors.show_in_browser(jsviewer=True)
+    # print(survivors['mass ratio'])
     survivors['mass (M_Jup)'] = survivors['mass ratio']*star_mass*1047.35
 
     # Bin
@@ -517,7 +522,7 @@ def plotter(star, corner=True, detlims=True, survivor=True):
     if survivor:
         survivor_plot(star, param='P', file_out=True)
     
-# Comment and uncomment as needed
+
 if __name__ == '__main__':
     
     # Theory crafting the setup:
@@ -532,7 +537,7 @@ if __name__ == '__main__':
     # detection_limits(star, file_out=True)
     # survivor_plot(star, param='P', file_out=True)
 
-    plotter(star, corner=True, detlims=True, survivor=True)
+    plotter(star, corner=False, detlims=True, survivor=False)
     
     # corner(survivors_file,  n_gen=n, given_params='all', smoothing=True, file_out=out_file1)
     # detection_limits(survivors_file, mass, file_out=out_file2)

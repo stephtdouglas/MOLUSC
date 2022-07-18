@@ -1,5 +1,6 @@
 # MOLUSC v.20220321
 # Mackenna Wood, UNC Chapel Hill
+from datetime import datetime
 import numpy as np
 import scipy as scipy
 import scipy.stats as stats
@@ -18,10 +19,13 @@ import argparse
 import gc
 import warnings
 import os
+import yaml
 from astropy.utils.exceptions import AstropyWarning
 warnings.simplefilter('error', category=RuntimeWarning)
 warnings.simplefilter('ignore', category=AstropyWarning)
 warnings.simplefilter('ignore', category=scipy.linalg.misc.LinAlgWarning)
+
+today = datetime.today().isoformat().split("T")[0]
 
 # Parallel Functions
 def calculate_RV_parallel(period, mass_ratio, a, e, cos_i, arg_peri, phase, MJD, calc):
@@ -1485,7 +1489,38 @@ class Application:
 			self.using_gui = False
 			if self.parse_input():
 				self.run()
-
+	
+	def get_inputs(self):
+		# Get variables from the GUI
+		# Analysis Options
+		self.ao_filename = self.gui.get_ao_filename()
+		self.rv_filename = self.gui.get_rv_filename()
+		self.ruwe_check = self.gui.get_ruwe()
+		self.gaia_check = self.gui.get_gaia()
+		self.filter = self.gui.get_filter()
+		self.resolution = self.gui.get_resolution()
+		# Output Options
+		self.prefix = self.gui.get_prefix()
+		self.extra_output = self.gui.get_extra()
+		self.all_output = self.gui.get_all_out_bool()
+		# Star Information
+		self.star_ra = self.gui.get_ra()
+		self.star_dec = self.gui.get_dec()
+		self.star_age = self.gui.get_age()
+		self.star_mass = self.gui.get_mass()
+		self.num_generated = self.gui.get_num_generated()
+		self.added_jitter = self.gui.get_added_jitter()
+		self.rv_floor = self.gui.get_rv_floor()
+		# Limits
+		self.limits = self.gui.get_limits()
+		# Period distribution
+		self.pd_mu, self.pd_sig = self.gui.get_p_dist()
+		# Mass Ratio distribution
+		self.q_exp = self.gui.get_q_dist()
+		# Gaia Completeness
+		self.gaia_limit = float(self.gui.get_gaia_limit())
+		return
+	
 	def run(self):
 		gc.collect()
 		if self.using_gui:
@@ -1563,6 +1598,14 @@ class Application:
 			failure = self.error_check(ruwe.read_dist())
 			if failure: return
 			# Get Gaia information
+			if np.isfinite(self.gmag):
+				ruwe.gmag = self.gmag
+				ruwe.color = self.color
+				ruwe.n_good_obs = self.n_good_obs
+				ruwe.astrometric_chi2 = self.astrometric_chi2
+				ruwe.parallax = self.parallax
+				ruwe.parallax_error = self.parallax_error
+				ruwe.ln_ruwe = self.ln_ruwe
 			failure = self.error_check(ruwe.get_gaia_info())
 			if failure: return
 			# Perform Test
@@ -1649,7 +1692,11 @@ class Application:
 			f.write(f'# mass = {self.star_mass}\n')
             
 		self.print_out(('Surviving binary parameters saved to: ' + self.prefix + '_kept.csv'))
-		#  Write out the input file
+		
+   	
+
+        
+        #  Write out the input file
 		if self.all_output:
 			cols = ['mass ratio', 'period(days)', 'semi-major axis(AU)', 'cos_i', 'eccentricity', 'arg periastron', 'phase']
 			all_table = np.vstack((comps.get_mass_ratio(), comps.get_P(), comps.get_a(), comps.get_cos_i(),
@@ -1700,40 +1747,42 @@ class Application:
 
 			self.print_out(('Generated binary parameters saved to: ' + self.prefix + '_all.csv'))
 
+		# Write out run inputs to a yaml file
+		yaml_data = {"Star":{"RA":self.star_ra,"Dec":self.star_dec,
+							 "Age":self.star_age,"Mass":self.star_mass},
+					 "num_generated":self.num_generated,
+					 "file_prefix":self.prefix,
+					 "run_date":today,
+					 
+                     "ao_params":{"ao_file": self.ao_filename,
+                                  "filter:": self.filter,
+                                  "fit": self.__ao_check.get()},
+                     "rv_params":{"rv_file": self.rv_filename,
+                                  "resolution": self.resolution,
+                                  "rv_floor": self.rv_floor,
+                                  "fit": self.__rv_check.get()},
+                     "gaia_params":{"gmag": self.gmag,
+					 				"color": self.color,
+									"n_good_obs": self.n_good_obs,
+									"astrometric_chi2": self.astrometric_chi2,
+									"parallax": self.parallax,
+									"parallax_error": self.parallax_error,
+									"ruwe": float(np.exp(self.ln_ruwe)),
+									"ln_ruwe": float(self.ln_ruwe),
+									"fit": self.gaia_check},
+                     "ruwe_params":{"fit": self.ruwe_check}
+					}
+
+		yaml_fname = f"{self.prefix}_params_output.yml"
+		with open(yaml_fname,"w") as f:
+			yaml.dump(yaml_data,f)
+		self.print_out(('Run parameters saved to: ' + self.prefix + '_params_output.yml'))
+
+
 		if self.using_gui: self.gui.update_status('Finished - Successful')
 		self.restore_defaults()
 		return
 
-	def get_inputs(self):
-		# Get variables from the GUI
-		#   Analysis Options
-		self.ao_filename = self.gui.get_ao_filename()
-		self.rv_filename = self.gui.get_rv_filename()
-		self.ruwe_check = self.gui.get_ruwe()
-		self.gaia_check = self.gui.get_gaia()
-		self.filter = self.gui.get_filter()
-		self.resolution = self.gui.get_resolution()
-		#   Output Options
-		self.prefix = self.gui.get_prefix()
-		self.extra_output = self.gui.get_extra()
-		self.all_output = self.gui.get_all_out_bool()
-		#   Star Information
-		self.star_ra = self.gui.get_ra()
-		self.star_dec = self.gui.get_dec()
-		self.star_age = self.gui.get_age()
-		self.star_mass = self.gui.get_mass()
-		self.num_generated = self.gui.get_num_generated()
-		self.added_jitter = self.gui.get_added_jitter()
-		self.rv_floor = self.gui.get_rv_floor()
-		#   Limits
-		self.limits = self.gui.get_limits()
-		# Period distribution
-		self.pd_mu, self.pd_sig = self.gui.get_p_dist()
-		# Mass Ratio distribution
-		self.q_exp = self.gui.get_q_dist()
-		# Gaia Completeness
-		self.gaia_limit = float(self.gui.get_gaia_limit())
-		return
 
 	def error_check(self, error_code):
 		# If the return value is a list, array, zero or none, no error was found and the process completed successfully
@@ -1874,7 +1923,13 @@ class Application:
 	def parse_input(self):
 		# Read in command line inputs
 		# Create Parser
-		my_parser = argparse.ArgumentParser(description='Find limits on the orbital parameters of unseen companions')
+		parser = argparse.ArgumentParser(description='Find limits on the orbital parameters of unseen companions')
+
+		subparsers = parser.add_subparsers(dest='command')
+		my_parser = subparsers.add_parser('cl')
+		yaml_parser = subparsers.add_parser('yml')
+
+		#### One option: inputting all info on the command line
 		# Add arguments
 		#  Required arguments (Positional)
 		my_parser.add_argument('prefix', help='The prefix to be used on the output files')
@@ -1904,32 +1959,115 @@ class Application:
 		my_parser.add_argument('-v','--verbose', action='store_true', help='Turn on extra output')
 		my_parser.add_argument('-a', '--all', action='store_true', help='Write out all generated companions')
 		my_parser.add_argument('--transit', action='store_true', help='Turn on transit limits')
+        
+		#### Second option: provide a yaml file with all options
+		yaml_parser.add_argument("yml_file",help="full path to the yaml file with input values",
+                           type=str)
+		yaml_parser.add_argument('-v','--verbose', action='store_true', help='Turn on extra output')
+		yaml_parser.add_argument('-a', '--all', action='store_true', help='Write out all generated companions')
+        
 		# Run parser
-		args = my_parser.parse_args()
-		# Input the inputs
-		#  Analysis Options
-		self.rv_filename = args.rv
-		self.resolution = float(args.resolution)
-		self.ao_filename = [args.ao]
-		self.filter = args.filter
-		self.ruwe_check = args.ruwe
-		self.gaia_check = args.gaia
-		# Output Options
-		self.prefix = args.prefix
-		self.extra_output = args.verbose
-		self.all_output = args.all
-		# Stellar Info
-		self.num_generated = args.n
-		self.star_ra = args.ra
-		self.star_dec = args.dec
-		self.star_mass = args.mass
-		self.star_age = args.age
-		self.added_jitter = float(args.jitter)
-		self.rv_floor = args.rv_floor
-		# Limits
-		self.limits = [None]*21
-		if args.transit:
-			self.limits[3] = 'transit'
+		args = parser.parse_args()
+        
+		if args.command == "cl":
+    		# Input the inputs
+    		#  Analysis Options
+			self.rv_filename = args.rv
+			self.resolution = float(args.resolution)
+			self.ao_filename = [args.ao]
+			self.filter = args.filter
+			self.ruwe_check = args.ruwe
+			self.gaia_check = args.gaia
+    		# Output Options
+			self.prefix = args.prefix
+			self.extra_output = args.verbose
+			self.all_output = args.all
+    		# Stellar Info
+			self.num_generated = args.n
+			self.star_ra = args.ra
+			self.star_dec = args.dec
+			self.star_mass = args.mass
+			self.star_age = args.age
+			self.added_jitter = float(args.jitter)
+			self.rv_floor = args.rv_floor
+    		# Limits
+			self.limits = [None]*21
+			if args.transit:
+				self.limits[3] = 'transit'
+            
+            # Gaia data
+			self.gmag = np.nan
+			self.color = np.nan
+			self.n_good_obs = 0
+			self.astrometric_chi2 = np.nan
+			self.parallax = np.nan
+			self.parallax_error = np.nan
+			self.ln_ruwe = np.nan
+		
+		elif args.command == "yml":
+
+			with open(args.yml_file,"r") as f:
+				data = yaml.safe_load(f)
+			print(data)
+			# Input the inputs
+			#  Analysis Options
+# 			if data["rv_params"]["fit"]==True:
+# 				self.rv_filename = data["rv_params"]["rv_file"]
+# 				self.resolution = data["rv_params"]["resolution"]
+# 				self.rv_floor = data["rv_params"]["rv_floor"]
+# 			else:
+# 				self.rv_filename = False
+# 				self.resolution = 50000
+# 				self.rv_floor = 20
+
+# 			if data["ao_params"]["fit"]==True:
+# 				self.ao_filename = [data["ao_params"]["ao_file"]]
+# 				self.filter = data["ao_params"]["filter"]
+# 			else:
+# 				self.ao_filename = [False]
+# 				self.filter = None
+
+			self.ruwe_check = data["ruwe_params"]["fit"]
+			self.gaia_check = data["gaia_params"]["fit"]
+
+			# Gaia data
+			if np.isfinite(data["gaia_params"]["gmag"]):
+				self.gmag = data["gaia_params"]["gmag"]
+				self.color = data["gaia_params"]["color"]
+				self.n_good_obs = data["gaia_params"]["n_good_obs"]
+				self.astrometric_chi2 = data["gaia_params"]["astrometric_chi2"]
+				self.parallax = data["gaia_params"]["parallax"]
+				self.parallax_error = data["gaia_params"]["parallax_error"]
+				self.ln_ruwe = np.log(data["gaia_params"]["ruwe"])
+			else:
+				self.gmag = np.nan
+				self.color = np.nan
+				self.n_good_obs = 0
+				self.astrometric_chi2 = np.nan
+				self.parallax = np.nan
+				self.parallax_error = np.nan
+				self.ln_ruwe = np.nan
+
+			# Output Options
+			self.prefix = data["file_prefix"]
+			self.extra_output = args.verbose
+			self.all_output = args.all
+			# Stellar Info
+			self.num_generated = data["num_generated"]
+			self.star_ra = data["star"]["ra"]
+			self.star_dec = data["star"]["dec"]
+			self.star_mass = data["star"]["mass"]
+			self.star_age = data["star"]["age"]
+			self.added_jitter = data["star"]["jitter"]
+			# Limits
+			self.limits = [None]*21
+			if data["transit"]==True:
+				self.limits[3] = 'transit'
+		else:
+			print('Invalid command')
+			return False
+
+		print(self.ruwe_check,self.gaia_check)
 
 
 		if not self.ao_filename[0] and not self.rv_filename and not self.ruwe_check and not self.gaia_check and not self.added_jitter:
@@ -3384,37 +3522,47 @@ class RUWE:
 		return new_model
 
 	def get_gaia_info(self):
-		#   Query Gaia for parallax, g_mag, color, astrometric_chi2 and n_good_obs, calculate RUWE
-		coordinate = SkyCoord(self.star_ra, self.star_dec, frame='icrs')
-		width = u.Quantity(10, u.arcsecond)
-		height = u.Quantity(10, u.arcsecond)
-		job_str = ("SELECT TOP 10 DISTANCE(POINT('ICRS', %f, %f), POINT('ICRS', ra, dec)) AS dist, * FROM gaiaedr3.gaia_source WHERE 1=CONTAINS(POINT('ICRS', %f, %f),CIRCLE('ICRS', ra, dec, 0.08333333)) ORDER BY dist ASC)" % (
-			coordinate.ra.degree, coordinate.dec.degree, coordinate.ra.degree, coordinate.dec.degree))
-		job = Gaia.launch_job(job_str)
-		gaia_info = job.get_results()
-		if gaia_info and len(gaia_info) >= 1:
-			# Only one star fits the coordinates, all is well
-			self.gmag = gaia_info['phot_g_mean_mag'][0]
-			self.color = gaia_info['bp_rp'][0]
-			self.n_good_obs = gaia_info['astrometric_n_good_obs_al'][0]
-			self.astrometric_chi2 = gaia_info['astrometric_chi2_al'][0]
-			self.parallax = gaia_info['parallax'][0]
-			self.parallax_error = gaia_info['parallax_error'][0]
-			self.ln_ruwe = np.log(gaia_info['ruwe'][0])
-
+		if np.isfinite(self.gmag):
 			#    Check if magnitude, color and Gaia solution are valid for calculating RUWE
-			if 3.6 <= self.gmag <= 21. and -1 <= self.color <= 10 and gaia_info['astrometric_params_solved'][0] == 31:
+			if 3.6 <= self.gmag <= 21. and -1 <= self.color <= 10:
 				# All is well
 				return
 			else:
 				# The magnitude or color is outside of bounds
 				return -53
+
 		else:
-			# No Gaia results
-			return -51
+			#   Query Gaia for parallax, g_mag, color, astrometric_chi2 and n_good_obs, calculate RUWE
+			coordinate = SkyCoord(self.star_ra, self.star_dec, frame='icrs')
+			width = u.Quantity(10, u.arcsecond)
+			height = u.Quantity(10, u.arcsecond)
+			job_str = ("SELECT TOP 10 DISTANCE(POINT('ICRS', %f, %f), POINT('ICRS', ra, dec)) AS dist, * FROM gaiaedr3.gaia_source WHERE 1=CONTAINS(POINT('ICRS', %f, %f),CIRCLE('ICRS', ra, dec, 0.08333333)) ORDER BY dist ASC)" % (
+				coordinate.ra.degree, coordinate.dec.degree, coordinate.ra.degree, coordinate.dec.degree))
+			job = Gaia.launch_job(job_str)
+			gaia_info = job.get_results()
+			if gaia_info and len(gaia_info) >= 1:
+				# Only one star fits the coordinates, all is well
+				self.gmag = gaia_info['phot_g_mean_mag'][0]
+				self.color = gaia_info['bp_rp'][0]
+				self.n_good_obs = gaia_info['astrometric_n_good_obs_al'][0]
+				self.astrometric_chi2 = gaia_info['astrometric_chi2_al'][0]
+				self.parallax = gaia_info['parallax'][0]
+				self.parallax_error = gaia_info['parallax_error'][0]
+				self.ln_ruwe = np.log(gaia_info['ruwe'][0])
+
+				#    Check if magnitude, color and Gaia solution are valid for calculating RUWE
+				if 3.6 <= self.gmag <= 21. and -1 <= self.color <= 10 and gaia_info['astrometric_params_solved'][0] == 31:
+					# All is well
+					return
+				else:
+					# The magnitude or color is outside of bounds
+					return -53
+			else:
+				# No Gaia results
+				return -51
 
 	def read_dist(self):
-		file_name = 'code/RuweTableGP.txt'
+		file_name = 'RuweTableGP.txt'
 		t = Table.read(file_name, format='ascii', delimiter=' ')
 
 		self.ruwe_dist = t
