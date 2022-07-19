@@ -14,7 +14,7 @@ import yaml
 import os
 
 # mpl.style.use(r'C:\Users\Jared\anaconda3\Lib\site-packages\matplotlib\mpl-data\stylelib\woodplotstyle.mplstyle')
-# mpl.style.use('classic')
+mpl.style.use('classic')
 # Input files
 # survivors_file = r'G:/Shared drives/DouglasGroup/Jared Sofair 2022/MOLUSC/MOLUSC Outputs/Tables/JS355_kept.csv'
 # all_file = r'G:/Shared drives/DouglasGroup/Jared Sofair 2022/MOLUSC/MOLUSC Outputs/Tables/JS355_all.csv'
@@ -379,7 +379,6 @@ def detection_limits(star, file_out=True, mark_P=None):
     # Read in survivor data
     survivors = Table.read(file_in, format='ascii.csv')
     # Need to split into logarithmic period bins and take the 95th percentile of the masses in each bin
-    # survivors.show_in_browser(jsviewer=True)
     # print(survivors['mass ratio'])
     survivors['mass (M_Jup)'] = survivors['mass ratio']*star_mass*1047.35
 
@@ -465,7 +464,7 @@ def survivor_plot(star, param, file_out=False):
       N, _ = np.histogram(t_all['period(days)'], bins=bins)
       print(f'N: {N}\n')
       scale = 'log'
-      axes[2].set_xlabel('Period(days)')
+      axes[2].set_xlabel('Period (days)')
   elif param == 'm' or param == 'mass ratio' or param == 'mass_ratio':
       # Plot two histograms, top one a histogram of mass, bottom one a plot of survivorship fraction
       bins = np.linspace(0, 1, 20)
@@ -537,7 +536,7 @@ if __name__ == '__main__':
     # detection_limits(star, file_out=True)
     # survivor_plot(star, param='P', file_out=True)
 
-    plotter(star, corner=False, detlims=True, survivor=False)
+    plotter(star, corner=True, detlims=True, survivor=True)
     
     # corner(survivors_file,  n_gen=n, given_params='all', smoothing=True, file_out=out_file1)
     # detection_limits(survivors_file, mass, file_out=out_file2)

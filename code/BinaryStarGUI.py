@@ -1738,22 +1738,24 @@ class Application:
 			all_table = np.transpose(all_table)
 
             # Add columns containing generated companions and star mass and write table to csv
-			with open (os.path.join(self.prefix + "_all.csv"), 'w') as f:
+# 			with open (os.path.join(self.prefix + "_all.csv"), 'w') as f:
 				
-				ascii.write(all_table, (self.prefix + "_all.csv"), format='csv', names=cols, overwrite=True)
-				f.seek(0,2) # Go to the end of the file, then write n and mass
-				f.write(f'# n = {self.num_generated}\n')
-				f.write(f'# mass = {self.star_mass}\n')
+			ascii.write(all_table, (self.prefix + "_all.csv"), format='csv', names=cols, overwrite=True)
+# 				f.seek(0,2) # Go to the end of the file, then write n and mass
+# 				f.write(f'# n = {self.num_generated}\n')
+# 				f.write(f'# mass = {self.star_mass}\n')
 
 			self.print_out(('Generated binary parameters saved to: ' + self.prefix + '_all.csv'))
 
 		# Write out run inputs to a yaml file
 		yaml_data = {"Star":{"RA": self.star_ra,"Dec":self.star_dec,
-							 "Age": self.star_age,"Mass":self.star_mass},
+							 "Age": self.star_age,"Mass":self.star_mass,
+                             "jitter": 0},
+               
 					 "num_generated": self.num_generated,
+                     "transit": False,
 					 "file_prefix": self.prefix,
 					 "run_date": today,
-                     "jitter": 0,
 					 
                      "ao_params":{"ao_file": self.ao_filename,
                                   "filter:": self.filter,
@@ -2010,23 +2012,24 @@ class Application:
 			with open(args.yml_file,"r") as f:
 				data = yaml.safe_load(f)
 			print(data)
+			print(f"This is the jitter::::::::::::::::::::: {data['Star']}")
 			# Input the inputs
 			#  Analysis Options
-# 			if data["rv_params"]["fit"]==True:
-# 				self.rv_filename = data["rv_params"]["rv_file"]
-# 				self.resolution = data["rv_params"]["resolution"]
-# 				self.rv_floor = data["rv_params"]["rv_floor"]
-# 			else:
-# 				self.rv_filename = False
-# 				self.resolution = 50000
-# 				self.rv_floor = 20
+			if data["rv_params"]["fit"]==True:
+				self.rv_filename = data["rv_params"]["rv_file"]
+				self.resolution = data["rv_params"]["resolution"]
+				self.rv_floor = data["rv_params"]["rv_floor"]
+			else:
+				self.rv_filename = False
+				self.resolution = 50000
+				self.rv_floor = 20
 
-# 			if data["ao_params"]["fit"]==True:
-# 				self.ao_filename = [data["ao_params"]["ao_file"]]
-# 				self.filter = data["ao_params"]["filter"]
-# 			else:
-# 				self.ao_filename = [False]
-# 				self.filter = None
+			if data["ao_params"]["fit"]==True:
+				self.ao_filename = [data["ao_params"]["ao_file"]]
+				self.filter = data["ao_params"]["filter"]
+			else:
+				self.ao_filename = [False]
+				self.filter = None
 
 			self.ruwe_check = data["ruwe_params"]["fit"]
 			self.gaia_check = data["gaia_params"]["fit"]
