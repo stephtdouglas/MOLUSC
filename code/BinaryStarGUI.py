@@ -1756,23 +1756,32 @@ class Application:
 			is_rv = False
         
 # 		print("AO and rv checks:", is_ao, is_rv)
-		yaml_data = {"Star":{"ra": self.star_ra,"dec":self.star_dec,
-							 "age": self.star_age,"mass":self.star_mass,
-                             "jitter": self.added_jitter},
-                     
+		yaml_data = {"run_date": today,
+                     "file_prefix": self.prefix,
 					 "num_generated": self.num_generated,
                      "transit": is_transit,
-					 "file_prefix": self.prefix,
-					 "run_date": today,
-					 
-                     "ao_params":{"ao_file": self.ao_filename,
-                                  "filter:": self.filter,
-                                  "fit": is_ao},
-                     "rv_params":{"rv_file": self.rv_filename,
-                                  "resolution": self.resolution,
+
+                     "star":{"ra": self.star_ra,
+                             "dec": self.star_dec,
+                             "mass":self.star_mass,
+							 "age": self.star_age,
+                             "jitter": self.added_jitter},
+                     
+                     "rv_params":{"fit": is_rv,
+                                  "rv_file": self.rv_filename,
                                   "rv_floor": self.rv_floor,
-                                  "fit": is_rv},
-                     "gaia_params":{"gmag": self.gmag,
+                                  "resolution": self.resolution},
+                     
+                     "ao_params":{"fit": is_ao,
+                                  "ao_file": self.ao_filename,
+                                  "filter:": self.filter},
+                     
+                     "ruwe_params":{"fit": self.ruwe_check},
+
+                     
+                     "gaia_params":{"fit": self.gaia_check,
+                                    # "id": self.gaia_id,
+                                    "gmag": self.gmag,
 					 				"color": self.color,
 									"n_good_obs": self.n_good_obs,
 									"astrometric_chi2": self.astrometric_chi2,
@@ -1780,8 +1789,7 @@ class Application:
 									"parallax_error": self.parallax_error,
 									"ruwe": float(np.exp(self.ln_ruwe)),
 									"ln_ruwe": float(self.ln_ruwe),
-									"fit": self.gaia_check},
-                     "ruwe_params":{"fit": self.ruwe_check}
+									}
 					}
 
 		yaml_fname = f"{self.prefix}_params_output.yml"
