@@ -36,7 +36,7 @@ targets = Table.read(os.path.join(csv_path_hpc, r'targets_abr.csv'))
 # Example:
 # python "C:/Users/Jared/Documents/GitHub/MOLUSC/code/BinaryStarGUI.py" -v -a --ao "G:/Shared drives/DouglasGroup/Jared Sofair 2022/MOLUSC/Data Parser Tables/JS355.txt" --filter K --age 0.8000 "G:/Shared drives/DouglasGroup/Jared Sofair 2022/MOLUSC/MOLUSC Outputs/Tables/JS355" 08h40m22.16s -- +18d07m24.8s 3 0.599
 
-def run_batch_stars(stars=["JS355"], analysis_options=["ao"], write_all=True, extra_output=True, filt=None, companions=3, opsys="win"):
+def run_batch_stars(stars=["JS355"], yml=True, analysis_options=["ao"], write_all=True, extra_output=True, filt=None, companions=3, opsys="win"):
     if opsys=="win":
         #%% Create .bat file, write line necessary to run the script for Windows
         with open(os.path.join(batch_path, r"batch_runner.bat"), 'w') as f:
@@ -111,29 +111,36 @@ def run_batch_stars(stars=["JS355"], analysis_options=["ao"], write_all=True, ex
             for star in stars:
                 f.write(f'# {star}\npython "{gui_path_hpc}" ') # Label for readability :)
                 
-                # Write all
-                if write_all == True:
-                    f.write('-v ')
-                # Extra output
-                if extra_output == True:
-                    f.write('-a ')
+                if yml:
+                    f.write(f'yml "../yml/{star}_params_output.yml"')
+                    
+                    
+                else:
+                    f.write('cl ')
                 
-                if "ao" in analysis_options: # HRI
-                    f.write(f'--ao "{os.path.join(contrast_path_hpc, star.replace(" ", "_"))}.txt" --filter {filt} ')
-                # if "rv" in analysis_options: # RV
-                #   f.write(r'--rv "{os.path.join(rv_path, star.replace(" ", "_"))}.txt" --resolution 50000')
-                if "ruwe" in analysis_options: # RUWE
-                    f.write('--gaia ')
-                if "gaia" in analysis_options: # Gaia
-                    f.write('--ruwe ')
-                
-                # Star info (age, output path, ra, dec, # companions, mass)
-                # Get ra, dec, and mass
-                ra = targets["ra"][np.where(targets["name"] == star)[0][0]]
-                dec = targets["de"][np.where(targets["name"] == star)[0][0]]
-                mass = np.round(targets["M/Ms"][np.where(targets["name"] == star)[0][0]], 3)
-                age = targets["age"][np.where(targets["name"] == star)[0][0]]
-                f.write(f'--age {age} "{os.path.join(output_path_hpc, star.replace(" ", "_"))}" {ra} -- +{dec} {companions} {mass}\n\n')
+                    # Write all
+                    if write_all == True:
+                        f.write('-v ')
+                    # Extra output
+                    if extra_output == True:
+                        f.write('-a ')
+                    
+                    if "ao" in analysis_options: # HRI
+                        f.write(f'--ao "{os.path.join(contrast_path_hpc, star.replace(" ", "_"))}.txt" --filter {filt} ')
+                    # if "rv" in analysis_options: # RV
+                    #   f.write(r'--rv "{os.path.join(rv_path, star.replace(" ", "_"))}.txt" --resolution 50000')
+                    if "ruwe" in analysis_options: # RUWE
+                        f.write('--gaia ')
+                    if "gaia" in analysis_options: # Gaia
+                        f.write('--ruwe ')
+                    
+                    # Star info (age, output path, ra, dec, # companions, mass)
+                    # Get ra, dec, and mass
+                    ra = targets["ra"][np.where(targets["name"] == star)[0][0]]
+                    dec = targets["de"][np.where(targets["name"] == star)[0][0]]
+                    mass = np.round(targets["M/Ms"][np.where(targets["name"] == star)[0][0]], 3)
+                    age = targets["age"][np.where(targets["name"] == star)[0][0]]
+                    f.write(f'--age {age} "{os.path.join(output_path_hpc, star.replace(" ", "_"))}" {ra} -- +{dec} {companions} {mass}\n\n')
 if __name__ == "__main__": # hehe
     all_targets = targets["name"]
-    run_batch_stars(all_targets, analysis_options=["ao"], filt="K", companions=1000, opsys='linux')
+    run_batch_stars(all_targets, yml=False, analysis_options=["ao"], filt="K", companions=15000, opsys='linux')

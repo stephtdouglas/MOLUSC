@@ -1796,8 +1796,8 @@ class Application:
                                     "ln_ruwe": float(self.ln_ruwe),
                                     }
                     }
-
-        yaml_fname = f"{self.prefix}_params_output.yml"
+        
+        yaml_fname = f"{os.path.join('../yml', self.prefix)}_params_output.yml"
         with open(yaml_fname,"w") as f:
             yaml.dump(yaml_data,f)
         self.print_out(('Run parameters saved to: ' + self.prefix + '_params_output.yml'))
