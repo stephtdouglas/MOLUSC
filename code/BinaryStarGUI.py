@@ -1553,7 +1553,7 @@ class Application:
 					self.print_out(('Analyzing contrast curve in ' + self.ao_filename[i]))
 					ao = AO(self.ao_filename[i], comps, self.star_mass, self.star_age, self.star_ra, self.star_dec, self.filter[i])
 					# Determine distance
-					failure = self.error_check(ao.get_distance(self.star_ra, self.star_dec))
+					failure = self.error_check(ao.get_distance(self.star_ra, self.star_dec, self.parallax))
 					if failure: return
 					if self.extra_output: self.print_out(('Calculated distance to star: %.0f pc' % (ao.star_distance*4.84e-6)))
 					# Read contrast file
@@ -1621,7 +1621,7 @@ class Application:
 			#todo improve gaia contrast
 			gaia = AO('code/gaia_contrast.txt', comps, self.star_mass, self.star_age, self.star_ra, self.star_dec, 'G', gaia=True)
 			# Determine distance
-			failure = self.error_check(gaia.get_distance(self.star_ra, self.star_dec))
+			failure = self.error_check(gaia.get_distance(self.star_ra, self.star_dec, self.parallax))
 			if failure: return
 			if self.extra_output: self.print_out(('Calculated distance to star: %.0f pc' % (gaia.star_distance*4.84e-6)))
 			# Read contrast file
@@ -1748,22 +1748,37 @@ class Application:
 			self.print_out(('Generated binary parameters saved to: ' + self.prefix + '_all.csv'))
 
 		# Write out run inputs to a yaml file
-		yaml_data = {"Star":{"RA": self.star_ra,"Dec":self.star_dec,
-							 "Age": self.star_age,"Mass":self.star_mass,
-                             "jitter": 0},
-               
+		if self.limits[3] == "transit":
+			is_transit = True
+		else:
+			is_transit = False
+            
+        # if self.ao_filename is not None:
+        #     is_ao = True
+        # else:
+        #     is_ao = False
+            
+        # if self.rv_filename is not None:
+        #     is_rv = True
+        # else:
+        #     is_rv = False
+            
+		yaml_data = {"Star":{"ra": self.star_ra,"dec":self.star_dec,
+							 "age": self.star_age,"mass":self.star_mass,
+                             "jitter": self.added_jitter},
+                     
 					 "num_generated": self.num_generated,
-                     "transit": False,
+                     "transit": is_transit,
 					 "file_prefix": self.prefix,
 					 "run_date": today,
 					 
                      "ao_params":{"ao_file": self.ao_filename,
                                   "filter:": self.filter,
-                                  "fit": "self.__ao_check.get()"},
+                                  "fit": self.ao_check},
                      "rv_params":{"rv_file": self.rv_filename,
                                   "resolution": self.resolution,
                                   "rv_floor": self.rv_floor,
-                                  "fit": "self.__rv_check.get()"},
+                                  "fit": self.rv_check},
                      "gaia_params":{"gmag": self.gmag,
 					 				"color": self.color,
 									"n_good_obs": self.n_good_obs,
@@ -1971,6 +1986,16 @@ class Application:
         
 		# Run parser
 		args = parser.parse_args()
+# 		if args.rv is not None:
+# 			is_rv = True
+# 		else:
+# 			is_rv = False
+        
+# 		if args.ao is not None:
+# 			is_ao = True
+# 		else:
+# 			is_ao = False
+# 		print(f"AO check: {is_ao}\nRV check: {is_rv}")
         
 		if args.command == "cl":
     		# Input the inputs
@@ -1981,6 +2006,8 @@ class Application:
 			self.filter = args.filter
 			self.ruwe_check = args.ruwe
 			self.gaia_check = args.gaia
+			self.ao_check = is_ao
+			self.rv_check = is_rv
     		# Output Options
 			self.prefix = args.prefix
 			self.extra_output = args.verbose
@@ -2011,7 +2038,7 @@ class Application:
 
 			with open(args.yml_file,"r") as f:
 				data = yaml.safe_load(f)
-			print(data)
+# 			print(data)
 # 			print(f"This is the jitter::::::::::::::::::::: {data['Star']}")
 			# Input the inputs
 			#  Analysis Options
@@ -2777,48 +2804,54 @@ class AO:
 		mag = f_mag(star_mass)
 		return mag
 
-	def get_distance(self, star_RA, star_DEC):
-		coordinate = SkyCoord(star_RA, star_DEC, frame='icrs')
-		width = u.Quantity(10, u.arcsecond)
-		height = u.Quantity(10, u.arcsecond)
-		job_str = ("SELECT TOP 10 DISTANCE(POINT('ICRS', %f, %f), POINT('ICRS', ra, dec)) AS dist, * FROM gaiaedr3.gaia_source WHERE 1=CONTAINS(POINT('ICRS', %f, %f),CIRCLE('ICRS', ra, dec, 0.08333333)) ORDER BY dist ASC)" % (coordinate.ra.degree, coordinate.dec.degree, coordinate.ra.degree, coordinate.dec.degree))
-		job = Gaia.launch_job(job_str)
-		gaia_info = job.get_results()
-		if gaia_info:
-			if len(gaia_info) > 1:
-				# Multiple possible sources. Sort by search distance and take the closest one. Print warning.
-				# Nearest neighbor distance is set to distance between chosen source and it's closest neighbor in the search region
-				gaia_info.sort('dist')
-				parallax = gaia_info['parallax'][0]
-				picked_coord = SkyCoord(gaia_info['ra'][0], gaia_info['dec'][0], unit='degree')
-				# Convert star parallax to distance in AU: d[AU] = 1/p["] * 206265 AU/parsec
-				star_distance = 1 / (parallax / 1000) * 206265
-				self.star_distance = star_distance
-
-				# Find nearest neighbor
-				#    calculate distance between the picked star and all other stars in search radius
-				gaia_info['separation'] = [picked_coord.separation(SkyCoord(x['ra'], x['dec'], unit='degree')).mas for x in gaia_info]
-				#    sort the search results by separation from picked star (the picked star should have a separation of zero)
-				gaia_info.sort('separation')
-				#    choose the closest one to the picked star
-				nearest_neighbor_dist = gaia_info['separation'][1]  # distance to n.n. in mas
-				#   convert from mas to AU
-				self.nearest_neighbor_dist = round(self.star_distance * np.tan(np.radians(nearest_neighbor_dist/(3.6e6))), 1)  # distance to n.n. in AU
-				return -52
-			else:
-				# Only once source in search area. Nearest neighbor distance is set to search width
-				parallax = gaia_info['parallax'][0]
-				# Convert star parallax to distance in AU: d[AU] = 1/p[as] * 206265AU/parsec
-				star_distance = 1 / (parallax / 1000) * 206265
-				self.star_distance = star_distance
-
-				# Set nearest neighbor distance to search distance
-				nearest_neighbor_dist = width.to('mas').value
-				#   convert from mas to AU
-				self.nearest_neighbor_dist = round(self.star_distance * np.tan(np.radians(nearest_neighbor_dist/(3.6e6))), 1)  # distance to n.n. in AU
-				return 0
+	def get_distance(self, star_RA, star_DEC, parallax=np.nan):
+		if np.isfinite(parallax):
+			# Convert star parallax to distance in AU: d[AU] = 1/p["] * 206265 AU/parsec
+			star_distance = 1 / (parallax / 1000) * 206265
+			self.star_distance = star_distance
+			self.nearest_neighbor_dist = np.nan
 		else:
-			return -51
+			coordinate = SkyCoord(star_RA, star_DEC, frame='icrs')
+			width = u.Quantity(10, u.arcsecond)
+			height = u.Quantity(10, u.arcsecond)
+			job_str = ("SELECT TOP 10 DISTANCE(POINT('ICRS', %f, %f), POINT('ICRS', ra, dec)) AS dist, * FROM gaiaedr3.gaia_source WHERE 1=CONTAINS(POINT('ICRS', %f, %f),CIRCLE('ICRS', ra, dec, 0.08333333)) ORDER BY dist ASC)" % (coordinate.ra.degree, coordinate.dec.degree, coordinate.ra.degree, coordinate.dec.degree))
+			job = Gaia.launch_job(job_str)
+			gaia_info = job.get_results()
+			if gaia_info:
+				if len(gaia_info) > 1:
+					# Multiple possible sources. Sort by search distance and take the closest one. Print warning.
+					# Nearest neighbor distance is set to distance between chosen source and it's closest neighbor in the search region
+					gaia_info.sort('dist')
+					parallax = gaia_info['parallax'][0]
+					picked_coord = SkyCoord(gaia_info['ra'][0], gaia_info['dec'][0], unit='degree')
+					# Convert star parallax to distance in AU: d[AU] = 1/p["] * 206265 AU/parsec
+					star_distance = 1 / (parallax / 1000) * 206265
+					self.star_distance = star_distance
+
+					# Find nearest neighbor
+					#    calculate distance between the picked star and all other stars in search radius
+					gaia_info['separation'] = [picked_coord.separation(SkyCoord(x['ra'], x['dec'], unit='degree')).mas for x in gaia_info]
+					#    sort the search results by separation from picked star (the picked star should have a separation of zero)
+					gaia_info.sort('separation')
+					#    choose the closest one to the picked star
+					nearest_neighbor_dist = gaia_info['separation'][1]  # distance to n.n. in mas
+					#   convert from mas to AU
+					self.nearest_neighbor_dist = round(self.star_distance * np.tan(np.radians(nearest_neighbor_dist/(3.6e6))), 1)  # distance to n.n. in AU
+					return -52
+				else:
+					# Only once source in search area. Nearest neighbor distance is set to search width
+					parallax = gaia_info['parallax'][0]
+					# Convert star parallax to distance in AU: d[AU] = 1/p[as] * 206265AU/parsec
+					star_distance = 1 / (parallax / 1000) * 206265
+					self.star_distance = star_distance
+
+					# Set nearest neighbor distance to search distance
+					nearest_neighbor_dist = width.to('mas').value
+					#   convert from mas to AU
+					self.nearest_neighbor_dist = round(self.star_distance * np.tan(np.radians(nearest_neighbor_dist/(3.6e6))), 1)  # distance to n.n. in AU
+					return 0
+			else:
+				return -51
 
 	def load_stellar_model(self, filter, star_age):
 		print('LOADING STELLAR MODEL...')
