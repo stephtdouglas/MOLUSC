@@ -1685,10 +1685,6 @@ class Application:
 			keep_table = np.vstack((keep_table, np.array(rv.amp)[keep], np.array(rv.b_type)[keep]))
 		keep_table = np.transpose(keep_table)
         
-# 		with open (os.path.join(self.prefix + "_kept.csv"), 'w') as f:
-# 			f.seek(0,2) # Go to the end of the file, then write n and mass
-# 			f.write(f'# n = {self.num_generated}\n')
-# 			f.write(f'# mass = {self.star_mass}\n')
 		ascii.write(keep_table, (self.prefix + "_kept.csv"), format='csv', names=cols, overwrite=True)
 
 		self.print_out(('Surviving binary parameters saved to: ' + self.prefix + '_kept.csv'))
@@ -1736,14 +1732,9 @@ class Application:
 			cols = cols + ['Full Rejected']
 			all_table = np.vstack((all_table, np.invert(keep)))
 			all_table = np.transpose(all_table)
-
-            # Add columns containing generated companions and star mass and write table to csv
-# 			with open (os.path.join(self.prefix + "_all.csv"), 'w') as f:
 				
 			ascii.write(all_table, (self.prefix + "_all.csv"), format='csv', names=cols, overwrite=True)
-# 				f.seek(0,2) # Go to the end of the file, then write n and mass
-# 				f.write(f'# n = {self.num_generated}\n')
-# 				f.write(f'# mass = {self.star_mass}\n')
+
 
 			self.print_out(('Generated binary parameters saved to: ' + self.prefix + '_all.csv'))
 
@@ -1753,16 +1744,18 @@ class Application:
 		else:
 			is_transit = False
             
-        # if self.ao_filename is not None:
-        #     is_ao = True
-        # else:
-        #     is_ao = False
+# 		print(f"AO and RV filenames: {self.ao_filename}, and{self.rv_filename}-")
+		if len(self.ao_filename[0]) > 3:
+			is_ao = True
+		else:
+			is_ao = False
             
-        # if self.rv_filename is not None:
-        #     is_rv = True
-        # else:
-        #     is_rv = False
-            
+		if len(self.rv_filename) > 3:
+			is_rv = True
+		else:
+			is_rv = False
+        
+# 		print("AO and rv checks:", is_ao, is_rv)
 		yaml_data = {"Star":{"ra": self.star_ra,"dec":self.star_dec,
 							 "age": self.star_age,"mass":self.star_mass,
                              "jitter": self.added_jitter},
@@ -1774,11 +1767,11 @@ class Application:
 					 
                      "ao_params":{"ao_file": self.ao_filename,
                                   "filter:": self.filter,
-                                  "fit": self.ao_check},
+                                  "fit": is_ao},
                      "rv_params":{"rv_file": self.rv_filename,
                                   "resolution": self.resolution,
                                   "rv_floor": self.rv_floor,
-                                  "fit": self.rv_check},
+                                  "fit": is_rv},
                      "gaia_params":{"gmag": self.gmag,
 					 				"color": self.color,
 									"n_good_obs": self.n_good_obs,
@@ -1986,16 +1979,6 @@ class Application:
         
 		# Run parser
 		args = parser.parse_args()
-# 		if args.rv is not None:
-# 			is_rv = True
-# 		else:
-# 			is_rv = False
-        
-# 		if args.ao is not None:
-# 			is_ao = True
-# 		else:
-# 			is_ao = False
-# 		print(f"AO check: {is_ao}\nRV check: {is_rv}")
         
 		if args.command == "cl":
     		# Input the inputs
@@ -2006,8 +1989,6 @@ class Application:
 			self.filter = args.filter
 			self.ruwe_check = args.ruwe
 			self.gaia_check = args.gaia
-			self.ao_check = is_ao
-			self.rv_check = is_rv
     		# Output Options
 			self.prefix = args.prefix
 			self.extra_output = args.verbose
