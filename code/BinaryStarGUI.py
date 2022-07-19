@@ -2012,7 +2012,7 @@ class Application:
 			with open(args.yml_file,"r") as f:
 				data = yaml.safe_load(f)
 			print(data)
-			print(f"This is the jitter::::::::::::::::::::: {data['Star']}")
+# 			print(f"This is the jitter::::::::::::::::::::: {data['Star']}")
 			# Input the inputs
 			#  Analysis Options
 			if data["rv_params"]["fit"]==True:
@@ -2058,11 +2058,11 @@ class Application:
 			self.all_output = args.all
 			# Stellar Info
 			self.num_generated = data["num_generated"]
-			self.star_ra = data["Star"]["RA"]
-			self.star_dec = data["Star"]["Dec"]
-			self.star_mass = data["Star"]["Mass"]
-			self.star_age = data["Star"]["Age"]
-			self.added_jitter = data["Star"]["jitter"]
+			self.star_ra = data["star"]["ra"]
+			self.star_dec = data["star"]["dec"]
+			self.star_mass = data["star"]["mass"]
+			self.star_age = data["star"]["age"]
+			self.added_jitter = data["star"]["jitter"]
 			# Limits
 			self.limits = [None]*21
 			if data["transit"]==True:
@@ -3566,7 +3566,7 @@ class RUWE:
 				return -51
 
 	def read_dist(self):
-		file_name = 'RuweTableGP.txt'
+		file_name = 'code/RuweTableGP.txt'
 		t = Table.read(file_name, format='ascii', delimiter=' ')
 
 		self.ruwe_dist = t
