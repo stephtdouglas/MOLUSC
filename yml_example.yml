@@ -21,7 +21,7 @@ ruwe_params:
   fit: True
 gaia_params:
   fit: True
-  ID: 6113920619134019456
+  id: 6113920619134019456
   gmag: 9.615366
   color: 0.839709
   n_good_obs: 151
