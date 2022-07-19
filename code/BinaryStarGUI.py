@@ -1797,7 +1797,7 @@ class Application:
                                     }
                     }
         
-        yaml_fname = f"{os.path.join('../yml', self.prefix)}_params_output.yml"
+        yaml_fname = f"{os.path.join('../saves/outputs/yml', self.prefix)}_params_output.yml"
         with open(yaml_fname,"w") as f:
             yaml.dump(yaml_data,f)
         self.print_out(('Run parameters saved to: ' + self.prefix + '_params_output.yml'))

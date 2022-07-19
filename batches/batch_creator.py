@@ -25,7 +25,7 @@ gui_path_hpc = os.path.join(repo_path_hpc, r'code/BinaryStarGUI.py')
 batch_path_hpc = os.path.join(repo_path_hpc, r'batches')
 
 output_path_drive = os.path.expanduser(r'G:\Shared drives\DouglasGroup\Jared Sofair 2022\MOLUSC\MOLUSC Outputs\Tables')
-output_path_hpc = os.path.expanduser(r'outputs/tables')
+output_path_hpc = os.path.expanduser(r'../saves/outputs/tables')
 
 pm = Table.read(os.path.join(csv_path_hpc, r'praesepe_merged.csv'))
 targets = Table.read(os.path.join(csv_path_hpc, r'targets_abr.csv'))
@@ -112,7 +112,7 @@ def run_batch_stars(stars=["JS355"], yml=True, analysis_options=["ao"], write_al
                 f.write(f'# {star}\npython "{gui_path_hpc}" ') # Label for readability :)
                 
                 if yml:
-                    f.write(f'yml "../yml/{star}_params_output.yml"')
+                    f.write(f'yml "../saves/outputs/yml/{star}_params_output.yml"')
                     
                     
                 else:
