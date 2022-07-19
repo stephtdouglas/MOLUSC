@@ -15,7 +15,7 @@ rv_params:
   resolution: 50000
 ao_params:
   fit: True
-  ao_file: example_contrast.txt
+  ao_file: ['example_contrast.txt']
   filter: K
 ruwe_params:
   fit: True

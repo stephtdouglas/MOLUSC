@@ -1550,6 +1550,7 @@ class Application:
 			ao_reject_lists = []
 			for i in range(len(self.ao_filename)):
 				if self.ao_filename[i]:
+					print(f"AO filename!::::::::::: {self.ao_filename[i]}\n and here is the ao filelist: {self.ao_filename}")
 					self.print_out(('Analyzing contrast curve in ' + self.ao_filename[i]))
 					ao = AO(self.ao_filename[i], comps, self.star_mass, self.star_age, self.star_ra, self.star_dec, self.filter[i])
 					# Determine distance
@@ -1744,18 +1745,28 @@ class Application:
 		else:
 			is_transit = False
             
-# 		print(f"AO and RV filenames: {self.ao_filename}, and{self.rv_filename}-")
+		print(f"AO and RV filenames: {self.ao_filename}, and{self.rv_filename}-")
 		if len(self.ao_filename[0]) > 3:
 			is_ao = True
 		else:
 			is_ao = False
-            
-		if len(self.rv_filename) > 3:
+        
+		is_rv = False
+		print(type(self.rv_filename))
+		if (type(self.rv_filename) == bool) and (self.rv_filename == True):
+			is_rv = True
+		elif (type(self.rv_filename) == bool) and (self.rv_filename == False):
+			is_rv = False
+		elif (type(self.rv_filename) != bool) and (len(self.rv_filename) > 2):
 			is_rv = True
 		else:
 			is_rv = False
+		#if (len(self.rv_filename) > 3) or (self.rv_filename is not None):
+			#is_rv = True
+		#else:
+			#is_rv = False
         
-# 		print("AO and rv checks:", is_ao, is_rv)
+		print("AO and rv checks:", is_ao, is_rv)
 		yaml_data = {"run_date": today,
                      "file_prefix": self.prefix,
 					 "num_generated": self.num_generated,
@@ -1774,7 +1785,7 @@ class Application:
                      
                      "ao_params":{"fit": is_ao,
                                   "ao_file": self.ao_filename,
-                                  "filter:": self.filter},
+                                  "filter": self.filter},
                      
                      "ruwe_params":{"fit": self.ruwe_check},
 
@@ -2041,7 +2052,11 @@ class Application:
 				self.rv_floor = 20
 
 			if data["ao_params"]["fit"]==True:
-				self.ao_filename = [data["ao_params"]["ao_file"]]
+				#if len(self.ao_filename) > 1:
+				self.ao_filename = data["ao_params"]["ao_file"]
+				#else:
+					#self.ao_filename = data["ao_params"]["ao_file"]
+
 				self.filter = data["ao_params"]["filter"]
 			else:
 				self.ao_filename = [False]
