@@ -3455,6 +3455,7 @@ class RUWE:
         self.arg_peri = companions.get_arg_peri()
         self.cos_i = companions.get_cos_i()
         self.mass_ratio = companions.get_mass_ratio()
+        self.gmag = np.nan
 
     def analyze(self):
         # a. Calculate projected separation
