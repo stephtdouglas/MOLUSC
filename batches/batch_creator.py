@@ -42,10 +42,9 @@ def run_batch_stars(stars=["JS355"], yml=True, analysis_options=["ao"], write_al
         with open(os.path.join(batch_path, r"batch_runner.bat").replace("\\", "/"), 'w') as f:
             # pm = Table.read(os.path.join(csv_path_github, r'Praesepe_Merged.csv').replace("\\", "/"))
             # targets = Table.read(os.path.join(csv_path_github, r'targets_abr.csv').replace("\\", "/"))
+            
             # Python seems to have trouble with the back slashes, so I separated this into 3 lines
-            f.write(f'call {anaconda_path}')
-            f.write(r'/Scripts/activate.bat ')
-            f.write(f'{anaconda_path}\n\n')
+            f.write(f'call {anaconda_path} /Scripts/activate.bat {anaconda_path}\n\n')
             
             # Write the command for each star
             for star in stars:
@@ -107,14 +106,14 @@ def run_batch_stars(stars=["JS355"], yml=True, analysis_options=["ao"], write_al
     
     else:
         #%% Create .bat file, write line necessary to run the script for Linux
-        with open(os.path.join(batch_path_hpc, r"batch_runner.bash").replace("\\", "/"), 'w') as f:
-            f.write('#!/bin/bash\n')
+        with open(os.path.join(batch_path_hpc, r"batch_runner_yml.bash").replace("\\", "/"), 'w') as f:
+            f.write('#!/bin/bash\n\n')
             # Write the command for each star
             for star in stars:
                 f.write(f'# {star}\npython "{gui_path_hpc}" ') # Label for readability :)
                 
                 if yml:
-                    f.write(f'yml "../saves/outputs/yml/{star}_params_output.yml"')
+                    f.write(f'yml "../saves/outputs/yml/{star.replace(" ", "_")}_params_output.yml"\n\n')
                     
                     
                 else:
@@ -150,3 +149,4 @@ def run_batch_stars(stars=["JS355"], yml=True, analysis_options=["ao"], write_al
 if __name__ == "__main__": # hehe
     all_targets = targets["name"]
     run_batch_stars(all_targets, yml=False, analysis_options=["ao"], filt="K", companions=15000, opsys='linux')
+    run_batch_stars(all_targets, yml=True, write_all=False, extra_output=False, analysis_options=["ao", "gaia", "ruwe"], filt="K", companions=15000, opsys='linux')
