@@ -1,0 +1,31 @@
+# Right now this is just the defaults from the GUI.py file
+file_prefix: yml_test2
+num_generated: 1000
+transit: False
+star:
+  ra: 13h50m06.28s
+  dec: -40d50m08.9s
+  mass: 1.3
+  age: 0.015
+  jitter: 20
+rv_params:
+  fit: True
+  rv_file: example_rv.txt
+  rv_floor: 20
+  resolution: 50000
+ao_params:
+  fit: True
+  ao_file: ['example_contrast.txt']
+  filter: K
+ruwe_params:
+  fit: True
+gaia_params:
+  fit: True
+  id: 6113920619134019456
+  gmag: 9.615366
+  color: 0.839709
+  n_good_obs: 151
+  astrometric_chi2: 225.52
+  parallax: 8.0170
+  parallax_error: 0.0182
+  ruwe: 0.869
