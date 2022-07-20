@@ -1797,7 +1797,8 @@ class Application:
                                     }
                     }
         
-        yaml_fname = f"{os.path.join('../saves/outputs/yml', self.prefix)}_params_output.yml"
+        yaml_path = os.path.expanduser(self.prefix).replace("tables", "yml").replace(r"\\", "/")
+        yaml_fname = f"{yaml_path}_params_output.yml"
         print(f"prefix f name!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!: {self.prefix}")
         print(f"yaml f name!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!: {yaml_fname}")
         with open(yaml_fname,"w") as f:
