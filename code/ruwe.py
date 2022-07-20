@@ -7,12 +7,15 @@ import astropy.units as u
 from astropy.table import Table
 from astroquery.gaia import Gaia
 import warnings
+import os
 from astropy.utils.exceptions import AstropyWarning
 warnings.simplefilter('error', category=RuntimeWarning)
 warnings.simplefilter('ignore', category=AstropyWarning)
 warnings.simplefilter('ignore', category=scipy.linalg.misc.LinAlgWarning)
 
 today = datetime.today().isoformat().split("T")[0]
+global repo_path
+repo_path = os.getenv('MOLOC')
 
 class RUWE:
     # class variables
@@ -121,7 +124,7 @@ class RUWE:
         # Read in file containing stellar model
         # todo Interpolate to get the chart for the exact age or binned age or something that doesnt rely on the age being in the chart
         model_chart = {}
-        BHAC_file = r'code/BHAC15_CFHT.txt'
+        BHAC_file = f'{os.path.join(repo_path, "code/BHAC15_CFHT.txt")}'
         with open(BHAC_file, 'r') as content_file:
             content = content_file.read()
         tables = content.split(
@@ -205,7 +208,7 @@ class RUWE:
                 return -51
 
     def read_dist(self):
-        file_name = 'code/RuweTableGP.txt'
+        file_name = 'f{os.path.join(repo_path, "code/RuweTableGP.txt")}'
         t = Table.read(file_name, format='ascii', delimiter=' ')
 
         self.ruwe_dist = t

@@ -18,7 +18,8 @@ warnings.simplefilter('ignore', category=AstropyWarning)
 warnings.simplefilter('ignore', category=scipy.linalg.misc.LinAlgWarning)
 
 today = datetime.today().isoformat().split("T")[0]
-
+global repo_path
+repo_path = os.getenv('MOLOC')
 
 class Application:
     # Input
@@ -201,7 +202,7 @@ class Application:
         if self.gaia_check:
             self.print_out('Analyzing Gaia Contrast...')
             #todo improve gaia contrast
-            gaia = AO('code/gaia_contrast.txt', comps, self.star_mass, self.star_age, self.star_ra, self.star_dec, 'G', gaia=True)
+            gaia = AO(f'{os.path.join(repo_path, "code/gaia_contrast.txt")}', comps, self.star_mass, self.star_age, self.star_ra, self.star_dec, 'G', gaia=True)
             # Determine distance
             failure = self.error_check(gaia.get_distance(self.star_ra, self.star_dec, self.parallax))
             if failure: return
