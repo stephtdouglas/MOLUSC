@@ -8,17 +8,17 @@ import os
 from astropy.table import Table
 import numpy as np
 
+repo_path = os.path.join(os.getenv('MOLOC')).replace("\\", "/")
 
 csv_path_drive = os.path.expanduser(r'G:/Shared drives/DouglasGroup/Jared Sofair 2022/CSV Files')
 csv_path_github = os.path.expanduser(r'C:/Users/Jared/Documents/GitHub/data-parser/CSV Files')
 contrast_path = os.path.expanduser(r'G:/Shared drives/DouglasGroup/Jared Sofair 2022/MOLUSC/Data Parser Tables')
-csv_path_hpc = os.path.join(os.getenv('MOLOC'), r'csvs')
-contrast_path_hpc = os.path.expanduser(r'contrasts')
+csv_path_hpc = os.path.join(repo_path, r'csvs').replace("\\", "/")
+contrast_path_hpc = os.path.join(repo_path, r'contrasts').replace("\\", "/")
 
 anaconda_path = os.path.expanduser(r'C:/Users/Jared/anaconda3')
 
 
-repo_path = os.path.join(os.getenv('MOLOC')).replace("\\", "/")
 
 # repo_path = os.path.expanduser(r'C:/Users/Jared/Documents/GitHub/MOLUSC')
 gui_path = os.path.join(repo_path, r'code/BinaryStarGUI.py').replace("\\", "/")
@@ -27,7 +27,8 @@ gui_path_hpc = os.path.join(repo_path, r'code/BinaryStarGUI.py').replace("\\", "
 batch_path_hpc = os.path.join(repo_path, r'batches').replace("\\", "/")
 
 output_path_drive = os.path.expanduser(r'G:/Shared drives/DouglasGroup/Jared Sofair 2022/MOLUSC/MOLUSC Outputs/Tables')
-output_path_hpc = os.path.expanduser(r'../saves/outputs/tables')
+table_output_path_hpc = os.path.join(repo_path, r'../saves/outputs/tables').replace("\\", "/")
+yml_output_path_hpc = os.path.join(repo_path, r'../saves/outputs/yml').replace("\\", "/")
 
 pm = Table.read(os.path.join(csv_path_hpc, r'praesepe_merged.csv').replace("\\", "/"))
 targets = Table.read(os.path.join(csv_path_hpc, r'targets_abr.csv').replace("\\", "/"))
@@ -119,7 +120,7 @@ def run_batch_stars(stars=["JS355"], yml=True, analysis_options=["ao"], write_al
                 # Write the line for each star
                 for star in stars:
                     f.write(f'# {star}\npython "{gui_path_hpc}" ') # Label for readability :)
-                    f.write(f'yml "../saves/outputs/yml/{star.replace(" ", "_")}_params_output.yml"\n\n')
+                    f.write(f'yml "{yml_output_path_hpc}/{star.replace(" ", "_")}_params_output.yml"\n\n')
                     
         # You want to create the fml file for the star(s) you intend to run through MOLUSC        
         else:
@@ -143,7 +144,7 @@ def run_batch_stars(stars=["JS355"], yml=True, analysis_options=["ao"], write_al
                         ao_path = os.path.join(contrast_path_hpc, star.replace(" ", "_")).replace("\\", "/")
                         f.write(f'--ao "{ao_path}.txt" --filter {filt} ')
                     # if "rv" in analysis_options: # RV
-                    #   f.write(r'--rv "{os.path.join(rv_path, star.replace(" ", "_")).replace(" ", "_"))}.txt" --resolution 50000')
+                    #   f.write(r'--rv "{os.path.join(rv_path, star.replace(" ", "_")).replace("\\", "/")}.txt" --resolution 50000')
                     if "ruwe" in analysis_options: # RUWE
                         f.write('--gaia ')
                     if "gaia" in analysis_options: # Gaia
@@ -156,7 +157,7 @@ def run_batch_stars(stars=["JS355"], yml=True, analysis_options=["ao"], write_al
                     mass = np.round(targets["M/Ms"][np.where(targets["name"] == star)[0][0]], 3)
                     age = targets["age"][np.where(targets["name"] == star)[0][0]]
                     
-                    out_path_hpc = os.path.join(output_path_hpc, star.replace(" ", "_")).replace("\\", "/")
+                    out_path_hpc = os.path.join(table_output_path_hpc, star.replace(" ", "_")).replace("\\", "/")
                     f.write(f'--age {age} "{out_path_hpc}" {ra} -- +{dec} {companions} {mass}\n\n')
                         
 if __name__ == "__main__": # hehe
