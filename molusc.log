@@ -1,0 +1,112 @@
+DEBUG:root:['[../contrasts/JS355.txt,../contrasts/JS364.txt]']
+DEBUG:root:['[../contrasts/JS355.txt,../contrasts/JS364.txt]']
+DEBUG:root:['../contrasts/JS355.txt,../contrasts/JS364.txt']
+DEBUG:root:['../contrasts/JS355.txt,../contrasts/JS364.txt']
+2022-07-21 13:42:59,420 ['../contrasts/JS355.txt,../contrasts/JS364.txt']
+2022-07-21 13:42:59,420 ['../contrasts/JS355.txt,../contrasts/JS364.txt']
+2022-07-21 13:45:51,990 [['../contrasts/JS355.txt,../contrasts/JS364.txt']]
+2022-07-21 13:45:51,990 [['../contrasts/JS355.txt,../contrasts/JS364.txt']]
+2022-07-21 13:45:51,990 1
+2022-07-21 13:47:04,055 [['../contrasts/JS355.txt', '../contrasts/JS364.txt']]
+2022-07-21 13:47:04,055 [['../contrasts/JS355.txt', '../contrasts/JS364.txt']]
+2022-07-21 13:47:04,057 1
+2022-07-21 13:47:33,121 [['../contrasts/JS355.txt', '../contrasts/JS364.txt']]
+2022-07-21 13:47:33,121 [['../contrasts/JS355.txt', '../contrasts/JS364.txt']]
+2022-07-21 13:47:33,121 1
+2022-07-21 13:49:24,989 args.ao: ['../contrasts/JS355.txt', '../contrasts/JS364.txt']
+2022-07-21 13:49:24,989 ao_filename full list: ['../contrasts/JS355.txt', '../contrasts/JS364.txt']
+2022-07-21 13:49:24,989 Length of ao_filename: 2
+2022-07-21 13:50:39,227 args.ao: ['../contrasts/JS355.txt', '../contrasts/JS364.txt']
+2022-07-21 13:50:39,227 ao_filename full list: ['../contrasts/JS355.txt', '../contrasts/JS364.txt']
+2022-07-21 13:50:39,227 First item in ao_filename list: ../contrasts/JS355.txt
+2022-07-21 13:50:39,227 Length of ao_filename: 2
+2022-07-21 13:51:15,142 args.ao: ['../contrasts/JS355.txt', '../contrasts/JS364.txt']
+2022-07-21 13:51:15,143 ao_filename full list: ['../contrasts/JS355.txt', '../contrasts/JS364.txt']
+2022-07-21 13:51:15,143 First item in ao_filename list: ../contrasts/JS355.txt
+2022-07-21 13:51:15,143 Length of ao_filename: 2
+2022-07-21 13:51:39,769 args.ao: ['../contrasts/JS355.txt', '../contrasts/JS364.txt']
+2022-07-21 13:51:39,769 ao_filename full list: ['../contrasts/JS355.txt', '../contrasts/JS364.txt']
+2022-07-21 13:51:39,769 First item in ao_filename list: ../contrasts/JS355.txt
+2022-07-21 13:51:39,770 Length of ao_filename: 2
+2022-07-21 14:00:06,392 args.ao: ['../contrasts/JS355.txt', '../contrasts/JS364.txt']
+2022-07-21 14:00:06,392 ao_filename full list: ['../contrasts/JS355.txt', '../contrasts/JS364.txt']
+2022-07-21 14:00:06,392 First item in ao_filename list: ../contrasts/JS355.txt
+2022-07-21 14:00:06,392 Length of ao_filename: 2
+2022-07-21 14:05:06,049 args.ao: ['../contrasts/JS355.txt', '../contrasts/JS364.txt']
+2022-07-21 14:05:06,050 ao_filename full list: ['../contrasts/JS355.txt', '../contrasts/JS364.txt']
+2022-07-21 14:05:06,050 First item in ao_filename list: ../contrasts/JS355.txt
+2022-07-21 14:05:06,050 Length of ao_filename: 2
+2022-07-21 14:06:39,401 args.ao: ['../contrasts/JS355.txt', '../contrasts/JS364.txt']
+2022-07-21 14:06:39,401 ao_filename full list: ['../contrasts/JS355.txt', '../contrasts/JS364.txt']
+2022-07-21 14:06:39,401 First item in ao_filename list: ../contrasts/JS355.txt
+2022-07-21 14:06:39,402 Length of ao_filename: 2
+2022-07-21 14:08:38,455 args.ao: ['C:/Users/Jared/Documents/GitHub/MOLUSC/contrasts/JS355.txt', 'C:/Users/Jared/Documents/GitHub/MOLUSC/contrasts/JS364.txt']
+2022-07-21 14:08:38,455 ao_filename full list: ['C:/Users/Jared/Documents/GitHub/MOLUSC/contrasts/JS355.txt', 'C:/Users/Jared/Documents/GitHub/MOLUSC/contrasts/JS364.txt']
+2022-07-21 14:08:38,455 First item in ao_filename list: C:/Users/Jared/Documents/GitHub/MOLUSC/contrasts/JS355.txt
+2022-07-21 14:08:38,455 Length of ao_filename: 2
+2022-07-21 14:09:55,333 args.ao: ['C:/Users/Jared/Documents/GitHub/MOLUSC/contrasts/JS355.txt', 'C:/Users/Jared/Documents/GitHub/MOLUSC/contrasts/JS364.txt']
+2022-07-21 14:09:55,333 ao_filename full list: ['C:/Users/Jared/Documents/GitHub/MOLUSC/contrasts/JS355.txt', 'C:/Users/Jared/Documents/GitHub/MOLUSC/contrasts/JS364.txt']
+2022-07-21 14:09:55,333 First item in ao_filename list: C:/Users/Jared/Documents/GitHub/MOLUSC/contrasts/JS355.txt
+2022-07-21 14:09:55,333 Length of ao_filename: 2
+2022-07-21 14:10:09,473 args.ao: ['C:/Users/Jared/Documents/GitHub/MOLUSC/contrasts/JS355.txt', 'C:/Users/Jared/Documents/GitHub/MOLUSC/contrasts/JS364.txt']
+2022-07-21 14:10:09,473 ao_filename full list: ['C:/Users/Jared/Documents/GitHub/MOLUSC/contrasts/JS355.txt', 'C:/Users/Jared/Documents/GitHub/MOLUSC/contrasts/JS364.txt']
+2022-07-21 14:10:09,474 First item in ao_filename list: C:/Users/Jared/Documents/GitHub/MOLUSC/contrasts/JS355.txt
+2022-07-21 14:10:09,474 Length of ao_filename: 2
+2022-07-21 14:11:42,293 args.ao: ['C:/Users/Jared/Documents/GitHub/MOLUSC/contrasts/JS355.txt', 'C:/Users/Jared/Documents/GitHub/MOLUSC/contrasts/JS364.txt']
+2022-07-21 14:11:42,293 ao_filename full list: ['C:/Users/Jared/Documents/GitHub/MOLUSC/contrasts/JS355.txt', 'C:/Users/Jared/Documents/GitHub/MOLUSC/contrasts/JS364.txt']
+2022-07-21 14:11:42,293 First item in ao_filename list: C:/Users/Jared/Documents/GitHub/MOLUSC/contrasts/JS355.txt
+2022-07-21 14:11:42,293 Length of ao_filename: 2
+2022-07-21 14:11:53,219 args.ao: ['C:/Users/Jared/Documents/GitHub/MOLUSC/contrasts/JS355.txt', 'C:/Users/Jared/Documents/GitHub/MOLUSC/contrasts/JS364.txt']
+2022-07-21 14:11:53,219 ao_filename full list: ['C:/Users/Jared/Documents/GitHub/MOLUSC/contrasts/JS355.txt', 'C:/Users/Jared/Documents/GitHub/MOLUSC/contrasts/JS364.txt']
+2022-07-21 14:11:53,219 First item in ao_filename list: C:/Users/Jared/Documents/GitHub/MOLUSC/contrasts/JS355.txt
+2022-07-21 14:11:53,219 Length of ao_filename: 2
+2022-07-21 14:15:18,848 args.ao: ['C:/Users/Jared/Documents/GitHub/MOLUSC/contrasts/JS355.txt', 'C:/Users/Jared/Documents/GitHub/MOLUSC/contrasts/JS364.txt']
+2022-07-21 14:15:18,848 ao_filename full list: ['C:/Users/Jared/Documents/GitHub/MOLUSC/contrasts/JS355.txt', 'C:/Users/Jared/Documents/GitHub/MOLUSC/contrasts/JS364.txt']
+2022-07-21 14:15:18,848 First item in ao_filename list: C:/Users/Jared/Documents/GitHub/MOLUSC/contrasts/JS355.txt
+2022-07-21 14:15:18,848 Length of ao_filename: 2
+2022-07-21 14:15:38,049 args.ao: ['C:/Users/Jared/Documents/GitHub/MOLUSC/contrasts/JS355.txt', 'C:/Users/Jared/Documents/GitHub/MOLUSC/contrasts/JS364.txt']
+2022-07-21 14:15:38,049 ao_filename full list: ['C:/Users/Jared/Documents/GitHub/MOLUSC/contrasts/JS355.txt', 'C:/Users/Jared/Documents/GitHub/MOLUSC/contrasts/JS364.txt']
+2022-07-21 14:15:38,049 First item in ao_filename list: C:/Users/Jared/Documents/GitHub/MOLUSC/contrasts/JS355.txt
+2022-07-21 14:15:38,049 Length of ao_filename: 2
+2022-07-21 14:15:48,977 args.ao: ['C:/Users/Jared/Documents/GitHub/MOLUSC/contrasts/JS355.txt', 'C:/Users/Jared/Documents/GitHub/MOLUSC/contrasts/JS364.txt']
+2022-07-21 14:15:48,977 ao_filename full list: ['C:/Users/Jared/Documents/GitHub/MOLUSC/contrasts/JS355.txt', 'C:/Users/Jared/Documents/GitHub/MOLUSC/contrasts/JS364.txt']
+2022-07-21 14:15:48,978 First item in ao_filename list: C:/Users/Jared/Documents/GitHub/MOLUSC/contrasts/JS355.txt
+2022-07-21 14:15:48,978 Length of ao_filename: 2
+2022-07-21 14:16:29,198 args.ao: ['C:/Users/Jared/Documents/GitHub/MOLUSC/contrasts/JS355.txt', 'C:/Users/Jared/Documents/GitHub/MOLUSC/contrasts/JS364.txt']
+2022-07-21 14:16:29,198 ao_filename full list: ['C:/Users/Jared/Documents/GitHub/MOLUSC/contrasts/JS355.txt', 'C:/Users/Jared/Documents/GitHub/MOLUSC/contrasts/JS364.txt']
+2022-07-21 14:16:29,198 First item in ao_filename list: C:/Users/Jared/Documents/GitHub/MOLUSC/contrasts/JS355.txt
+2022-07-21 14:16:29,199 Length of ao_filename: 2
+2022-07-21 14:16:42,784 args.ao: ['C:/Users/Jared/Documents/GitHub/MOLUSC/contrasts/JS355.txt', 'C:/Users/Jared/Documents/GitHub/MOLUSC/contrasts/JS364.txt']
+2022-07-21 14:16:42,784 ao_filename full list: ['C:/Users/Jared/Documents/GitHub/MOLUSC/contrasts/JS355.txt', 'C:/Users/Jared/Documents/GitHub/MOLUSC/contrasts/JS364.txt']
+2022-07-21 14:16:42,784 First item in ao_filename list: C:/Users/Jared/Documents/GitHub/MOLUSC/contrasts/JS355.txt
+2022-07-21 14:16:42,784 Length of ao_filename: 2
+2022-07-21 14:18:37,902 args.ao: ['C:/Users/Jared/Documents/GitHub/MOLUSC/contrasts/JS355.txt', 'C:/Users/Jared/Documents/GitHub/MOLUSC/contrasts/JS364.txt']
+2022-07-21 14:18:37,903 ao_filename full list: ['C:/Users/Jared/Documents/GitHub/MOLUSC/contrasts/JS355.txt', 'C:/Users/Jared/Documents/GitHub/MOLUSC/contrasts/JS364.txt']
+2022-07-21 14:18:37,903 First item in ao_filename list: C:/Users/Jared/Documents/GitHub/MOLUSC/contrasts/JS355.txt
+2022-07-21 14:18:37,903 Length of ao_filename: 2
+2022-07-21 14:18:37,903 args.filter: ['K']
+2022-07-21 14:18:37,903 First item in args.filter: K
+2022-07-21 14:20:16,022 args.ao: ['C:/Users/Jared/Documents/GitHub/MOLUSC/contrasts/JS355.txt', 'C:/Users/Jared/Documents/GitHub/MOLUSC/contrasts/JS364.txt']
+2022-07-21 14:20:16,022 ao_filename full list: ['C:/Users/Jared/Documents/GitHub/MOLUSC/contrasts/JS355.txt', 'C:/Users/Jared/Documents/GitHub/MOLUSC/contrasts/JS364.txt']
+2022-07-21 14:20:16,022 First item in ao_filename list: C:/Users/Jared/Documents/GitHub/MOLUSC/contrasts/JS355.txt
+2022-07-21 14:20:16,022 Length of ao_filename: 2
+2022-07-21 14:20:16,022 args.filter: ['K']
+2022-07-21 14:20:16,022 First item in args.filter: K
+2022-07-21 14:26:46,791 args.filter: ['K']
+2022-07-21 14:26:46,791 First item in args.filter: K
+2022-07-21 14:27:42,944 args.filter: ['K']
+2022-07-21 14:27:42,945 First item in args.filter: K
+2022-07-21 14:28:36,860 args.filter: ['K']
+2022-07-21 14:28:36,860 First item in args.filter: K
+2022-07-21 14:29:19,812 args.filter: ['K']
+2022-07-21 14:29:19,812 First item in args.filter: K
+2022-07-21 14:29:32,381 args.filter: ['K']
+2022-07-21 14:29:32,381 First item in args.filter: K
+2022-07-21 14:29:58,013 args.filter: ['K']
+2022-07-21 14:29:58,014 First item in args.filter: K
+2022-07-21 14:30:15,609 args.filter: ['K']
+2022-07-21 14:30:15,609 First item in args.filter: K
+2022-07-21 14:32:39,391 args.filter: ['K']
+2022-07-21 14:32:39,391 First item in args.filter: K
+2022-07-21 14:32:51,038 args.filter: ['K']
+2022-07-21 14:32:51,038 First item in args.filter: K

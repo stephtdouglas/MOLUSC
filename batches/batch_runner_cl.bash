@@ -94,7 +94,7 @@ python "C:/Users/Jared/Documents/GitHub/MOLUSC/code/BinaryStarGUI.py" cl -v -a -
 python "C:/Users/Jared/Documents/GitHub/MOLUSC/code/BinaryStarGUI.py" cl -v -a --ao "C:/Users/Jared/Documents/GitHub/MOLUSC/contrasts/JS352.txt" --filter K --age 0.8 "C:/Users/Jared/Documents/GitHub/MOLUSC/../saves/outputs/tables/JS352" 08h40m19.82s -- +18d55m38.3s 15000 0.601
 
 # JS355
-python "C:/Users/Jared/Documents/GitHub/MOLUSC/code/BinaryStarGUI.py" cl -v -a --ao "C:/Users/Jared/Documents/GitHub/MOLUSC/contrasts/JS355.txt" --filter K --age 0.8 "C:/Users/Jared/Documents/GitHub/MOLUSC/../saves/outputs/tables/JS355" 08h40m22.16s -- +18d7m24.8s 15000 0.6
+python "C:/Users/Jared/Documents/GitHub/MOLUSC/code/BinaryStarGUI.py" cl -v -a --ao "C:/Users/Jared/Documents/GitHub/MOLUSC/contrasts/JS355.txt" "C:/Users/Jared/Documents/GitHub/MOLUSC/contrasts/JS364.txt" --filter K --age 0.8 "C:/Users/Jared/Documents/GitHub/MOLUSC/../saves/outputs/tables/JS355" 08h40m22.16s -- +18d7m24.8s 15000 0.6
 
 # JS364
 python "C:/Users/Jared/Documents/GitHub/MOLUSC/code/BinaryStarGUI.py" cl -v -a --ao "C:/Users/Jared/Documents/GitHub/MOLUSC/contrasts/JS364.txt" --filter K --age 0.8 "C:/Users/Jared/Documents/GitHub/MOLUSC/../saves/outputs/tables/JS364" 08h40m28.23s -- +18d56m9.0s 15000 0.56
