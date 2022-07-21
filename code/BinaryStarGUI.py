@@ -7,6 +7,8 @@ import sys
 import warnings
 from application import Application
 from astropy.utils.exceptions import AstropyWarning
+import logging
+import os
 warnings.simplefilter('error', category=RuntimeWarning)
 warnings.simplefilter('ignore', category=AstropyWarning)
 warnings.simplefilter('ignore', category=scipy.linalg.misc.LinAlgWarning)

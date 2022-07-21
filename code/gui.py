@@ -7,6 +7,7 @@ import tkinter.messagebox
 from textwrap import wrap
 import warnings
 from astropy.utils.exceptions import AstropyWarning
+import logging
 warnings.simplefilter('error', category=RuntimeWarning)
 warnings.simplefilter('ignore', category=AstropyWarning)
 warnings.simplefilter('ignore', category=scipy.linalg.misc.LinAlgWarning)

@@ -9,6 +9,7 @@ from astroquery.gaia import Gaia
 import warnings
 import os
 from astropy.utils.exceptions import AstropyWarning
+import logging
 warnings.simplefilter('error', category=RuntimeWarning)
 warnings.simplefilter('ignore', category=AstropyWarning)
 warnings.simplefilter('ignore', category=scipy.linalg.misc.LinAlgWarning)

@@ -14,6 +14,8 @@ from gui import GUI
 from ruwe import RUWE
 from rv import RV
 from astropy.utils.exceptions import AstropyWarning
+import logging
+logging.basicConfig(format='%(asctime)s %(message)s', encoding='utf-8', level=logging.DEBUG)
 warnings.simplefilter('error', category=RuntimeWarning)
 warnings.simplefilter('ignore', category=AstropyWarning)
 warnings.simplefilter('ignore', category=scipy.linalg.misc.LinAlgWarning)
@@ -134,7 +136,7 @@ class Application:
             ao_reject_lists = []
             for i in range(len(self.ao_filename)):
                 if self.ao_filename[i]:
-                    self.print_out(('Analyzing contrast curve in ' + self.ao_filename[i]))
+                    self.print_out(f'Analyzing contrast curve in {self.ao_filename[i]}')
                     ao = AO(self.ao_filename[i], comps, self.star_mass, self.star_age, self.star_ra, self.star_dec, self.filter[i])
                     # Determine distance
                     failure = self.error_check(ao.get_distance(self.star_ra, self.star_dec, self.parallax))
@@ -558,9 +560,9 @@ class Application:
                                metavar='RV_PATH', default='')
         my_parser.add_argument('--resolution', help='The spectral resolution of the RV data', required=False,
                                metavar='RV_PATH', default=50000)
-        my_parser.add_argument('--ao', help='The path to the file containing the AO data', required=False,
-                               metavar='AO_PATH', default='')
-        my_parser.add_argument('--filter', help='The filter in which the AO data was taken', required=False,
+        my_parser.add_argument('--ao', nargs="*", type=str, help='The path to the file(s) containing the AO data', required=False,
+                               metavar='AO_PATH', default=[''])
+        my_parser.add_argument('--filter', nargs="*", type=str, help='The filter in which the AO data was taken', required=False,
                                choices=['J','K','H','G', 'Bp','Rp','R','I','L','LL','M'])
         my_parser.add_argument('--ruwe', action='store_true', help='Apply the RUWE test')
         my_parser.add_argument('--gaia', action='store_true', help='Apply the GAIA contrast test')
@@ -583,8 +585,13 @@ class Application:
             #  Analysis Options
             self.rv_filename = args.rv
             self.resolution = float(args.resolution)
-            self.ao_filename = [args.ao]
+            self.ao_filename = args.ao
+            logging.info(f"ao_filename full list: {self.ao_filename}")
+            logging.info(f"First item in ao_filename list: {self.ao_filename[0]}")
+            logging.info(f"Length of ao_filename: {len(self.ao_filename)}")
             self.filter = args.filter
+            logging.info(f"args.filter: {args.filter}")
+            logging.info(f"First item in args.filter: {args.filter[0]}")
             self.ruwe_check = args.ruwe
             self.gaia_check = args.gaia
             # Output Options
@@ -693,7 +700,9 @@ class Application:
         if self.ao_filename[0] and not self.filter:
             print('AO given without filter')
             return False
-        if self.ao_filename[0] and not (self.filter in ['J','K','H','G', 'Bp','Rp','R','I','L','LL','M']):
+        if self.ao_filename[0] and not (self.filter[0] in ['J','K','H','G', 'Bp','Rp','R','I','L','LL','M']):
+            print(self.filter[0])
+            print(self.filter[0] in ['J','K','H','G', 'Bp','Rp','R','I','L','LL','M'])
             print("Unknown filter. Filter must be one of ['J','K','H','G', 'Bp','Rp','R','I','L','LL','M']")
             return False
 
