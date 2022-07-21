@@ -1,6 +1,7 @@
 from datetime import datetime
 import numpy as np
 import scipy as scipy
+import scipy.stats as stats
 import tkinter as tk
 import tkinter.messagebox
 from textwrap import wrap

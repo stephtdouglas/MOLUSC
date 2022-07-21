@@ -15,7 +15,7 @@ warnings.simplefilter('ignore', category=scipy.linalg.misc.LinAlgWarning)
 
 today = datetime.today().isoformat().split("T")[0]
 global repo_path
-repo_path = os.getenv('MOLOC')
+repo_path = os.getenv('MOLOC').replace("\\", "/")
 
 def calculate_RV_parallel(period, mass_ratio, a, e, cos_i, arg_peri, phase, MJD, calc):
     # Exactly the same as calculate_RV, but with an extra parameter stating whether you need to calculate RV

@@ -1,6 +1,7 @@
 from datetime import datetime
 import numpy as np
 import scipy as scipy
+import scipy.stats as stats
 from astropy.io import ascii
 import argparse
 import gc
@@ -19,7 +20,7 @@ warnings.simplefilter('ignore', category=scipy.linalg.misc.LinAlgWarning)
 
 today = datetime.today().isoformat().split("T")[0]
 global repo_path
-repo_path = os.getenv('MOLOC')
+repo_path = os.getenv('MOLOC').replace("\\", "/")
 
 class Application:
     # Input

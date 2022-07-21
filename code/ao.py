@@ -1,6 +1,7 @@
 from datetime import datetime
 import numpy as np
 import scipy as scipy
+import scipy.stats as stats
 from astropy.coordinates import SkyCoord
 import astropy.units as u
 from astropy.table import Table
@@ -15,7 +16,7 @@ warnings.simplefilter('ignore', category=scipy.linalg.misc.LinAlgWarning)
 
 today = datetime.today().isoformat().split("T")[0]
 global repo_path
-repo_path = os.genenv('MOLOC')
+repo_path = os.getenv('MOLOC').replace("\\", "/")
 
 class AO:
     # class variables

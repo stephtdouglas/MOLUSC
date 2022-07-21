@@ -2,6 +2,7 @@
 # Mackenna Wood, UNC Chapel Hill
 from datetime import datetime
 import scipy as scipy
+import scipy.stats as stats
 import sys
 import warnings
 from application import Application

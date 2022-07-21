@@ -1,6 +1,7 @@
 from datetime import datetime
 import numpy as np
 import scipy as scipy
+import scipy.stats as stats
 import warnings
 from astropy.utils.exceptions import AstropyWarning
 warnings.simplefilter('error', category=RuntimeWarning)

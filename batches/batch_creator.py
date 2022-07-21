@@ -12,17 +12,19 @@ import numpy as np
 csv_path_drive = os.path.expanduser(r'G:/Shared drives/DouglasGroup/Jared Sofair 2022/CSV Files')
 csv_path_github = os.path.expanduser(r'C:/Users/Jared/Documents/GitHub/data-parser/CSV Files')
 contrast_path = os.path.expanduser(r'G:/Shared drives/DouglasGroup/Jared Sofair 2022/MOLUSC/Data Parser Tables')
-csv_path_hpc = os.path.expanduser(r'csvs')
+csv_path_hpc = os.path.join(os.getenv('MOLOC'), r'csvs')
 contrast_path_hpc = os.path.expanduser(r'contrasts')
 
 anaconda_path = os.path.expanduser(r'C:/Users/Jared/anaconda3')
 
-repo_path = os.path.expanduser(r'C:/Users/Jared/Documents/GitHub/MOLUSC')
+
+repo_path = os.path.join(os.getenv('MOLOC')).replace("\\", "/")
+
+# repo_path = os.path.expanduser(r'C:/Users/Jared/Documents/GitHub/MOLUSC')
 gui_path = os.path.join(repo_path, r'code/BinaryStarGUI.py').replace("\\", "/")
 batch_path = os.path.join(repo_path, r'batches').replace("\\", "/")
-repo_path_hpc = os.path.expanduser(r'.')
-gui_path_hpc = os.path.join(repo_path_hpc, r'code/BinaryStarGUI.py').replace("\\", "/")
-batch_path_hpc = os.path.join(repo_path_hpc, r'batches').replace("\\", "/")
+gui_path_hpc = os.path.join(repo_path, r'code/BinaryStarGUI.py').replace("\\", "/")
+batch_path_hpc = os.path.join(repo_path, r'batches').replace("\\", "/")
 
 output_path_drive = os.path.expanduser(r'G:/Shared drives/DouglasGroup/Jared Sofair 2022/MOLUSC/MOLUSC Outputs/Tables')
 output_path_hpc = os.path.expanduser(r'../saves/outputs/tables')
@@ -43,7 +45,6 @@ def run_batch_stars(stars=["JS355"], yml=True, analysis_options=["ao"], write_al
             # pm = Table.read(os.path.join(csv_path_github, r'Praesepe_Merged.csv').replace("\\", "/"))
             # targets = Table.read(os.path.join(csv_path_github, r'targets_abr.csv').replace("\\", "/"))
             
-            # Python seems to have trouble with the back slashes, so I separated this into 3 lines
             f.write(f'call {anaconda_path} /Scripts/activate.bat {anaconda_path}\n\n')
             
             # Write the command for each star
@@ -105,18 +106,29 @@ def run_batch_stars(stars=["JS355"], yml=True, analysis_options=["ao"], write_al
             # Extra output
     
     else:
-        #%% Create .bat file, write line necessary to run the script for Linux
-        with open(os.path.join(batch_path_hpc, r"batch_runner_yml.bash").replace("\\", "/"), 'w') as f:
-            f.write('#!/bin/bash\n\n')
-            # Write the command for each star
-            for star in stars:
-                f.write(f'# {star}\npython "{gui_path_hpc}" ') # Label for readability :)
+        #%% Create .bat file
+        
+        # Write the command for each star. This creates different files for creating the yml files and running stars
+        # using the yml files
+        
+        # You have the yml file for the star(s) you intend to run through MOLUSC
+        if yml:
+            with open(os.path.join(batch_path_hpc, r"batch_runner_yml.bash").replace("\\", "/"), 'w') as f:
+                f.write('#!/bin/bash\n\n')
                 
-                if yml:
+                # Write the line for each star
+                for star in stars:
+                    f.write(f'# {star}\npython "{gui_path_hpc}" ') # Label for readability :)
                     f.write(f'yml "../saves/outputs/yml/{star.replace(" ", "_")}_params_output.yml"\n\n')
                     
-                    
-                else:
+        # You want to create the fml file for the star(s) you intend to run through MOLUSC        
+        else:
+            with open(os.path.join(batch_path_hpc, r"batch_runner_cl.bash").replace("\\", "/"), 'w') as f:
+                f.write('#!/bin/bash\n\n')
+                
+                # Write the line for each star
+                for star in stars:
+                    f.write(f'# {star}\npython "{gui_path_hpc}" ') # Label for readability :)
                     f.write('cl ')
                 
                     # Write all
@@ -126,6 +138,7 @@ def run_batch_stars(stars=["JS355"], yml=True, analysis_options=["ao"], write_al
                     if extra_output == True:
                         f.write('-a ')
                     
+                    # Analysis options
                     if "ao" in analysis_options: # HRI
                         ao_path = os.path.join(contrast_path_hpc, star.replace(" ", "_")).replace("\\", "/")
                         f.write(f'--ao "{ao_path}.txt" --filter {filt} ')
@@ -145,8 +158,8 @@ def run_batch_stars(stars=["JS355"], yml=True, analysis_options=["ao"], write_al
                     
                     out_path_hpc = os.path.join(output_path_hpc, star.replace(" ", "_")).replace("\\", "/")
                     f.write(f'--age {age} "{out_path_hpc}" {ra} -- +{dec} {companions} {mass}\n\n')
-                    
+                        
 if __name__ == "__main__": # hehe
     all_targets = targets["name"]
     run_batch_stars(all_targets, yml=False, analysis_options=["ao"], filt="K", companions=15000, opsys='linux')
-    run_batch_stars(all_targets, yml=True, write_all=False, extra_output=False, analysis_options=["ao", "gaia", "ruwe"], filt="K", companions=15000, opsys='linux')
+    run_batch_stars(all_targets, yml=True, write_all=False, extra_output=False, analysis_options=["ao"], filt="K", companions=15000, opsys='linux')
