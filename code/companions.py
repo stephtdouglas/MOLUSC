@@ -316,9 +316,6 @@ class Companions:
         return np.exp(-(x - mu) ** 2 / (2. * sigma ** 2))
 
     # Accessor functions
-    def get_num(self):
-        return self.num_generated
-
     def get_P(self):
         return self.__P
 

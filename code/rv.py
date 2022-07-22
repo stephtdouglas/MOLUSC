@@ -96,7 +96,7 @@ class RV:
         #     Using orbital mechanics equations from Perryman 2011, and solving for E(anomaly) numerically
         #     For time comparison I want to generate times with the same range as the times in MJD, and then calculate
         #     the predicted RV at that time, which I can then compare to the experimental values using least squares
-        num_generated = self.companions.get_num()
+        num_generated = self.num_generated
         # Unpack parameters
         period = self.companions.get_P()
         mass_ratio = self.companions.get_mass_ratio()

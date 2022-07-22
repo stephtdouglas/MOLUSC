@@ -37,7 +37,7 @@ class RUWE:
         self.star_dec = star_dec
         self.star_age = age
         self.star_mass = mass
-        self.num_generated = companions.get_num()
+        self.num_generated = self.num_generated
         self.a = companions.get_a()
         self.period = companions.get_P()
         self.e = companions.get_ecc()

@@ -90,13 +90,20 @@ class Application:
         self.extra_output = self.gui.get_extra()
         self.all_output = self.gui.get_all_out_bool()
         # Star Information
-        self.star_ra = self.gui.get_ra()
-        self.star_dec = self.gui.get_dec()
-        self.star_age = self.gui.get_age()
-        self.star_mass = self.gui.get_mass()
-        self.num_generated = self.gui.get_num_generated()
-        self.added_jitter = self.gui.get_added_jitter()
-        self.rv_floor = self.gui.get_rv_floor()
+        self.star_ra = self.ra_str()
+        logging.debug(f"self.ra_str: {self.ra_str}")
+        self.star_dec = self.dec_str
+        logging.debug(f"self.dec_str: {self.dec}")
+        self.star_age = self.age
+        logging.debug(f"self.age: {self.age}")
+        self.star_mass = self.mass
+        logging.debug(f"self.mass: {self.mass}")
+        self.num_generated = self.num_generated()
+        logging.debug(f"self.num_generated: {self.num_generated}")
+        self.added_jitter = self.added_jitter()
+        logging.debug(f"self.added_jitter: {self.added_jitter}")
+        self.rv_floor = self.rv_floor()
+        logging.debug(f"self.rv_floor: {self.rv_floor}")
         # Limits
         self.limits = self.gui.get_limits()
         # Period distribution
