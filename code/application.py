@@ -192,14 +192,18 @@ class Application:
                 ruwe.parallax = self.parallax
                 ruwe.parallax_error = self.parallax_error
                 ruwe.ln_ruwe = self.ln_ruwe
+                logging.debug(f"self.ln_ruwe vs. ruwe.ln_ruwe round 1: {self.ln_ruwe} vs. {ruwe.ln_ruwe}")
+
             failure = self.error_check(ruwe.get_gaia_info())
             if failure: return
             # Perform Test
             self.ruwe_reject_list = ruwe.analyze()
             if self.extra_output:
                 self.print_out(('The star has ln(ruwe) of %f.' % (ruwe.ln_ruwe)))
+            logging.debug(f"self.ln_ruwe vs. ruwe.ln_ruwe round 2: {self.ln_ruwe} vs. {ruwe.ln_ruwe}")
         else:
             self.ruwe_reject_list = np.array([False]*self.num_generated)
+            logging.debug(f"n is not finite!: {self.ln_ruwe} vs. {ruwe.ln_ruwe}")
 
         #   Gaia Contrast
         if self.gaia_check:
@@ -382,6 +386,7 @@ class Application:
                                     "ln_ruwe": float(self.ln_ruwe),
                                     }
                     }
+        logging.debug(f"\nyaml_data: {yaml_data}\n")
         
         yaml_path = os.path.expanduser(self.prefix).replace("tables", "yml").replace(r"\\", "/")
         yaml_fname = f"{yaml_path}_params_output.yml"
@@ -586,12 +591,12 @@ class Application:
             self.rv_filename = args.rv
             self.resolution = float(args.resolution)
             self.ao_filename = args.ao
-            logging.info(f"ao_filename full list: {self.ao_filename}")
-            logging.info(f"First item in ao_filename list: {self.ao_filename[0]}")
-            logging.info(f"Length of ao_filename: {len(self.ao_filename)}")
+            # logging.info(f"ao_filename full list: {self.ao_filename}")
+            # logging.info(f"First item in ao_filename list: {self.ao_filename[0]}")
+            # logging.info(f"Length of ao_filename: {len(self.ao_filename)}")
             self.filter = args.filter
-            logging.info(f"args.filter: {args.filter}")
-            logging.info(f"First item in args.filter: {args.filter[0]}")
+            # logging.info(f"args.filter: {args.filter}")
+            # logging.info(f"First item in args.filter: {args.filter[0]}")
             self.ruwe_check = args.ruwe
             self.gaia_check = args.gaia
             # Output Options
@@ -620,7 +625,8 @@ class Application:
             self.parallax = np.nan
             self.parallax_error = np.nan
             self.ln_ruwe = np.nan
-        
+            logging.info(f"\n----------------------------------------------ln_ruwe v2: {self.ln_ruwe}\n")
+
         elif args.command == "yml":
 
             with open(args.yml_file,"r") as f:
@@ -662,9 +668,13 @@ class Application:
                 self.parallax_error = data["gaia_params"]["parallax_error"]
                 self.ln_ruwe = np.log(data["gaia_params"]["ruwe"])
                 self.gaia_id = data["gaia_params"]["id"]
+                
+                #logging.debug(f"\n----------------------------------------------ln_ruwe: {self.ln_ruwe}\n")
             else:
                 self.gaia_id = -99
                 self.gmag = np.nan
+                #logging.debug(f"\n----------------------------------------------ln_ruwe: {self.ln_ruwe}\n")
+
                 self.color = np.nan
                 self.n_good_obs = 0
                 self.astrometric_chi2 = np.nan

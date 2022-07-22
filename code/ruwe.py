@@ -187,6 +187,8 @@ class RUWE:
                 coordinate.ra.degree, coordinate.dec.degree, coordinate.ra.degree, coordinate.dec.degree))
             job = Gaia.launch_job(job_str)
             gaia_info = job.get_results()
+            logging.info(f"gaia_info type: {type(gaia_info)}")
+            gaia_info.show_in_browser(jsviewer=True)
             if gaia_info and len(gaia_info) >= 1:
                 # Only one star fits the coordinates, all is well
                 self.gmag = gaia_info['phot_g_mean_mag'][0]
@@ -196,6 +198,7 @@ class RUWE:
                 self.parallax = gaia_info['parallax'][0]
                 self.parallax_error = gaia_info['parallax_error'][0]
                 self.ln_ruwe = np.log(gaia_info['ruwe'][0])
+                logging.info(f"gaia information:\n{self.gmag}\n{self.color}\n{self.n_good_obs}\n{self.astrometric_chi2}\n{self.parallax}\n{self.parallax_error}\n{self.ln_ruwe}\n")
 
                 #    Check if magnitude, color and Gaia solution are valid for calculating RUWE
                 if 3.6 <= self.gmag <= 21. and -1 <= self.color <= 10 and gaia_info['astrometric_params_solved'][0] == 31:
@@ -206,6 +209,7 @@ class RUWE:
                     return -53
             else:
                 # No Gaia results
+                logging.info("\nNo Gaia results!!!\n")
                 return -51
 
     def read_dist(self):
