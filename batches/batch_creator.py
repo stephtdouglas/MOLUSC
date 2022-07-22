@@ -162,5 +162,5 @@ def run_batch_stars(stars=["JS355"], yml=True, analysis_options=["ao"], write_al
                         
 if __name__ == "__main__": # hehe
     all_targets = targets["name"]
-    run_batch_stars(all_targets, yml=False, analysis_options=["ao"], filt="K", companions=15000, opsys='linux')
-    run_batch_stars(all_targets, yml=True, write_all=False, extra_output=False, analysis_options=["ao"], filt="K", companions=15000, opsys='linux')
+    # run_batch_stars(all_targets, yml=False, analysis_options=["ao"], filt="K", companions=15000, opsys='linux')
+    run_batch_stars(all_targets, yml=False, write_all=False, extra_output=False, analysis_options=["ao", "gaia", "ruwe"], filt="K", companions=10000, opsys='linux')
