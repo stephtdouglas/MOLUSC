@@ -209,7 +209,7 @@ class RUWE:
                 return -51
 
     def read_dist(self):
-        file_name = 'f{os.path.join(repo_path, "code/RuweTableGP.txt")}'
+        file_name = f'{os.path.join(repo_path, "code/RuweTableGP.txt")}'
         t = Table.read(file_name, format='ascii', delimiter=' ')
 
         self.ruwe_dist = t
