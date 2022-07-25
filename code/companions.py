@@ -315,7 +315,7 @@ class Companions:
         mu, sigma = p
         return np.exp(-(x - mu) ** 2 / (2. * sigma ** 2))
 
-    # Accessor functions
+    # Accessor functions -- Get rid of all except get_all
     def get_P(self):
         return self.__P
 

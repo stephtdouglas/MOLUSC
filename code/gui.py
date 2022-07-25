@@ -584,7 +584,7 @@ class GUI(tk.Frame):
                 seconds = float(seconds)
                 if degrees <= 90 and minutes < 60 and seconds < 60:
                     if sign == '+' or sign == '-':
-                        dec_str = new_text
+                        self.dec_str = new_text
                         self.dec_box.config(bg='white')
                         return True
                     else:
