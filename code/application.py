@@ -178,24 +178,25 @@ class Application:
 
         #   RUWE
         if self.ruwe_check:
+            #TODO: Add an if statement enclosing these lines so we can access the gaia params from the RUWE class or from the application class -- need to be able to go both ways depending on if we're in cl mode or yml mode
             self.print_out('Analyzing RUWE...')
-            ruwe = RUWE(self.star_ra, self.star_dec, self.star_age, self.star_mass, comps)
-            # Read in RUWE distribution and Normalization tables
-            failure = self.error_check(ruwe.read_dist())
-            if failure: return
-            # Get Gaia information
-            if np.isfinite(self.gmag):
-                ruwe.gmag = self.gmag
-                ruwe.color = self.color
-                ruwe.n_good_obs = self.n_good_obs
-                ruwe.astrometric_chi2 = self.astrometric_chi2
-                ruwe.parallax = self.parallax
-                ruwe.parallax_error = self.parallax_error
-                ruwe.ln_ruwe = self.ln_ruwe
-                logging.debug(f"self.ln_ruwe vs. ruwe.ln_ruwe round 1: {self.ln_ruwe} vs. {ruwe.ln_ruwe}")
-
-            failure = self.error_check(ruwe.get_gaia_info())
-            if failure: return
+                ruwe = RUWE(self.star_ra, self.star_dec, self.star_age, self.star_mass, comps)
+                # Read in RUWE distribution and Normalization tables
+                failure = self.error_check(ruwe.read_dist())
+                if failure: return
+                # Get Gaia information
+                if np.isfinite(self.gmag):
+                    ruwe.gmag = self.gmag
+                    ruwe.color = self.color
+                    ruwe.n_good_obs = self.n_good_obs
+                    ruwe.astrometric_chi2 = self.astrometric_chi2
+                    ruwe.parallax = self.parallax
+                    ruwe.parallax_error = self.parallax_error
+                    ruwe.ln_ruwe = self.ln_ruwe
+                    logging.debug(f"self.ln_ruwe vs. ruwe.ln_ruwe round 1: {self.ln_ruwe} vs. {ruwe.ln_ruwe}")
+    
+                failure = self.error_check(ruwe.get_gaia_info())
+                if failure: return
             # Perform Test
             self.ruwe_reject_list = ruwe.analyze()
             if self.extra_output:
