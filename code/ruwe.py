@@ -10,7 +10,7 @@ import warnings
 import os
 from astropy.utils.exceptions import AstropyWarning
 import logging
-logging.basicConfig(filename='molusc.log', format='%(asctime)s %(message)s', encoding='utf-8', level=logging.INFO)
+logging.basicConfig(filename='molusc.log', format='%(asctime)s %(message)s', encoding='utf-8', level=logging.WARNING)
 warnings.simplefilter('error', category=RuntimeWarning)
 warnings.simplefilter('ignore', category=AstropyWarning)
 warnings.simplefilter('ignore', category=scipy.linalg.misc.LinAlgWarning)
