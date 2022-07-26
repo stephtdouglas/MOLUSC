@@ -98,13 +98,13 @@ class RV:
         #     the predicted RV at that time, which I can then compare to the experimental values using least squares
         num_generated = self.num_generated
         # Unpack parameters
-        period = self.companions.get_P()
-        mass_ratio = self.companions.get_mass_ratio()
-        a = self.companions.get_a()
-        e = self.companions.get_ecc()
-        cos_i = self.companions.get_cos_i()
-        arg_peri = self.companions.get_arg_peri()
-        phase = self.companions.get_phase()
+        period = self.companions.P
+        mass_ratio = self.companions.mass_ratio
+        a = self.companions.a
+        e = self.companions.ecc
+        cos_i = self.companions.cos_i
+        arg_peri = self.companions.arg_peri
+        phase = self.companions.phase
 
         # Determine velocity limit
         delta_v = 2.998e5 / self.resolution  # m/s

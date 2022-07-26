@@ -10,6 +10,7 @@ import warnings
 import os
 from astropy.utils.exceptions import AstropyWarning
 import logging
+logging.basicConfig(filename='molusc.log', format='%(asctime)s %(message)s', encoding='utf-8', level=logging.INFO)
 warnings.simplefilter('error', category=RuntimeWarning)
 warnings.simplefilter('ignore', category=AstropyWarning)
 warnings.simplefilter('ignore', category=scipy.linalg.misc.LinAlgWarning)
@@ -38,14 +39,14 @@ class RUWE:
         self.star_age = age
         self.star_mass = mass
         self.num_generated = companions.num_generated # originally companions.get_num()
-        self.a = companions.get_a()
-        self.period = companions.get_P()
-        self.e = companions.get_ecc()
-        self.phase = companions.get_phase()
-        self.arg_peri = companions.get_arg_peri()
-        self.cos_i = companions.get_cos_i()
-        self.mass_ratio = companions.get_mass_ratio()
-        self.gmag = np.nan
+        self.a = companions.a
+        self.period = companions.a
+        self.e = companions.ecc
+        self.phase = companions.phase
+        self.arg_peri = companions.arg_peri
+        self.cos_i = companions.cos_i
+        self.mass_ratio = companions.mass_ratio
+        self.gmag = np.nan # TODO
 
     def analyze(self):
         # a. Calculate projected separation
@@ -54,7 +55,6 @@ class RUWE:
 
         for i in range(self.num_generated):
             # 1. Calculate mean anomaly
-            print("----------------------------------------------------------------")
             M = 2 * np.pi * T_0 / self.period[i] - self.phase[i]
             # 2. Calculate eccentric anomaly iteratively
             prev_E = 0.0
@@ -69,9 +69,9 @@ class RUWE:
             alpha = f + self.arg_peri[i]
             sqtmp = np.sqrt(np.sin(alpha)**2+np.cos(alpha)**2 * self.cos_i[i]**2)
             pro_sep[i] = self.a[i] * (1-self.e[i]**2)/(1+self.e[i]*np.cos(f))*sqtmp  # AU
-            logging.debug(f"pro_sep: {pro_sep}")
+            logging.info(f"pro_sep: {pro_sep}")
 
-        logging.debug(f"projected seps round 1: {self.projected_sep}")
+        logging.info(f"projected seps round 1: {self.projected_sep}")
         self.projected_sep = pro_sep
 
         # b. Calculate distance
@@ -105,9 +105,9 @@ class RUWE:
         f_ruwe = scipy.interpolate.interp2d(x_edges, y_edges, z)
         f_sigma = scipy.interpolate.interp2d(x_edges, y_edges, z_sigma)
         
-        logging.debug(f"projected seps round 2: {self.projected_sep}")
+        logging.info(f"projected seps round 2: {self.projected_sep}")
         logging.info(f"delta g: {self.delta_g}")
-        logging.debug(f"test: {[f_ruwe(self.projected_sep[i], delta_g[i]) for i in range(self.num_generated)]}")
+        logging.info(f"test: {[f_ruwe(self.projected_sep[i], delta_g[i]) for i in range(self.num_generated)]}")
 
         pred_log_ruwe = np.concatenate([f_ruwe(self.projected_sep[i], delta_g[i]) for i in range(self.num_generated)])
         self.predicted_ruwe = 10**pred_log_ruwe

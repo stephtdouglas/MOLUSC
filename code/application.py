@@ -98,7 +98,7 @@ class Application:
         logging.debug(f"self.age: {self.age}")
         self.star_mass = self.mass
         logging.debug(f"self.mass: {self.mass}")
-        self.num_generated = self.num_generated()
+        self.num_generated = self.num_generated() # TODO
         logging.debug(f"self.num_generated: {self.num_generated}")
         self.added_jitter = self.added_jitter()
         logging.debug(f"self.added_jitter: {self.added_jitter}")
@@ -251,9 +251,9 @@ class Application:
         # Write out files
         #   Write out the survivors file
         cols = ['mass ratio', 'period(days)', 'semi-major axis(AU)', 'cos_i', 'eccentricity', 'arg periastron', 'phase']
-        keep_table = np.vstack((comps.get_mass_ratio()[keep], comps.get_P()[keep], comps.get_a()[keep],
-                                comps.get_cos_i()[keep], comps.get_ecc()[keep], comps.get_arg_peri()[keep],
-                                comps.get_phase()[keep]))
+        keep_table = np.vstack((comps.mass_ratio[keep], comps.P[keep], comps.a[keep],
+                                comps.cos_i[keep], comps.ecc[keep], comps.arg_peri[keep],
+                                comps.phase[keep]))
         if self.ao_filename[0]:
             cols = cols + ['Projected Separation(AU)','Model Contrast']
             keep_table = np.vstack((keep_table, np.array(ao.pro_sep)[keep], np.array(ao.model_contrast)[keep]))
@@ -288,8 +288,8 @@ class Application:
         #  Write out the input file
         if self.all_output:
             cols = ['mass ratio', 'period(days)', 'semi-major axis(AU)', 'cos_i', 'eccentricity', 'arg periastron', 'phase']
-            all_table = np.vstack((comps.get_mass_ratio(), comps.get_P(), comps.get_a(), comps.get_cos_i(),
-                                   comps.get_ecc(), comps.get_arg_peri(), comps.get_phase()))
+            all_table = np.vstack((comps.mass_ratio, comps.P, comps.a, comps.cos_i,
+                                   comps.ecc, comps.arg_peri, comps.phase))
             if self.ao_filename[0]:
                 cols = cols + ['Projected Semparation(AU)', 'Model Contrast'] + [('AO Rejected ' + str(i+1)) for i in range(len(ao_reject_lists))]
                 all_table = np.vstack((all_table, ao.pro_sep, ao.model_contrast, ao_reject_lists))
