@@ -10,7 +10,6 @@ import warnings
 import os
 from astropy.utils.exceptions import AstropyWarning
 import logging
-logging.basicConfig(filename='molusc.log', format='%(asctime)s %(message)s', encoding='utf-8', level=logging.WARNING)
 warnings.simplefilter('error', category=RuntimeWarning)
 warnings.simplefilter('ignore', category=AstropyWarning)
 warnings.simplefilter('ignore', category=scipy.linalg.misc.LinAlgWarning)
@@ -196,16 +195,18 @@ class RUWE:
             job = Gaia.launch_job(job_str)
             gaia_info = job.get_results()
             logging.info(f"gaia_info type: {type(gaia_info)}")
-            gaia_info.show_in_browser(jsviewer=True)
+            # gaia_info.show_in_browser(jsviewer=True)
             if gaia_info and len(gaia_info) >= 1:
                 # Only one star fits the coordinates, all is well
-                self.gmag = gaia_info['phot_g_mean_mag'][0]
-                self.color = gaia_info['bp_rp'][0]
-                self.n_good_obs = gaia_info['astrometric_n_good_obs_al'][0]
-                self.astrometric_chi2 = gaia_info['astrometric_chi2_al'][0]
-                self.parallax = gaia_info['parallax'][0]
-                self.parallax_error = gaia_info['parallax_error'][0]
-                self.ln_ruwe = np.log(gaia_info['ruwe'][0])
+                self.gmag = float(gaia_info['phot_g_mean_mag'][0])
+                print(f"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! SELF GMAG FROM THE RUWE: {self.gmag}")
+                self.gaia_id = int(gaia_info['source_id'][0])
+                self.color = float(gaia_info['bp_rp'][0])
+                self.n_good_obs = float(gaia_info['astrometric_n_good_obs_al'][0])
+                self.astrometric_chi2 = float(gaia_info['astrometric_chi2_al'][0])
+                self.parallax = float(gaia_info['parallax'][0])
+                self.parallax_error = float(gaia_info['parallax_error'][0])
+                self.ln_ruwe = float(np.log(gaia_info['ruwe'][0]))
                 logging.info(f"gaia information:\n{self.gmag}\n{self.color}\n{self.n_good_obs}\n{self.astrometric_chi2}\n{self.parallax}\n{self.parallax_error}\n{self.ln_ruwe}\n")
 
                 #    Check if magnitude, color and Gaia solution are valid for calculating RUWE
