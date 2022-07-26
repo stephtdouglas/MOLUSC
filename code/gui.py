@@ -129,13 +129,13 @@ class GUI(tk.Frame):
         rv_floor_label = tk.Label(Stellar_Info, text='RV Floor (m/s):', bg='#ECECEC')
 
         #  entry columns
-        self.__ra_str = ''
-        self.__dec_str = ''
-        self.__mass = 0
-        self.__age = 5
-        self.__num_generated = 0
-        self.__added_jitter = 20
-        self.__rv_floor = 20
+        self.ra_str = ''
+        self.dec_str = ''
+        self.mass = 0
+        self.age = 5
+        self.num_generated = 0
+        self.added_jitter = 20
+        self.rv_floor = 20
         vcmd1 = (self.root.register(self.validate_ra), '%P')
         vcmd2 = (self.root.register(self.validate_dec), '%P')
         vcmd3 = (self.root.register(self.validate_num), '%P')
@@ -465,17 +465,17 @@ class GUI(tk.Frame):
                 allow_run = False
                 message = message +'- No RV Resolution provided.\n'
         # Coordinates
-        if not self.__ra_str or self.__ra_str == '00h00m00.00s' or not self.validate_ra(self.__ra_str):
+        if not self.ra_str or self.ra_str == '00h00m00.00s' or not self.validate_ra(self.ra_str):
             self.ra_box.config(bg='lightcoral')
             allow_run = False
-        if not self.__dec_str or self.__dec_str == '00d00m00.0s' or not self.validate_dec(self.__dec_str):
+        if not self.dec_str or self.dec_str == '00d00m00.0s' or not self.validate_dec(self.dec_str):
             self.dec_box.config(bg='lightcoral')
             allow_run=False
         # Mass, Age, Number Generated
-        if self.__mass == 0 or not self.validate_mass(self.__mass):
+        if self.mass == 0 or not self.validate_mass(self.mass):
             self.mass_box.config(bg='lightcoral')
             allow_run=False
-        if self.__num_generated == 0 or not self.validate_num(self.__num_generated):
+        if self.num_generated == 0 or not self.validate_num(self.num_generated):
             self.number_box.config(bg='lightcoral')
             allow_run = False
         # Prefix
@@ -538,7 +538,7 @@ class GUI(tk.Frame):
         # Check that RA makes sense
         if not new_text:
             # box cleared
-            self.__ra_str= '00h00m00.00s'
+            self.ra_str= '00h00m00.00s'
             self.ra_box.config(bg='white')
             return True
         try:
@@ -550,19 +550,19 @@ class GUI(tk.Frame):
                 minutes = int(minutes)
                 seconds = float(seconds)
                 if hours < 24 and minutes < 60 and seconds < 60:
-                    self.__ra_str = new_text
+                    self.ra_str = new_text
                     self.ra_box.config(bg='white')
                     return True
                 else:
-                    self.__ra_str = new_text
+                    self.ra_str = new_text
                     self.ra_box.config(bg='lightcoral')
                     return False
             else:
-                self.__ra_str = new_text
+                self.ra_str = new_text
                 self.ra_box.config(bg='lightcoral')
                 return False
         except:
-            self.__ra_str = new_text
+            self.ra_str = new_text
             self.ra_box.config(bg='lightcoral')
             return False
 
@@ -570,7 +570,7 @@ class GUI(tk.Frame):
         # Check that DEC makes sense
         if not new_text:
             # box cleared
-            self.__dec_str = '00d00m00.0s'
+            self.dec_str = '00d00m00.0s'
             self.dec_box.config(bg='white')
             return True
         try:
@@ -584,22 +584,22 @@ class GUI(tk.Frame):
                 seconds = float(seconds)
                 if degrees <= 90 and minutes < 60 and seconds < 60:
                     if sign == '+' or sign == '-':
-                        self.__dec_str = new_text
+                        self.dec_str = new_text
                         self.dec_box.config(bg='white')
                         return True
                     else:
                         self.dec_box.config(bg='lightcoral')
                         return False
                 else:
-                    self.__dec_str = new_text
+                    self.dec_str = new_text
                     self.dec_box.config(bg='lightcoral')
                     return False
             else:
-                self.__dec_str = new_text
+                self.dec_str = new_text
                 self.dec_box.config(bg='lightcoral')
                 return False
         except:
-            self.__dec_str = new_text
+            self.dec_str = new_text
             self.dec_box.config(bg='lightcoral')
             return False
 
@@ -607,13 +607,13 @@ class GUI(tk.Frame):
         # Check that number generated is an integer greater than zero
         if not new_text:
             # box cleared
-            self.__num_generated = 0
+            self.num_generated = 0
             self.number_box.config(bg='white')
             return True
         try:
             n = int(new_text)
             if n > 0:
-                self.__num_generated = n
+                self.num_generated = n
                 self.number_box.config(bg='white')
                 return True
             else:
@@ -627,13 +627,13 @@ class GUI(tk.Frame):
         # Check that mass is a number greater than zero
         if not new_text:
             # box cleared
-            self.__mass = 0
+            self.mass = 0
             self.mass_box.config(bg='white')
             return True
         try:
             m = float(new_text)
             if m > 0:
-                self.__mass = m
+                self.mass = m
                 self.mass_box.config(bg='white')
                 return True
             else:
@@ -647,14 +647,14 @@ class GUI(tk.Frame):
         # Check that age is a number greater than zero
         if not new_text:
             # box cleared
-            self.__age = 5
+            self.age = 5
             self.age_box.insert(-1, '5')
             self.age_box.config(bg='white', fg='gray')
             return True
         try:
             a = float(new_text)
             if a > 0:
-                self.__age = a
+                self.age = a
                 self.age_box.config(bg='white', fg='black')
                 return True
             else:
@@ -668,14 +668,14 @@ class GUI(tk.Frame):
         # Check that jitter is a number greater than zero
         if not new_text:
             # box cleared
-            self.__added_jitter = 20
+            self.added_jitter = 20
             self.added_jitter_box.config(bg='white', fg='gray')
             self.added_jitter_box.insert(-1, '20')
             return True
         try:
             j = float(new_text)
             if j >= 0:
-                self.__added_jitter = j
+                self.added_jitter = j
                 self.added_jitter_box.config(bg='white', fg='black')
                 return True
             else:
@@ -689,14 +689,14 @@ class GUI(tk.Frame):
         # Check that jitter is a number greater than zero
         if not new_text:
             # box cleared
-            self.__rv_floor = 20
+            self.rv_floor = 20
             self.rv_floor_box.config(bg='white', fg='gray')
             self.rv_floor_box.insert(-1, '20')
             return True
         try:
             j = float(new_text)
             if j >= 0:
-                self.__rv_floor = j
+                self.rv_floor = j
                 self.rv_floor_box.config(bg='white', fg='black')
                 return True
             else:
@@ -1337,27 +1337,6 @@ class GUI(tk.Frame):
             return True
         else:
             return False
-
-    def get_ra(self):
-        return self.__ra_str
-
-    def get_dec(self):
-        return self.__dec_str
-
-    def get_age(self):
-        return self.__age
-
-    def get_mass(self):
-        return self.__mass
-
-    def get_num_generated(self):
-        return self.__num_generated
-
-    def get_added_jitter(self):
-        return self.__added_jitter
-
-    def get_rv_floor(self):
-        return self.__rv_floor
 
     def get_limits(self):
         # puts all the limit information together in a list

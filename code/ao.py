@@ -35,8 +35,8 @@ class AO:
 
     def __init__(self, filename, companions, star_mass, star_age, star_ra, star_dec, filter, gaia=False):
         self.ao_filename = filename
-        self.mass_ratio = companions.get_mass_ratio()
-        self.a = companions.get_a()
+        self.mass_ratio = companions.mass_ratio
+        self.a = companions.a
         self.companions = companions
         self.star_mass = star_mass
         # Get the appropriate model and year
@@ -49,11 +49,11 @@ class AO:
         num_generated = len(self.mass_ratio)
 
         # Unpack companions' orbital parameters
-        period = self.companions.get_P()
-        e = self.companions.get_ecc()
-        arg_peri = self.companions.get_arg_peri()
-        phase = self.companions.get_phase()
-        cos_i = self.companions.get_cos_i()
+        period = self.companions.P
+        e = self.companions.ecc
+        arg_peri = self.companions.arg_peri
+        phase = self.companions.phase
+        cos_i = self.companions.cos_i
         if self.obs_date:
             T_0 = self.obs_date
         else:
@@ -185,11 +185,11 @@ class AO:
 
     def analyze_gaia(self, gaia_limit):
         # Unpack companions' orbital parameters
-        period = self.companions.get_P()
-        e = self.companions.get_ecc()
-        arg_peri = self.companions.get_arg_peri()
-        phase = self.companions.get_phase()
-        cos_i = self.companions.get_cos_i()
+        period = self.companions.P
+        e = self.companions.ecc
+        arg_peri = self.companions.arg_peri
+        phase = self.companions.phase
+        cos_i = self.companions.cos_i
         num_generated = len(self.mass_ratio)
 
         # Set date
