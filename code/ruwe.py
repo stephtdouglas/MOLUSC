@@ -45,7 +45,7 @@ class RUWE:
         self.arg_peri = companions.arg_peri
         self.cos_i = companions.cos_i
         self.mass_ratio = companions.mass_ratio
-        self.gmag = np.nan # TODO
+        self.gmag = np.nan
 
     def analyze(self):
         # a. Calculate projected separation
@@ -199,7 +199,6 @@ class RUWE:
             if gaia_info and len(gaia_info) >= 1:
                 # Only one star fits the coordinates, all is well
                 self.gmag = float(gaia_info['phot_g_mean_mag'][0])
-                print(f"!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! SELF GMAG FROM THE RUWE: {self.gmag}")
                 self.gaia_id = int(gaia_info['source_id'][0])
                 self.color = float(gaia_info['bp_rp'][0])
                 self.n_good_obs = float(gaia_info['astrometric_n_good_obs_al'][0])

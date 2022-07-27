@@ -15,12 +15,14 @@ from ruwe import RUWE
 from rv import RV
 from astropy.utils.exceptions import AstropyWarning
 import logging
+
+arrayid = int(os.getenv("SLURM_ARRAY_TASK_ID",9999))
+jobid = int(os.getenv("SLURM_JOB_ID",9999))
+jobname = os.getenv("SLURM_JOB_NAME", 'MOLUSC_999')
+
 warnings.simplefilter('error', category=RuntimeWarning)
 warnings.simplefilter('ignore', category=AstropyWarning)
 warnings.simplefilter('ignore', category=scipy.linalg.misc.LinAlgWarning)
-
-arrayid = int(os.getenv("SLURM_ARRAY_TASK_ID",9999))
-jobid = int(os.getenv("SLURM_JOB_ID",9999)) # TODO
 
 today = datetime.today().isoformat().split("T")[0]
 global repo_path
@@ -64,7 +66,7 @@ class Application:
     # Class functions
     def __init__(self, input_args):
         self.input_args = input_args
-        self.yml_filename = ''
+        # self.input_yml = 'rubbah'
 
     def start(self):
         # Start has to handle the input arguments
@@ -94,19 +96,19 @@ class Application:
         self.all_output = self.gui.get_all_out_bool()
         # Star Information
         self.star_ra = self.gui.ra_str
-        logging.debug(f"self.ra_str: {self.ra_str}")
+        # logging.debug(f"self.ra_str: {self.ra_str}")
         self.star_dec = self.gui.dec_str
-        logging.debug(f"self.dec_str: {self.dec}")
+        # logging.debug(f"self.dec_str: {self.dec}")
         self.star_age = self.gui.age
-        logging.debug(f"self.age: {self.age}")
+        # logging.debug(f"self.age: {self.age}")
         self.star_mass = self.gui.mass
-        logging.debug(f"self.mass: {self.mass}")
-        self.num_generated = self.gui.num_generated # TODO
-        logging.debug(f"self.num_generated: {self.num_generated}")
+        # logging.debug(f"self.mass: {self.mass}")
+        self.num_generated = self.gui.num_generated
+        # logging.debug(f"self.num_generated: {self.num_generated}")
         self.added_jitter = self.gui.added_jitter
-        logging.debug(f"self.added_jitter: {self.added_jitter}")
+        # logging.debug(f"self.added_jitter: {self.added_jitter}")
         self.rv_floor = self.gui.rv_floor
-        logging.debug(f"self.rv_floor: {self.rv_floor}")
+        # logging.debug(f"self.rv_floor: {self.rv_floor}")
         # Limits
         self.limits = self.gui.get_limits()
         # Period distribution
@@ -115,6 +117,17 @@ class Application:
         self.q_exp = self.gui.get_q_dist()
         # Gaia Completeness
         self.gaia_limit = float(self.gui.get_gaia_limit())
+        
+        self.gaia_id = -99
+        self.gmag = np.nan
+        self.color = np.nan
+        self.n_good_obs = 0
+        self.astrometric_chi2 = np.nan
+        self.parallax = np.nan
+        self.parallax_error = np.nan
+        self.ln_ruwe = np.nan
+        
+        self.input_yml = None
         return
     
     def run(self):
@@ -193,13 +206,11 @@ class Application:
             # Read in RUWE distribution and Normalization tables
             failure = self.error_check(ruwe.read_dist())
             if failure: return
-
-            # TODO: We want to be able to access the gaia params from the RUWE class
-            # or from the application class -- need to be able to go both ways depending on if we're in cl mode
-            # or yml mode
             
             # Running in cl mode -- want RUWE to access gaia/ruwe params (read from Gaia database)
-            if not np.isfinite(self.gmag):
+            
+            # TODO: Should we add another layer of if statements...?
+            if not np.isfinite(self.gmag): # Was changing this from self.gmag the correct fix?
                 # Get Gaia information
                 failure = self.error_check(ruwe.get_gaia_info())
                 if failure: return
@@ -211,9 +222,7 @@ class Application:
                 self.parallax_error = ruwe.parallax_error
                 self.ln_ruwe = ruwe.ln_ruwe
                 self.gaia_id = ruwe.gaia_id
-            
-                print(f"{self.gmag} vs. {ruwe.gmag}")
-                print(f"{self.color} vs. {ruwe.color}")
+
                 # logging.debug(f"ruwe gmag: {ruwe.gmag}")
                 # logging.debug(f"self.ln_ruwe vs. ruwe.ln_ruwe round 1: {self.ln_ruwe} vs. {ruwe.ln_ruwe}")
             # Running in yml mode -- want Application to access gaia/ruwe params (read from yml)
@@ -385,13 +394,16 @@ class Application:
         else:
             is_rv = False
 
-        # print(f"{self.gmag}")
-        # print(f"{self.color}")
+
         yaml_ruwe = float(np.exp(self.ln_ruwe))
         yaml_ln_ruwe = float(self.ln_ruwe)
         
         yaml_data = {"run_date": today,
                      "file_prefix": self.prefix,
+                     "job_id": jobid,
+                     "array_id": arrayid,
+                     "job_name": jobname,
+                     "input_yaml": self.input_yml,
                      "num_generated": self.num_generated,
                      "transit": is_transit,
 
@@ -416,8 +428,7 @@ class Application:
                      "gaia_params":{"fit": self.gaia_check,
                                     "id": self.gaia_id,
                                     "gmag": self.gmag,
-                                     "color": self.color,
-                                     "id": self.gaia_id,
+                                    "color": self.color,
                                     "n_good_obs": self.n_good_obs,
                                     "astrometric_chi2": self.astrometric_chi2,
                                     "parallax": self.parallax,
@@ -627,6 +638,7 @@ class Application:
         
         if args.command == "cl":
             # Input the inputs
+            self.input_yml = None
             #  Analysis Options
             self.rv_filename = args.rv
             self.resolution = float(args.resolution)
@@ -665,11 +677,12 @@ class Application:
             self.parallax = np.nan
             self.parallax_error = np.nan
             self.ln_ruwe = np.nan
-            logging.info(f"\n----------------------------------------------ln_ruwe v2: {self.ln_ruwe}\n")
+            logging.info(f"\nln_ruwe v2: {self.ln_ruwe}\n")
 
         elif args.command == "yml":
-            self.yml_filename = args.yml_file # TODO Add input yaml file to output yaml file -- also add JobID and ArrayID :)
-            with open(self.yml_filename, "r") as f:
+            self.input_yml = args.yml_file
+            print(args.yml_file)
+            with open(self.input_yml, "r") as f:
                 data = yaml.safe_load(f)
             # Input the inputs
             #  Analysis Options
