@@ -96,7 +96,7 @@ class RV:
         #     Using orbital mechanics equations from Perryman 2011, and solving for E(anomaly) numerically
         #     For time comparison I want to generate times with the same range as the times in MJD, and then calculate
         #     the predicted RV at that time, which I can then compare to the experimental values using least squares
-        num_generated = self.num_generated
+        num_generated = self.companions.num_generated
         # Unpack parameters
         period = self.companions.P
         mass_ratio = self.companions.mass_ratio
@@ -169,65 +169,65 @@ class RV:
 
             contrast_check = [True if x <= 5 else False for x in contrast]
 
-            if __name__ == "__main__":
-                # Split the parameters into chunks to pass to workers
-                divisor = int(np.ceil(min(num_generated / cpu_count, 200000)))
-                n_divisor = int(np.ceil(num_generated / divisor))
+            # Split the parameters into chunks to pass to workers
+            divisor = int(np.ceil(min(num_generated / cpu_count, 200000)))
+            n_divisor = int(np.ceil(num_generated / divisor))
+            
+            # Parameters are split into chunks of size divisor
+            period = [period[i:i + divisor] for i in range(0, num_generated, divisor)]
+            mass_ratio = [mass_ratio[i:i + divisor] for i in range(0, num_generated, divisor)]
+            a = [a[i:i + divisor] for i in range(0, num_generated, divisor)]
+            e = [e[i:i + divisor] for i in range(0, num_generated, divisor)]
+            cos_i = [cos_i[i:i + divisor] for i in range(0, num_generated, divisor)]
+            arg_peri = [arg_peri[i:i + divisor] for i in range(0, num_generated, divisor)]
+            phase = [phase[i:i + divisor] for i in range(0, num_generated, divisor)]
+            contrast_check = [contrast_check[i:i+divisor] for i  in range(0,  num_generated, divisor)]
 
-                period = [period[i:i + divisor] for i in range(0, num_generated, divisor)]
-                mass_ratio = [mass_ratio[i:i + divisor] for i in range(0, num_generated, divisor)]
-                a = [a[i:i + divisor] for i in range(0, num_generated, divisor)]
-                e = [e[i:i + divisor] for i in range(0, num_generated, divisor)]
-                cos_i = [cos_i[i:i + divisor] for i in range(0, num_generated, divisor)]
-                arg_peri = [arg_peri[i:i + divisor] for i in range(0, num_generated, divisor)]
-                phase = [phase[i:i + divisor] for i in range(0, num_generated, divisor)]
-                contrast_check = [contrast_check[i:i+divisor] for i  in range(0,  num_generated, divisor)]
+            # Move into parallel processing
+            #  Create Processes
+            pool = mp.Pool(cpu_count)
 
-                # Move into parallel processing
-                #  Create Processes
-                pool = mp.Pool(cpu_count)
+            # Use Pool to calculate RVs
+            prim_results = pool.starmap(self.calculate_RV, [(period[j], mass_ratio[j], a[j], e[j], cos_i[j], arg_peri[j], phase[j], self.MJD) for j in range(n_divisor)])
+            cmp_results = pool.starmap(calculate_RV_parallel, [(period[j], np.divide(1, mass_ratio[j]), a[j],
+                    e[j], cos_i[j], arg_peri[j], phase[j], self.MJD, contrast_check[j]) for j in range(n_divisor)])
 
-                # Use Pool to calculate RVs
-                prim_results = pool.starmap(self.calculate_RV, [(period[j], mass_ratio[j], a[j], e[j], cos_i[j], arg_peri[j], phase[j], self.MJD) for j in range(n_divisor)])
-                cmp_results = pool.starmap(calculate_RV_parallel, [(period[j], np.divide(1, mass_ratio[j]), a[j],
-                        e[j], cos_i[j], arg_peri[j], phase[j], self.MJD, contrast_check[j]) for j in range(n_divisor)])
+            # Concatenate Results
+            prim_K = np.hstack([prim_results[i][0] for i in range(int(np.ceil(num_generated / divisor)))])
+            prim_rv = np.vstack([prim_results[i][1] for i in range(int(np.ceil(num_generated / divisor)))])
+            cmp_K = np.hstack([cmp_results[i][0] for i in range(int(np.ceil(num_generated / divisor)))])
+            cmp_rv = np.vstack([cmp_results[i][1] for i in range(int(np.ceil(num_generated / divisor)))])
+            cmp_rv = np.multiply(-1, cmp_rv)
 
-                # Concatenate Results
-                prim_K = np.hstack([prim_results[i][0] for i in range(int(np.ceil(num_generated / divisor)))])
-                prim_rv = np.vstack([prim_results[i][1] for i in range(int(np.ceil(num_generated / divisor)))])
-                cmp_K = np.hstack([cmp_results[i][0] for i in range(int(np.ceil(num_generated / divisor)))])
-                cmp_rv = np.vstack([cmp_results[i][1] for i in range(int(np.ceil(num_generated / divisor)))])
-                cmp_rv = np.multiply(-1, cmp_rv)
+            max_delta_rv = np.max(np.absolute(np.subtract(prim_rv, cmp_rv)), axis=1)
 
-                max_delta_rv = np.max(np.absolute(np.subtract(prim_rv, cmp_rv)), axis=1)
+            # Determine the overall predicted RV
+            self.predicted_RV = [np.zeros(len(self.MJD)) for x in range(num_generated)]  # pre-allocate
 
-                # Determine the overall predicted RV
-                self.predicted_RV = [np.zeros(len(self.MJD)) for x in range(num_generated)]  # pre-allocate
+            for i in range(num_generated):
+                if contrast[i] > 5:
+                    # SB1
+                    self.predicted_RV[i] = prim_rv[i]
+                elif contrast[i] <= 5:
+                    # SB2, looks like SB1. RV is weighted average
+                    rv = np.average([prim_rv[i], cmp_rv[i]], axis=0, weights=[prim_lum, cmp_lum[i]])
+                    self.predicted_RV[i] = rv
 
-                for i in range(num_generated):
-                    if contrast[i] > 5:
-                        # SB1
-                        self.predicted_RV[i] = prim_rv[i]
-                    elif contrast[i] <= 5:
-                        # SB2, looks like SB1. RV is weighted average
-                        rv = np.average([prim_rv[i], cmp_rv[i]], axis=0, weights=[prim_lum, cmp_lum[i]])
-                        self.predicted_RV[i] = rv
+            # Use Pool to calculate zero point
+            split_RV  = [self.predicted_RV[i:i+divisor] for i  in range(0,  num_generated, divisor)]
+            zero_points = pool.starmap(zero_point_fit_parallel, [(self.experimental_RV, self.measurement_error, split_RV[j]) for j in range(n_divisor)])
+            zero_points = np.concatenate(zero_points, axis=0)
+            pool.close()
 
-                # Use Pool to calculate zero point
-                split_RV  = [self.predicted_RV[i:i+divisor] for i  in range(0,  num_generated, divisor)]
-                zero_points = pool.starmap(zero_point_fit_parallel, [(self.experimental_RV, self.measurement_error, split_RV[j]) for j in range(n_divisor)])
-                zero_points = np.concatenate(zero_points, axis=0)
-                pool.close()
+            # Shift all by zero point
+            self.predicted_RV = [np.add(self.predicted_RV[i], zero_points[i]) for i in range(num_generated)]
 
-                # Shift all by zero point
-                self.predicted_RV = [np.add(self.predicted_RV[i], zero_points[i]) for i in range(num_generated)]
-
-                # Compare experimental and predicted RVs
-                amp = [np.ptp(self.predicted_RV[i]) for i in range(num_generated)]
-                chi_squared = [sum(np.divide(np.square(np.subtract(self.experimental_RV, self.predicted_RV[i])),
-                               np.add(np.square(self.measurement_error), self.added_jitter**2))) for i in range(num_generated)]
-                prob = [stats.chi2.cdf(chi_squared[i], len(self.MJD)-1) for i in range(0, num_generated)]
-            # End Parallelized
+            # Compare experimental and predicted RVs
+            amp = [np.ptp(self.predicted_RV[i]) for i in range(num_generated)]
+            chi_squared = [sum(np.divide(np.square(np.subtract(self.experimental_RV, self.predicted_RV[i])),
+                           np.add(np.square(self.measurement_error), self.added_jitter**2))) for i in range(num_generated)]
+            prob = [stats.chi2.cdf(chi_squared[i], len(self.MJD)-1) for i in range(0, num_generated)]
+        # End Parallelized
 
         # Reject things with a rejection probability greater than 0.997, corresponding to 3 sigma
         rv_fit_reject = np.array([True if np.random.rand() < x else False for x in prob])

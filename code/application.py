@@ -244,10 +244,10 @@ class Application:
             self.ruwe_reject_list = ruwe.analyze()
             if self.extra_output:
                 self.print_out(('The star has ln(ruwe) of %f.' % (ruwe.ln_ruwe)))
-            logging.debug(f"self.ln_ruwe vs. ruwe.ln_ruwe round 2: {self.ln_ruwe} vs. {ruwe.ln_ruwe}")
+            # logging.debug(f"self.ln_ruwe vs. ruwe.ln_ruwe round 2: {self.ln_ruwe} vs. {ruwe.ln_ruwe}")
         else:
             self.ruwe_reject_list = np.array([False]*self.num_generated)
-            logging.debug(f"n is not finite!: {self.ln_ruwe} vs. {ruwe.ln_ruwe}")
+            # logging.debug(f"n is not finite!: {self.ln_ruwe} vs. {ruwe.ln_ruwe}")
 
         #   Gaia Contrast
         if self.gaia_check:

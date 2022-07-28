@@ -11,6 +11,9 @@ import warnings
 import os
 from astropy.utils.exceptions import AstropyWarning
 import logging
+from multiprocessing import Process
+from multiprocessing.pool import Pool
+import multiprocessing as mp
 warnings.simplefilter('error', category=RuntimeWarning)
 warnings.simplefilter('ignore', category=AstropyWarning)
 warnings.simplefilter('ignore', category=scipy.linalg.misc.LinAlgWarning)
@@ -18,6 +21,27 @@ warnings.simplefilter('ignore', category=scipy.linalg.misc.LinAlgWarning)
 today = datetime.today().isoformat().split("T")[0]
 global repo_path
 repo_path = os.getenv('MOLOC').replace("\\", "/")
+
+
+def get_pro_sep(T_init, per, pha, eccentricity, a_peri, cos_inc, semi_maj_a):
+    # 1. Calculate mean anomaly
+    M = 2 * np.pi * T_init / per - pha
+    # 2. Calculate eccentric anomaly iteratively
+    prev_E = 0.0
+    current_E = M
+    while abs(current_E - prev_E) > 0.00001:
+        prev_E = current_E
+        current_E = M + eccentricity * np.sin(prev_E)
+    
+    # 3. Calculate true anomaly
+    f = 2 * np.arctan2(np.tan(current_E / 2), np.sqrt((1 - eccentricity) / (1 + eccentricity)))
+    
+    # 4. Calculate projected separation in AU
+    alpha = f + a_peri
+    sqt = np.sqrt(np.sin(alpha)**2+np.cos(alpha)**2 * cos_inc**2)
+    pro_sep = semi_maj_a * (1-eccentricity**2)/(1+eccentricity*np.cos(f))*sqt
+    
+    return pro_sep
 
 class AO:
     # class variables
@@ -94,24 +118,46 @@ class AO:
         # Find Delta Mag
         model_contrast = [x - star_model_mag for x in cmp_model_mag]
 
+    # TODO: give a function T_0, Period, phase, anything that it uses that it gets from earlier
+    # The function should do this for one star and return proj sep as an output
         # Calculate projected separation for each generated companion
-        pro_sep = [0.0 for i in range(num_generated)]
-        for i in range(num_generated):
-            # 1. Calculate mean anomaly
-            M = 2 * np.pi * T_0 / period[i] - phase[i]
-            # 2. Calculate eccentric anomaly iteratively
-            prev_E = 0.0
-            current_E = M
-            while abs(current_E - prev_E) > 0.00001:
-                prev_E = current_E
-                current_E = M + e[i] * np.sin(prev_E)
-            # 3. Calculate true anomaly
-            f = 2 * np.arctan2(np.tan(current_E / 2), np.sqrt((1 - e[i]) / (1 + e[i])))
-            # 4. Calculate projected separation in AU
-            alpha = f + arg_peri[i]
-            sqt = np.sqrt(np.sin(alpha)**2+np.cos(alpha)**2 * cos_i[i]**2)
-            pro_sep[i] = self.a[i] * (1-e[i]**2)/(1+e[i]*np.cos(f))*sqt
 
+            
+            # for i in range(num_generated): # TODO: This will be removed
+            #     # 1. Calculate mean anomaly
+            #     M = 2 * np.pi * T_init / per[i] - pha[i]
+            #     # 2. Calculate eccentric anomaly iteratively
+            #     prev_E = 0.0
+            #     current_E = M
+            #     while abs(current_E - prev_E) > 0.00001:
+            #         prev_E = current_E
+            #         current_E = M + eccentricity[i] * np.sin(prev_E)
+            #     # 3. Calculate true anomaly
+            #     f = 2 * np.arctan2(np.tan(current_E / 2), np.sqrt((1 - e[i]) / (1 + e[i])))
+            #     # 4. Calculate projected separation in AU
+            #     alpha = f + arg_peri[i]
+            #     sqt = np.sqrt(np.sin(alpha)**2+np.cos(alpha)**2 * cos_inc[i]**2)
+            #     pro_sep[i] = self.semi_maj_a[i] * (1-eccentricity[i]**2)/(1+eccentricity[i]*np.cos(f))*sqt
+        
+        # TODO: make a for loop that creates a list of lists of all the arguments for each companion 0-n
+        star_params = []
+        all_stars = []
+        for i in range(num_generated):            
+            star_params = [T_0, period[i], phase[i], e[i], arg_peri[i], cos_i[i], self.a[i]]
+            all_stars.append(star_params)
+        
+        try:
+            cpu_count = len(os.sched_getaffinity(0))-1
+        except AttributeError:
+            cpu_count = mp.cpu_count()-1
+            
+        divisor = int(np.ceil(min(num_generated / cpu_count, 200000)))
+        
+        with Pool(cpu_count) as pool:
+            all_proj_sep = pool.starmap(get_pro_sep, all_stars, chunksize=divisor)
+        
+        # print(all_proj_sep)
+        
         four_arc = round(self.star_distance * 0.0000193906, 1)  # 4" in AU at distance of primary
 
         if a_type == 'hard limit':
@@ -124,7 +170,8 @@ class AO:
             max_sep = contrast['Sep (AU)'][-1]
             min_sep = contrast['Sep (AU)'][0]
             f_con = scipy.interpolate.interp1d(contrast['Sep (AU)'], contrast['Contrast'], kind='linear', fill_value='extrapolate')
-            contrast_limit = [f_con(pro_sep[i]) if min_sep < pro_sep[i] < max_sep else 0. for i in range(num_generated)]
+            pro_sep = get_pro_sep()
+            contrast_limit = [f_con(pro_sep) if min_sep < pro_sep[i] < max_sep else 0. for i in range(num_generated)]
 
             # Compare the model_contrast to the experimental_delta_K
             # If the model contrast is less than the experimental contrast it would have been seen and can be rejected
@@ -136,41 +183,43 @@ class AO:
                     self.reject_list[i] = False
 
         elif a_type == 'gradient':
-            # Find Delta Mag limits, and/or recovery fraction
-            # Interpolate linearly between given points to get the estimated contrast limit
-            # Reject or accept the hypothetical binary based on a gradient of recovery rates for separation and contrast
-            recovery_rate = [0.]*num_generated
+            # Commented out just to be sure it doesn't go here for now :)
+            pass
+            # # Find Delta Mag limits, and/or recovery fraction
+            # # Interpolate linearly between given points to get the estimated contrast limit
+            # # Reject or accept the hypothetical binary based on a gradient of recovery rates for separation and contrast
+            # recovery_rate = [0.]*num_generated
 
-            # Get column names and recovery rates
-            column_rates = [float(x.strip('%')) / 100.0 for x in list(contrast.columns)[1:]]
-            column_names = contrast.colnames[1:]
+            # # Get column names and recovery rates
+            # column_rates = [float(x.strip('%')) / 100.0 for x in list(contrast.columns)[1:]]
+            # column_names = contrast.colnames[1:]
 
-            f = scipy.interpolate.interp2d(contrast['Sep (AU)'], column_rates, [contrast[x] for x in column_names])
+            # f = scipy.interpolate.interp2d(contrast['Sep (AU)'], column_rates, [contrast[x] for x in column_names])
 
-            for i in range(num_generated):
-                column_names = contrast.colnames  # reset the list of column names
-                # Interpolate
-                if pro_sep[i] < contrast['Sep (AU)'][0]:  # closer than lowest limit, recovery rate = 0
-                    recovery_rate[i] = 0.
-                    continue
-                elif pro_sep[i] > contrast['Sep (AU)'][-1]:  # further than farthest limit, recovery rate = 1
-                    recovery_rate[i] = 1.
-                    continue
-                else:
-                    new_row = Table(rows=[[float(f(pro_sep[i], x)) for x in column_rates]], names=column_names[1:])
-                    new_row['Sep (AU)'] = pro_sep[i]
-                    # Determine which recovery rates the magnitude falls between, and assign it the lower one
-                    if model_contrast[i] < new_row[column_names[-1]]:  # Greater than largest recovery rate
-                        recovery_rate[i] = column_rates[-1]
-                        continue
-                    elif model_contrast[i] > new_row[column_names[1]]:  # Less than smallest recovery rate
-                        recovery_rate[i] = 0.
-                        continue
-                    else:
-                        for j in range(1, len(column_names)):
-                            if new_row[column_names[j]][0] < model_contrast[i]:
-                                recovery_rate[i] = column_rates[j-2]
-                                break
+            # for i in range(num_generated):
+            #     column_names = contrast.colnames  # reset the list of column names
+            #     # Interpolate
+            #     if pro_sep[i] < contrast['Sep (AU)'][0]:  # closer than lowest limit, recovery rate = 0
+            #         recovery_rate[i] = 0.
+            #         continue
+            #     elif pro_sep[i] > contrast['Sep (AU)'][-1]:  # further than farthest limit, recovery rate = 1
+            #         recovery_rate[i] = 1.
+            #         continue
+            #     else:
+            #         new_row = Table(rows=[[float(f(pro_sep[i], x)) for x in column_rates]], names=column_names[1:])
+            #         new_row['Sep (AU)'] = pro_sep[i]
+            #         # Determine which recovery rates the magnitude falls between, and assign it the lower one
+            #         if model_contrast[i] < new_row[column_names[-1]]:  # Greater than largest recovery rate
+            #             recovery_rate[i] = column_rates[-1]
+            #             continue
+            #         elif model_contrast[i] > new_row[column_names[1]]:  # Less than smallest recovery rate
+            #             recovery_rate[i] = 0.
+            #             continue
+            #         else:
+            #             for j in range(1, len(column_names)):
+            #                 if new_row[column_names[j]][0] < model_contrast[i]:
+            #                     recovery_rate[i] = column_rates[j-2]
+            #                     break
 
             # Make Reject list
             random = np.random.uniform(0, 1, num_generated)
