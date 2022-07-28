@@ -154,7 +154,7 @@ class AO:
         divisor = int(np.ceil(min(num_generated / cpu_count, 200000)))
         
         with Pool(cpu_count) as pool:
-            all_proj_sep = pool.starmap(get_pro_sep, all_stars, chunksize=divisor)
+            pro_sep = pool.starmap(get_pro_sep, all_stars, chunksize=divisor)
         
         # print(all_proj_sep)
         
@@ -167,20 +167,39 @@ class AO:
             # 100% of binaries with a contrast less than the experimental contrast are rejected, 100% of those with
             # a greater contrast cannot be rejected
             contrast.sort('Sep (AU)')
-            max_sep = contrast['Sep (AU)'][-1]
-            min_sep = contrast['Sep (AU)'][0]
-            f_con = scipy.interpolate.interp1d(contrast['Sep (AU)'], contrast['Contrast'], kind='linear', fill_value='extrapolate')
-            pro_sep = get_pro_sep()
-            contrast_limit = [f_con(pro_sep) if min_sep < pro_sep[i] < max_sep else 0. for i in range(num_generated)]
-
+            f_con = scipy.interpolate.interp1d(contrast['Sep (AU)'], contrast['Contrast'], kind='linear', bounds_error=False, fill_value=0)
+            contrast_limit = f_con(pro_sep)
+            
             # Compare the model_contrast to the experimental_delta_K
             # If the model contrast is less than the experimental contrast it would have been seen and can be rejected
+            # model contrast < contrast limit = reject (reject list = true)
+            
+            # reject = np.where(model_contrast < contrast_limit)[0]
+            # keep = np.where(model_contrast > contrast_limit)[0]
+            
+            # test = np.where(model_contrast < contrast_limit, np.zeros(np.where(model_contrast < contrast_limit)[0], dtype=bool), np.zeros(np.where(model_contrast > contrast_limit)[0], dtype=bool))[0]
+            
+            # print(test)
+            
+            # test2 = np.zeros(test, dtype=bool)
+            
+            # print(test2)
+            
+            test3 = np.greater(contrast_limit, model_contrast)#, dtype=bool)
+            
+            print(test3)
+            
+            self.reject_list = np.zeros(np.where(model_contrast < contrast_limit)[0], dtype=bool)
+            print(f"Using np.where: {self.reject_list}")
+                        
             self.reject_list = [False] * num_generated
             for i in range(0, num_generated):
                 if model_contrast[i] < contrast_limit[i]:
                     self.reject_list[i] = True
                 else:
                     self.reject_list[i] = False
+            
+            print(f"Using the old method: {self.reject_list}")
 
         elif a_type == 'gradient':
             # Commented out just to be sure it doesn't go here for now :)
