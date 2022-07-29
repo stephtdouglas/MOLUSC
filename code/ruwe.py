@@ -88,8 +88,10 @@ class RUWE:
         
         try:
             cpu_count = len(os.sched_getaffinity(0))-1
+            print("RUWE cpu_count normal:", cpu_count)
         except AttributeError:
             cpu_count = mp.cpu_count()-1
+            print("RUWE cpu_count AttributeError:", cpu_count)
             
         divisor = int(np.ceil(min(self.num_generated / cpu_count, 200000)))
         
@@ -97,7 +99,7 @@ class RUWE:
             pro_sep = pool.starmap(get_pro_sep, all_stars, chunksize=divisor)
             
         self.projected_sep = pro_sep
-        print(self.projected_sep)
+        # print(self.projected_sep)
         # End parallelization
 
         # b. Calculate distance

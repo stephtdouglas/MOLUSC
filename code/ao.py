@@ -142,8 +142,10 @@ class AO:
         
         try:
             cpu_count = len(os.sched_getaffinity(0))-1
+            print("AO cpu_count normal:", cpu_count)
         except AttributeError:
             cpu_count = mp.cpu_count()-1
+            print("AO cpu_count AttributeError:", cpu_count)
             
         divisor = int(np.ceil(min(num_generated / cpu_count, 200000)))
         
