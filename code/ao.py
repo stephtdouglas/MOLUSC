@@ -14,7 +14,7 @@ import logging
 from multiprocessing import Process
 from multiprocessing.pool import Pool
 import multiprocessing as mp
-# import dill
+import dill
 warnings.simplefilter('error', category=RuntimeWarning)
 warnings.simplefilter('ignore', category=AstropyWarning)
 warnings.simplefilter('ignore', category=scipy.linalg.misc.LinAlgWarning)
@@ -25,6 +25,9 @@ repo_path = os.getenv('MOLOC').replace("\\", "/")
 
 
 def get_pro_sep(T_init, per, pha, eccentricity, a_peri, cos_inc, semi_maj_a):
+    # This function is outside of the main class because it must be for parallelization to work properly
+
+    # Calculate projected separation for each generated companion:
     # 1. Calculate mean anomaly
     M = 2 * np.pi * T_init / per - pha
     # 2. Calculate eccentric anomaly iteratively
@@ -43,6 +46,17 @@ def get_pro_sep(T_init, per, pha, eccentricity, a_peri, cos_inc, semi_maj_a):
     pro_sep = semi_maj_a * (1-eccentricity**2)/(1+eccentricity*np.cos(f))*sqt
     
     return pro_sep
+
+# def hard_lim_interp(contrast):
+#     # This function is outside of the main class because it must be for parallelization to work properly
+    
+#     # Interpolate linearly between given points to get the estimated contrast limit
+
+#     contrast_limit = f_con(pro_sep)
+
+    
+#     return f_con
+    
 
 class AO:
     # class variables
@@ -119,28 +133,8 @@ class AO:
         # Find Delta Mag
         model_contrast = [x - star_model_mag for x in cmp_model_mag]
 
-    # TODO: give a function T_0, Period, phase, anything that it uses that it gets from earlier
-    # The function should do this for one star and return proj sep as an output
-        # Calculate projected separation for each generated companion
-
-        
-            # for i in range(num_generated): # TODO: This will be removed
-            #     # 1. Calculate mean anomaly
-            #     M = 2 * np.pi * T_init / per[i] - pha[i]
-            #     # 2. Calculate eccentric anomaly iteratively
-            #     prev_E = 0.0
-            #     current_E = M
-            #     while abs(current_E - prev_E) > 0.00001:
-            #         prev_E = current_E
-            #         current_E = M + eccentricity[i] * np.sin(prev_E)
-            #     # 3. Calculate true anomaly
-            #     f = 2 * np.arctan2(np.tan(current_E / 2), np.sqrt((1 - e[i]) / (1 + e[i])))
-            #     # 4. Calculate projected separation in AU
-            #     alpha = f + arg_peri[i]
-            #     sqt = np.sqrt(np.sin(alpha)**2+np.cos(alpha)**2 * cos_inc[i]**2)
-            #     pro_sep[i] = self.semi_maj_a[i] * (1-eccentricity[i]**2)/(1+eccentricity[i]*np.cos(f))*sqt
-        
-        # TODO: make a for loop that creates a list of lists of all the arguments for each companion 0-n
+        # Parallelization
+        # Get projected separation
         star_params = []
         all_stars = []
         for i in range(num_generated):            
@@ -156,8 +150,7 @@ class AO:
         
         with Pool(cpu_count) as pool:
             pro_sep = pool.starmap(get_pro_sep, all_stars, chunksize=divisor)
-        
-        # print(all_proj_sep)
+        # End parallelization
         
         four_arc = round(self.star_distance * 0.0000193906, 1)  # 4" in AU at distance of primary
         
@@ -167,15 +160,27 @@ class AO:
             # Reject or accept the hypothetical binary based on the "hard limit" of the experimental contrast
             # 100% of binaries with a contrast less than the experimental contrast are rejected, 100% of those with
             # a greater contrast cannot be rejected
+            
             contrast.sort('Sep (AU)')
+            print(contrast)
+
             f_con = scipy.interpolate.interp1d(contrast['Sep (AU)'], contrast['Contrast'], kind='linear', bounds_error=False, fill_value=0)
             
-            # with open("test_interp", "wb") as dill_file:
+            # with open("f_con_interp", "wb") as dill_file:
             #     dill.dump(f_con, dill_file)
-            # with open("test_interp", "rb") as dill_file:
+            # with open("f_con_interp", "rb") as dill_file:
             #     f_con = dill.load(dill_file)
-            contrast_limit = f_con(pro_sep) 
             
+
+            
+            # Parallelziation
+            # TODO: Keep this for now, do a larger test on the cluster to see if it is faster than no parallelization
+            with Pool(cpu_count) as pool:
+                contrast_limit = pool.map(f_con, pro_sep, chunksize=divisor)
+                
+                
+            # End parallelization
+                
             # Compare the model_contrast to the experimental_delta_K
             # If the model contrast is less than the experimental contrast it would have been seen and can be rejected
             # model contrast < contrast limit = reject (reject list = true)
