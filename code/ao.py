@@ -14,6 +14,7 @@ import logging
 from multiprocessing import Process
 from multiprocessing.pool import Pool
 import multiprocessing as mp
+# import dill
 warnings.simplefilter('error', category=RuntimeWarning)
 warnings.simplefilter('ignore', category=AstropyWarning)
 warnings.simplefilter('ignore', category=scipy.linalg.misc.LinAlgWarning)
@@ -122,7 +123,7 @@ class AO:
     # The function should do this for one star and return proj sep as an output
         # Calculate projected separation for each generated companion
 
-            
+        
             # for i in range(num_generated): # TODO: This will be removed
             #     # 1. Calculate mean anomaly
             #     M = 2 * np.pi * T_init / per[i] - pha[i]
@@ -159,7 +160,7 @@ class AO:
         # print(all_proj_sep)
         
         four_arc = round(self.star_distance * 0.0000193906, 1)  # 4" in AU at distance of primary
-
+        
         if a_type == 'hard limit':
             # Find Delta Mag limits, and/or recovery fraction
             # Interpolate linearly between given points to get the estimated contrast limit
@@ -168,39 +169,19 @@ class AO:
             # a greater contrast cannot be rejected
             contrast.sort('Sep (AU)')
             f_con = scipy.interpolate.interp1d(contrast['Sep (AU)'], contrast['Contrast'], kind='linear', bounds_error=False, fill_value=0)
-            contrast_limit = f_con(pro_sep)
+            
+            # with open("test_interp", "wb") as dill_file:
+            #     dill.dump(f_con, dill_file)
+            # with open("test_interp", "rb") as dill_file:
+            #     f_con = dill.load(dill_file)
+            contrast_limit = f_con(pro_sep) 
             
             # Compare the model_contrast to the experimental_delta_K
             # If the model contrast is less than the experimental contrast it would have been seen and can be rejected
             # model contrast < contrast limit = reject (reject list = true)
+            self.reject_list = np.greater(contrast_limit, model_contrast)#, dtype=bool)
+            logging.info(self.reject_list)
             
-            # reject = np.where(model_contrast < contrast_limit)[0]
-            # keep = np.where(model_contrast > contrast_limit)[0]
-            
-            # test = np.where(model_contrast < contrast_limit, np.zeros(np.where(model_contrast < contrast_limit)[0], dtype=bool), np.zeros(np.where(model_contrast > contrast_limit)[0], dtype=bool))[0]
-            
-            # print(test)
-            
-            # test2 = np.zeros(test, dtype=bool)
-            
-            # print(test2)
-            
-            test3 = np.greater(contrast_limit, model_contrast)#, dtype=bool)
-            
-            print(test3)
-            
-            self.reject_list = np.zeros(np.where(model_contrast < contrast_limit)[0], dtype=bool)
-            print(f"Using np.where: {self.reject_list}")
-                        
-            self.reject_list = [False] * num_generated
-            for i in range(0, num_generated):
-                if model_contrast[i] < contrast_limit[i]:
-                    self.reject_list[i] = True
-                else:
-                    self.reject_list[i] = False
-            
-            print(f"Using the old method: {self.reject_list}")
-
         elif a_type == 'gradient':
             # Commented out just to be sure it doesn't go here for now :)
             pass
@@ -240,9 +221,9 @@ class AO:
             #                     recovery_rate[i] = column_rates[j-2]
             #                     break
 
-            # Make Reject list
-            random = np.random.uniform(0, 1, num_generated)
-            self.reject_list = [True if random[i] < recovery_rate[i] else False for i in range(0, num_generated)]
+            # # Make Reject list
+            # random = np.random.uniform(0, 1, num_generated)
+            # self.reject_list = [True if random[i] < recovery_rate[i] else False for i in range(0, num_generated)]
 
         # Write out information for display or output files
         self.model_contrast = model_contrast
