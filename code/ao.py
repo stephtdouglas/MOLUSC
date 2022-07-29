@@ -14,7 +14,6 @@ import logging
 from multiprocessing import Process
 from multiprocessing.pool import Pool
 import multiprocessing as mp
-import dill
 warnings.simplefilter('error', category=RuntimeWarning)
 warnings.simplefilter('ignore', category=AstropyWarning)
 warnings.simplefilter('ignore', category=scipy.linalg.misc.LinAlgWarning)
@@ -162,17 +161,9 @@ class AO:
             # a greater contrast cannot be rejected
             
             contrast.sort('Sep (AU)')
-            # print(contrast)
 
             f_con = scipy.interpolate.interp1d(contrast['Sep (AU)'], contrast['Contrast'], kind='linear', bounds_error=False, fill_value=0)
-            
-            # with open("f_con_interp", "wb") as dill_file:
-            #     dill.dump(f_con, dill_file)
-            # with open("f_con_interp", "rb") as dill_file:
-            #     f_con = dill.load(dill_file)
-            
-
-            
+                    
             # Parallelziation
             # TODO: Keep this for now, do a larger test on the cluster to see if it is faster than no parallelization
             with Pool(cpu_count) as pool:
