@@ -10,6 +10,9 @@ import warnings
 import os
 from astropy.utils.exceptions import AstropyWarning
 import logging
+from multiprocessing import Process
+from multiprocessing.pool import Pool
+import multiprocessing as mp
 warnings.simplefilter('error', category=RuntimeWarning)
 warnings.simplefilter('ignore', category=AstropyWarning)
 warnings.simplefilter('ignore', category=scipy.linalg.misc.LinAlgWarning)
@@ -17,6 +20,29 @@ warnings.simplefilter('ignore', category=scipy.linalg.misc.LinAlgWarning)
 today = datetime.today().isoformat().split("T")[0]
 global repo_path
 repo_path = os.getenv('MOLOC').replace("\\", "/")
+
+def get_pro_sep(T_init, per, pha, eccentricity, a_peri, cos_inc, semi_maj_a): #TODO: would it be faster to just import this from ao.py?
+    # This function is outside of the main class because it must be for parallelization to work properly
+    
+    # Calculate projected separation for each generated companion:
+    # 1. Calculate mean anomaly
+    M = 2 * np.pi * T_init / per - pha
+    # 2. Calculate eccentric anomaly iteratively
+    prev_E = 0.0
+    current_E = M
+    while abs(current_E - prev_E) > 0.00001:
+        prev_E = current_E
+        current_E = M + eccentricity * np.sin(prev_E)
+    
+    # 3. Calculate true anomaly
+    f = 2 * np.arctan2(np.tan(current_E / 2), np.sqrt((1 - eccentricity) / (1 + eccentricity)))
+    
+    # 4. Calculate projected separation in AU
+    alpha = f + a_peri
+    sqt = np.sqrt(np.sin(alpha)**2+np.cos(alpha)**2 * cos_inc**2)
+    pro_sep = semi_maj_a * (1-eccentricity**2)/(1+eccentricity*np.cos(f))*sqt
+    
+    return pro_sep
 
 class RUWE:
     # class variables
@@ -49,29 +75,30 @@ class RUWE:
 
     def analyze(self):
         # a. Calculate projected separation
-        pro_sep = [0.0 for i in range(self.num_generated)]
+        pro_sep = np.zeros(self.num_generated)
         T_0 = 2457388.5  # epoch 2016.0 in JD, corresponding to Gaia eDR3
-
-        for i in range(self.num_generated):
-            # 1. Calculate mean anomaly
-            M = 2 * np.pi * T_0 / self.period[i] - self.phase[i]
-            # 2. Calculate eccentric anomaly iteratively
-            prev_E = 0.0
-            current_E = M
-            while abs(current_E - prev_E) > 0.00001:
-                prev_E = current_E
-                current_E = M + self.e[i] * np.sin(prev_E)
-            # 3. Calculate true anomaly
-            f = 2 * np.arctan2(np.tan(current_E / 2), np.sqrt((1 - self.e[i]) / (1 + self.e[i])))
-            # 4. Calculate projected separation in AU
-            # Added an absolute value around the cos(f) in the separation calculation
-            alpha = f + self.arg_peri[i]
-            sqtmp = np.sqrt(np.sin(alpha)**2+np.cos(alpha)**2 * self.cos_i[i]**2)
-            pro_sep[i] = self.a[i] * (1-self.e[i]**2)/(1+self.e[i]*np.cos(f))*sqtmp  # AU
-            logging.info(f"pro_sep: {pro_sep}")
-
-        logging.info(f"projected seps round 1: {self.projected_sep}")
+        
+        # Parallelization
+        # Get projected separation
+        star_params = []
+        all_stars = []
+        for i in range(self.num_generated): # TODO: This is slow! There's probably a better way to do this, right?
+            star_params = [T_0, self.period[i], self.phase[i], self.e[i], self.arg_peri[i], self.cos_i[i], self.a[i]]
+            all_stars.append(star_params)
+        
+        try:
+            cpu_count = len(os.sched_getaffinity(0))-1
+        except AttributeError:
+            cpu_count = mp.cpu_count()-1
+            
+        divisor = int(np.ceil(min(self.num_generated / cpu_count, 200000)))
+        
+        with Pool(cpu_count) as pool:
+            pro_sep = pool.starmap(get_pro_sep, all_stars, chunksize=divisor)
+            
         self.projected_sep = pro_sep
+        print(self.projected_sep)
+        # End parallelization
 
         # b. Calculate distance
         star_distance = 1 / (self.parallax)  # kpc
@@ -108,15 +135,18 @@ class RUWE:
         logging.info(f"delta g: {self.delta_g}")
         logging.info(f"test: {[f_ruwe(self.projected_sep[i], delta_g[i]) for i in range(self.num_generated)]}")
 
+        # TODO: Not sure if I should change these?
         pred_log_ruwe = np.concatenate([f_ruwe(self.projected_sep[i], delta_g[i]) for i in range(self.num_generated)])
         self.predicted_ruwe = 10**pred_log_ruwe
         pred_sigma = np.concatenate([f_sigma(self.projected_sep[i], delta_g[i]) for i in range(self.num_generated)])
 
         # g. Determine rejection probabilities
+        # TODO: Not sure if I should change this either
         rejection_prob = [stats.halfnorm.cdf(10**pred_log_ruwe[i], loc=10**log_ruwe, scale=10**pred_sigma[i]) for i in range(self.num_generated)]
 
         # never reject something where the observed ruwe is higher than the predicted (halfnorm)
         # never reject something that is outside the RUWE Distribution grid
+        # TODO: Not sure if I should change this either
         rejection_prob = [0.0 if (not -.1 < delta_g[i] < 7.1) or
                          (not np.min(self.ruwe_dist['Sep(AU)']) < self.projected_sep[i] < np.max(self.ruwe_dist['Sep(AU)']))
                          else rejection_prob[i] for i in range(self.num_generated)]
@@ -125,12 +155,14 @@ class RUWE:
         rejection = np.random.rand(self.num_generated)
 
         reject_list = [True if rejection[i] < rejection_prob[i] else False for i in range(self.num_generated)]
+        # If we know how long something will be, a numpy array is faster.
+        # Otherwise, regular lists are faster
 
         return reject_list
 
     def load_stellar_model(self, star_age):
         # Read in file containing stellar model
-        # todo Interpolate to get the chart for the exact age or binned age or something that doesnt rely on the age being in the chart
+        # TODO: Interpolate to get the chart for the exact age or binned age or something that doesnt rely on the age being in the chart
         model_chart = {}
         BHAC_file = f'{os.path.join(repo_path, "code/BHAC15_CFHT.txt")}'
         with open(BHAC_file, 'r') as content_file:

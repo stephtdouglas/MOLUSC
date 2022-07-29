@@ -162,7 +162,7 @@ class AO:
             # a greater contrast cannot be rejected
             
             contrast.sort('Sep (AU)')
-            print(contrast)
+            # print(contrast)
 
             f_con = scipy.interpolate.interp1d(contrast['Sep (AU)'], contrast['Contrast'], kind='linear', bounds_error=False, fill_value=0)
             
