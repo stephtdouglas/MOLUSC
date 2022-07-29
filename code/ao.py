@@ -141,15 +141,15 @@ class AO:
             all_stars.append(star_params)
         
         try:
-            cpu_count = len(os.sched_getaffinity(0))-1
-            print("AO cpu_count normal:", cpu_count)
+            cpu_ct = os.cpu_count()-1
+            print("AO cpu_count normal:", cpu_ct)
         except AttributeError:
-            cpu_count = mp.cpu_count()-1
-            print("AO cpu_count AttributeError:", cpu_count)
+            cpu_ct = mp.cpu_count()-1
+            print("AO cpu_count AttributeError:", cpu_ct)
             
-        divisor = int(np.ceil(min(num_generated / cpu_count, 200000)))
+        divisor = int(np.ceil(min(num_generated / cpu_ct, 200000)))
         
-        with Pool(cpu_count) as pool:
+        with Pool(cpu_ct) as pool:
             pro_sep = pool.starmap(get_pro_sep, all_stars, chunksize=divisor)
         # End parallelization
         
@@ -168,7 +168,7 @@ class AO:
                     
             # Parallelziation
             # TODO: Keep this for now, do a larger test on the cluster to see if it is faster than no parallelization
-            with Pool(cpu_count) as pool:
+            with Pool(cpu_ct) as pool:
                 contrast_limit = pool.map(f_con, pro_sep, chunksize=divisor)
                 
                 

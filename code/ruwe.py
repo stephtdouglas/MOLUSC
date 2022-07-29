@@ -87,15 +87,15 @@ class RUWE:
             all_stars.append(star_params)
         
         try:
-            cpu_count = len(os.sched_getaffinity(0))-1
-            print("RUWE cpu_count normal:", cpu_count)
+            cpu_ct = os.cpu_count()-1
+            print("RUWE cpu_count normal:", cpu_ct)
         except AttributeError:
-            cpu_count = mp.cpu_count()-1
-            print("RUWE cpu_count AttributeError:", cpu_count)
+            cpu_ct = mp.cpu_count()-1
+            print("RUWE cpu_count AttributeError:", cpu_ct)
             
-        divisor = int(np.ceil(min(self.num_generated / cpu_count, 200000)))
+        divisor = int(np.ceil(min(self.num_generated / cpu_ct, 200000)))
         
-        with Pool(cpu_count) as pool:
+        with Pool(cpu_ct) as pool:
             pro_sep = pool.starmap(get_pro_sep, all_stars, chunksize=divisor)
             
         self.projected_sep = pro_sep
