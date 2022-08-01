@@ -163,9 +163,9 @@ class RV:
             # Parallel
             # Determine cpu count
             try:
-                cpu_count = len(os.sched_getaffinity(0))-1
+                cpu_ct = len(os.sched_getaffinity(0))-1
             except AttributeError:
-                cpu_count = mp.cpu_count()-1
+                cpu_ct = mp.cpu_count()-1
 
             contrast_check = [True if x <= 5 else False for x in contrast]
 

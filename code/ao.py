@@ -141,7 +141,7 @@ class AO:
             all_stars.append(star_params)
         
         try:
-            cpu_ct = os.cpu_count()-1
+            cpu_ct = len(os.sched_getaffinity(0))-1
             print("AO cpu_count normal:", cpu_ct)
         except AttributeError:
             cpu_ct = mp.cpu_count()-1
