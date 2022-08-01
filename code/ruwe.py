@@ -13,6 +13,7 @@ import logging
 from multiprocessing import Process
 from multiprocessing.pool import Pool
 import multiprocessing as mp
+from ao import get_pro_sep
 warnings.simplefilter('error', category=RuntimeWarning)
 warnings.simplefilter('ignore', category=AstropyWarning)
 warnings.simplefilter('ignore', category=scipy.linalg.misc.LinAlgWarning)
@@ -20,29 +21,6 @@ warnings.simplefilter('ignore', category=scipy.linalg.misc.LinAlgWarning)
 today = datetime.today().isoformat().split("T")[0]
 global repo_path
 repo_path = os.getenv('MOLOC').replace("\\", "/")
-
-def get_pro_sep(T_init, per, pha, eccentricity, a_peri, cos_inc, semi_maj_a): #TODO: would it be faster to just import this from ao.py?
-    # This function is outside of the main class because it must be for parallelization to work properly
-    
-    # Calculate projected separation for each generated companion:
-    # 1. Calculate mean anomaly
-    M = 2 * np.pi * T_init / per - pha
-    # 2. Calculate eccentric anomaly iteratively
-    prev_E = 0.0
-    current_E = M
-    while abs(current_E - prev_E) > 0.00001:
-        prev_E = current_E
-        current_E = M + eccentricity * np.sin(prev_E)
-    
-    # 3. Calculate true anomaly
-    f = 2 * np.arctan2(np.tan(current_E / 2), np.sqrt((1 - eccentricity) / (1 + eccentricity)))
-    
-    # 4. Calculate projected separation in AU
-    alpha = f + a_peri
-    sqt = np.sqrt(np.sin(alpha)**2+np.cos(alpha)**2 * cos_inc**2)
-    pro_sep = semi_maj_a * (1-eccentricity**2)/(1+eccentricity*np.cos(f))*sqt
-    
-    return pro_sep
 
 class RUWE:
     # class variables
@@ -77,14 +55,12 @@ class RUWE:
         # a. Calculate projected separation
         pro_sep = np.zeros(self.num_generated)
         T_0 = 2457388.5  # epoch 2016.0 in JD, corresponding to Gaia eDR3
+        T_0_array = np.full(self.num_generated, fill_value=T_0)
         
         # Parallelization
         # Get projected separation
-        star_params = []
-        all_stars = []
-        for i in range(self.num_generated): # TODO: This is slow! There's probably a better way to do this, right?
-            star_params = [T_0, self.period[i], self.phase[i], self.e[i], self.arg_peri[i], self.cos_i[i], self.a[i]]
-            all_stars.append(star_params)
+        star_params = np.array([T_0_array, self.period, self.phase, self.e, self.arg_peri, self.cos_i, self.a])
+        all_stars = star_params.T
         
         try:
             cpu_ct = len(os.sched_getaffinity(0))-1
@@ -137,10 +113,9 @@ class RUWE:
         logging.info(f"delta g: {self.delta_g}")
         logging.info(f"test: {[f_ruwe(self.projected_sep[i], delta_g[i]) for i in range(self.num_generated)]}")
 
-        # TODO: Not sure if I should change these?
-        pred_log_ruwe = np.concatenate([f_ruwe(self.projected_sep[i], delta_g[i]) for i in range(self.num_generated)])
+        pred_log_ruwe = f_ruwe(self.projected_sep, delta_g)
         self.predicted_ruwe = 10**pred_log_ruwe
-        pred_sigma = np.concatenate([f_sigma(self.projected_sep[i], delta_g[i]) for i in range(self.num_generated)])
+        pred_sigma = f_sigma(self.projected_sep, delta_g)
 
         # g. Determine rejection probabilities
         # TODO: Not sure if I should change this either
@@ -148,7 +123,7 @@ class RUWE:
 
         # never reject something where the observed ruwe is higher than the predicted (halfnorm)
         # never reject something that is outside the RUWE Distribution grid
-        # TODO: Not sure if I should change this either
+        # TODO: Can be made into an array using bitwise comparisons (like we've done before)
         rejection_prob = [0.0 if (not -.1 < delta_g[i] < 7.1) or
                          (not np.min(self.ruwe_dist['Sep(AU)']) < self.projected_sep[i] < np.max(self.ruwe_dist['Sep(AU)']))
                          else rejection_prob[i] for i in range(self.num_generated)]

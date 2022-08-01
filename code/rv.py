@@ -170,7 +170,7 @@ class RV:
             contrast_check = [True if x <= 5 else False for x in contrast]
 
             # Split the parameters into chunks to pass to workers
-            divisor = int(np.ceil(min(num_generated / cpu_count, 200000)))
+            divisor = int(np.ceil(min(num_generated / cpu_ct, 200000)))
             n_divisor = int(np.ceil(num_generated / divisor))
             
             # Parameters are split into chunks of size divisor
@@ -185,7 +185,7 @@ class RV:
 
             # Move into parallel processing
             #  Create Processes
-            pool = mp.Pool(cpu_count)
+            pool = mp.Pool(cpu_ct)
 
             # Use Pool to calculate RVs
             prim_results = pool.starmap(self.calculate_RV, [(period[j], mass_ratio[j], a[j], e[j], cos_i[j], arg_peri[j], phase[j], self.MJD) for j in range(n_divisor)])
