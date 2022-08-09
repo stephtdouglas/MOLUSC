@@ -35,8 +35,8 @@ def a_to_period(a):
     return np.sqrt((4*np.pi**2 * a**3) / (2*G)) * 365
 
 def get_info(star):
-    output_path1 = r'G:/Shared drives/DouglasGroup/Jared Sofair 2022/MOLUSC/MOLUSC Outputs/Tables'
-    output_path2 = r'G:/Shared drives/DouglasGroup/Jared Sofair 2022/MOLUSC/MOLUSC Outputs/Graphs'
+    output_path1 = os.path.join(os.getenv("MOLOUT", r'G:/Shared drives/DouglasGroup/Jared Sofair 2022/MOLUSC/MOLUSC Outputs'), "tables").replace("\\", "/")
+    output_path2 = os.path.join(os.getenv("MOLOUT", r'G:/Shared drives/DouglasGroup/Jared Sofair 2022/MOLUSC/MOLUSC Outputs'), "graphs").replace("\\", "/")
 
     survivors_file = os.path.expanduser(f'{output_path1}/{star}_kept.csv')
     all_file = os.path.expanduser(f'{output_path1}/{star}_all.csv')
@@ -517,14 +517,11 @@ if __name__ == '__main__':
         # If specified, get graphs 1-3 for star(s)
         # Make sure to include n and mass
         
-    star = "JS355_50m"
+    star = "JS355"
     info = get_info(star)
     print(info)
-    # corner(star, given_params='all', smoothing=True, file_out=True)
-    # detection_limits(star, file_out=True)
-    # survivor_plot(star, param='P', file_out=True)
 
-    # plotter(star, corner=True, detlims=True, survivor=False)
+    plotter(star, corner=True, detlims=True, survivor=False)
     
     # corner(survivors_file,  n_gen=n, given_params='all', smoothing=True, file_out=out_file1)
     # detection_limits(survivors_file, mass, file_out=out_file2)
