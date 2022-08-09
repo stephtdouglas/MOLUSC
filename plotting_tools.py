@@ -13,18 +13,8 @@ import glob
 import yaml
 import os
 
-# mpl.style.use(r'C:\Users\Jared\anaconda3\Lib\site-packages\matplotlib\mpl-data\stylelib\woodplotstyle.mplstyle')
-mpl.style.use('classic')
-# Input files
-# survivors_file = r'G:/Shared drives/DouglasGroup/Jared Sofair 2022/MOLUSC/MOLUSC Outputs/Tables/JS355_kept.csv'
-# all_file = r'G:/Shared drives/DouglasGroup/Jared Sofair 2022/MOLUSC/MOLUSC Outputs/Tables/JS355_all.csv'
-# Output files
-# out_file1 = r'G:/Shared drives/DouglasGroup/Jared Sofair 2022/MOLUSC/MOLUSC Outputs/Graphs/JS355_output_corner.pdf'  # writeout file for the corner plots
-# out_file2 = r'G:/Shared drives/DouglasGroup/Jared Sofair 2022/MOLUSC/MOLUSC Outputs/Graphs/JS355_output_dtct_lims.pdf' # writeout file for the detection limit plots
-# out_file3 = r'G:/Shared drives/DouglasGroup/Jared Sofair 2022/MOLUSC/MOLUSC Outputs/Graphs/JS355_output_srv.pdf' # writeout file for the survivor plots
-# Other
-# n = 52  # number of companions generated in run
-# mass = 0.599  # target mass in solar masses
+style_path = os.getenv("MPLCONFIGDIR", os.path.expanduser(r"C:\Users\Jared\anaconda3\Lib\site-packages\matplotlib\mpl-data\stylelib")).replace("\\", "/")
+mpl.style.use(os.path.join(style_path, 'bmh.mplstyle').replace("\\", "/"))
 
 # Convenience functions
 def jup_mass_to_sol(jupiter_mass):
@@ -45,22 +35,22 @@ def a_to_period(a):
     return np.sqrt((4*np.pi**2 * a**3) / (2*G)) * 365
 
 def get_info(star):
-    output_path1 = r'G:\Shared drives\DouglasGroup\Jared Sofair 2022\MOLUSC\MOLUSC Outputs\Tables'
-    output_path2 = r'G:\Shared drives\DouglasGroup\Jared Sofair 2022\MOLUSC\MOLUSC Outputs\Graphs'
+    output_path1 = r'G:/Shared drives/DouglasGroup/Jared Sofair 2022/MOLUSC/MOLUSC Outputs/Tables'
+    output_path2 = r'G:/Shared drives/DouglasGroup/Jared Sofair 2022/MOLUSC/MOLUSC Outputs/Graphs'
 
-    survivors_file = os.path.expanduser(f'{output_path1}\{star}_kept.csv')
-    all_file = os.path.expanduser(f'{output_path1}\{star}_all.csv')
-    yaml_file = os.path.expanduser(f'{output_path1}\{star}_params_output.yml')
+    survivors_file = os.path.expanduser(f'{output_path1}/{star}_kept.csv')
+    all_file = os.path.expanduser(f'{output_path1}/{star}_all.csv')
+    yaml_file = os.path.expanduser(f'{output_path1}/{star}_params_output.yml')
 
-    out_file1 = os.path.expanduser(f'{output_path2}\{star}_output_corner.pdf')
-    out_file2 = os.path.expanduser(f'{output_path2}\{star}_output_dtct_lims.pdf')
-    out_file3 = os.path.expanduser(f'{output_path2}\{star}_output_srv.pdf')
+    out_file1 = os.path.expanduser(f'{output_path2}/{star}_output_corner.pdf')
+    out_file2 = os.path.expanduser(f'{output_path2}/{star}_output_dtct_lims.pdf')
+    out_file3 = os.path.expanduser(f'{output_path2}/{star}_output_srv.pdf')
     
     # Get mass and n  
     with open(yaml_file, 'r') as f:
         try:
             yaml_data = yaml.safe_load(f)
-            mass = yaml_data["Star"]["Mass"]
+            mass = yaml_data["star"]["mass"]
             n = yaml_data["num_generated"]
         except yaml.YAMLError as exc:
             print(exc)
@@ -352,7 +342,7 @@ def corner_plot(star, file_out=True, given_params='auto', smoothing=False, color
     
     if file_out:
         out_file = get_info(star)[2]
-        plt.savefig(out_file, bbox_inches='tight', pad_inches=0.25)
+        plt.savefig(out_file, bbox_inches='tight', pad_inches=0.25, dpi=300)
     plt.show()
     
     return 0
@@ -428,7 +418,7 @@ def detection_limits(star, file_out=True, mark_P=None):
     # Write out
     if file_out:
         out_file = get_info(star)[3]
-        plt.savefig(out_file, bbox_inches='tight', pad_inches=0.2)
+        plt.savefig(out_file, bbox_inches='tight', pad_inches=0.2, dpi=300)
 
     plt.show()
 
@@ -444,7 +434,7 @@ def survivor_plot(star, param, file_out=False):
   # Load kept and survivors
   survivors_file = get_info(star)[0]
   all_file = get_info(star)[1]
-  print(f'Survivors file: {survivors_file}\n All file: {all_file}\n')
+  # print(f'Survivors file: {survivors_file}\n All file: {all_file}\n')
 
   t = Table.read(survivors_file, comment='#', format='ascii.csv')
   t_all = Table.read(all_file, comment='#', format='ascii.csv')
@@ -460,9 +450,7 @@ def survivor_plot(star, param, file_out=False):
       # Plot two histograms, top one a histogram of period (with log bins), bottom one a plot of survivorship fraction
       bins = np.logspace(0, 10, 20)
       n, _ = np.histogram(t['period(days)'], bins=bins)
-      print(f'n: {n}\n')
       N, _ = np.histogram(t_all['period(days)'], bins=bins)
-      print(f'N: {N}\n')
       scale = 'log'
       axes[2].set_xlabel('Period (days)')
   elif param == 'm' or param == 'mass ratio' or param == 'mass_ratio':
@@ -508,8 +496,8 @@ def survivor_plot(star, param, file_out=False):
 
   if file_out:
       out_file = get_info(star)[4]
-      print(f'Out file: {out_file}')
-      plt.savefig(out_file, bbox_inches='tight', pad_inches=0.2)
+      # print(f'Out file: {out_file}')
+      plt.savefig(out_file, bbox_inches='tight', pad_inches=0.2, dpi=300)
   plt.show()
   return
 
@@ -529,14 +517,14 @@ if __name__ == '__main__':
         # If specified, get graphs 1-3 for star(s)
         # Make sure to include n and mass
         
-    star = "JS355"
-    # info = get_info(star)
-    # print(info)
+    star = "JS355_50m"
+    info = get_info(star)
+    print(info)
     # corner(star, given_params='all', smoothing=True, file_out=True)
     # detection_limits(star, file_out=True)
     # survivor_plot(star, param='P', file_out=True)
 
-    plotter(star, corner=True, detlims=True, survivor=True)
+    # plotter(star, corner=True, detlims=True, survivor=False)
     
     # corner(survivors_file,  n_gen=n, given_params='all', smoothing=True, file_out=out_file1)
     # detection_limits(survivors_file, mass, file_out=out_file2)
