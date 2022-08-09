@@ -343,7 +343,7 @@ def corner_plot(star, file_out=True, given_params='auto', smoothing=False, color
     if file_out:
         out_file = get_info(star)[2]
         plt.savefig(out_file, bbox_inches='tight', pad_inches=0.25, dpi=300)
-    plt.show()
+    # plt.show()
     
     return 0
 
@@ -396,7 +396,7 @@ def detection_limits(star, file_out=True, mark_P=None):
     ax.set_ylim(0.6, 1.2*ax.get_ylim()[1])
     if mark_P:
         ax.vlines([mark_P], ax.get_ylim()[0], ax.get_ylim()[1], ls=':', colors='k', lw=2)
-    ax.vlines([6.4e5], ax.get_ylim()[0], ax.get_ylim()[1], ls='--', colors='k', lw=2)  # DS Tuc B
+    # ax.vlines([6.4e5], ax.get_ylim()[0], ax.get_ylim()[1], ls='--', colors='k', lw=2)  # DS Tuc B
 
     # Add a secondary axis, showing mass in solar masses
     secax = ax.secondary_yaxis('right', functions=(jup_mass_to_sol, sol_mass_to_jup))
@@ -420,7 +420,7 @@ def detection_limits(star, file_out=True, mark_P=None):
         out_file = get_info(star)[3]
         plt.savefig(out_file, bbox_inches='tight', pad_inches=0.2, dpi=300)
 
-    plt.show()
+    # plt.show()
 
     return
 
@@ -498,14 +498,14 @@ def survivor_plot(star, param, file_out=False):
       out_file = get_info(star)[4]
       # print(f'Out file: {out_file}')
       plt.savefig(out_file, bbox_inches='tight', pad_inches=0.2, dpi=300)
-  plt.show()
+  # plt.show()
   return
 
 def plotter(star, corner=True, detlims=True, survivor=True):
     if corner:
         corner_plot(star, given_params='all', smoothing=True, file_out=True)
     if detlims:
-        detection_limits(star, file_out=True)
+        detection_limits(star, file_out=True, mark_P=False)
     if survivor:
         survivor_plot(star, param='P', file_out=True)
     
