@@ -37,10 +37,11 @@ def a_to_period(a):
 def get_info(star):
     output_path1 = os.path.join(os.getenv("MOLOUT", r'G:/Shared drives/DouglasGroup/Jared Sofair 2022/MOLUSC/MOLUSC Outputs'), "tables").replace("\\", "/")
     output_path2 = os.path.join(os.getenv("MOLOUT", r'G:/Shared drives/DouglasGroup/Jared Sofair 2022/MOLUSC/MOLUSC Outputs'), "graphs").replace("\\", "/")
+    output_path3 = os.path.join(os.getenv("MOLOUT", r'G:/Shared drives/DouglasGroup/Jared Sofair 2022/MOLUSC/MOLUSC Outputs'), "yml").replace("\\", "/")
 
     survivors_file = os.path.expanduser(f'{output_path1}/{star}_kept.csv')
     all_file = os.path.expanduser(f'{output_path1}/{star}_all.csv')
-    yaml_file = os.path.expanduser(f'{output_path1}/{star}_params_output.yml')
+    yaml_file = os.path.expanduser(f'{output_path3}/{star}_params_output.yml')
 
     out_file1 = os.path.expanduser(f'{output_path2}/{star}_output_corner.pdf')
     out_file2 = os.path.expanduser(f'{output_path2}/{star}_output_dtct_lims.pdf')
@@ -519,7 +520,7 @@ if __name__ == '__main__':
         
     star = "JS355"
     info = get_info(star)
-    print(info)
+    # print(info)
 
     plotter(star, corner=True, detlims=True, survivor=False)
     
