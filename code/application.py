@@ -662,7 +662,7 @@ class Application:
             self.star_mass = args.mass
             self.star_age = args.age
             self.added_jitter = float(args.jitter)
-            self.rv_floor = args.rv_floor
+            self.rv_floor = int(args.rv_floor)
             # Limits
             self.limits = [None]*21
             if args.transit:
