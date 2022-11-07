@@ -113,27 +113,51 @@ class RUWE:
         logging.info(f"delta g: {self.delta_g}")
         logging.info(f"test: {[f_ruwe(self.projected_sep[i], delta_g[i]) for i in range(self.num_generated)]}")
 
-        pred_log_ruwe = f_ruwe(self.projected_sep, delta_g)
+        # pred_log_ruwe = f_ruwe(self.projected_sep, delta_g)
+        # self.predicted_ruwe = 10**pred_log_ruwe
+        # pred_sigma = f_sigma(self.projected_sep, delta_g)
+        
+        pred_log_ruwe = np.concatenate([f_ruwe(self.projected_sep[i], delta_g[i]) for i in range(self.num_generated)])
         self.predicted_ruwe = 10**pred_log_ruwe
-        pred_sigma = f_sigma(self.projected_sep, delta_g)
+        pred_sigma = np.concatenate([f_sigma(self.projected_sep[i], delta_g[i]) for i in range(self.num_generated)])
+
+        # print(f"pred_log_ruwe: {np.shape(pred_log_ruwe)}")
+        # print(f"pred_sigma: {np.shape(pred_sigma)}")
+        # print(f"log_ruwe: {np.shape(log_ruwe)}")
 
         # g. Determine rejection probabilities
+       
         # TODO: Not sure if I should change this either
-        rejection_prob = [stats.halfnorm.cdf(10**pred_log_ruwe[i], loc=10**log_ruwe, scale=10**pred_sigma[i]) for i in range(self.num_generated)]
+        # rejection_prob = [stats.halfnorm.cdf(10**pred_log_ruwe[i], loc=10**log_ruwe, scale=10**pred_sigma[i]) for i in range(self.num_generated)]
+        rejection_prob = stats.halfnorm.cdf(10**pred_log_ruwe, loc=10**log_ruwe, scale=10**pred_sigma)
+
 
         # never reject something where the observed ruwe is higher than the predicted (halfnorm)
         # never reject something that is outside the RUWE Distribution grid
+       
         # TODO: Can be made into an array using bitwise comparisons (like we've done before)
-        rejection_prob = [0.0 if (not -.1 < delta_g[i] < 7.1) or
-                         (not np.min(self.ruwe_dist['Sep(AU)']) < self.projected_sep[i] < np.max(self.ruwe_dist['Sep(AU)']))
-                         else rejection_prob[i] for i in range(self.num_generated)]
+        # rejection_prob = [0.0 if (not -.1 < delta_g[i] < 7.1) or
+        #                  (not np.min(self.ruwe_dist['Sep(AU)']) < self.projected_sep[i] < np.max(self.ruwe_dist['Sep(AU)']))
+        #                  else rejection_prob[i] for i in range(self.num_generated)]
+        
+        rejection_prob[(delta_g < -0.1) | (delta_g > 7.1)] = 0        
+        
+        rejection_prob[(self.projected_sep < np.min(self.ruwe_dist['Sep(AU)'])) | (self.projected_sep > np.max(self.ruwe_dist['Sep(AU)']))] = 0
+        
         self.rejection_prob = rejection_prob
 
         rejection = np.random.rand(self.num_generated)
         
-        reject_list = [True if rejection[i] < rejection_prob[i] else False for i in range(self.num_generated)]
+        # print(f"shape of rejection_prob: {np.shape(rejection_prob)}")
+        # print(f"shape of rejection: {np.shape(rejection)}")
+
+        
+        # reject_list = [True if rejection[i] < rejection_prob[i] else False for i in range(self.num_generated)]
         # If we know how long something will be, a numpy array is faster.
         # Otherwise, regular lists are faster
+        reject_list = rejection < rejection_prob
+
+
 
         return reject_list
 
