@@ -130,7 +130,7 @@ class RUWE:
         self.rejection_prob = rejection_prob
 
         rejection = np.random.rand(self.num_generated)
-
+        
         reject_list = [True if rejection[i] < rejection_prob[i] else False for i in range(self.num_generated)]
         # If we know how long something will be, a numpy array is faster.
         # Otherwise, regular lists are faster

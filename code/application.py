@@ -379,7 +379,8 @@ class Application:
             is_transit = False
             
         # Check if you are using the AO datatype
-        if len(self.ao_filename[0]) > 3:
+        # print(f"This is the output of self.ao_filename: {self.ao_filename}")
+        if self.ao_filename:
             is_ao = True
         else:
             is_ao = False
