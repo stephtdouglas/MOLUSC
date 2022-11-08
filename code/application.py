@@ -380,7 +380,9 @@ class Application:
             
         # Check if you are using the AO datatype
         # print(f"This is the output of self.ao_filename: {self.ao_filename}")
-        if self.ao_filename:
+        
+        # TODO: Figure out why >3 :)
+        if len(self.ao_filename[0]) > 3:
             is_ao = True
         else:
             is_ao = False
@@ -704,7 +706,7 @@ class Application:
 
                 self.filter = data["ao_params"]["filter"]
             else:
-                self.ao_filename = [False]
+                self.ao_filename = []
                 self.filter = None
 
             self.ruwe_check = data["ruwe_params"]["fit"]
