@@ -382,7 +382,8 @@ class Application:
         # print(f"This is the output of self.ao_filename: {self.ao_filename}")
         
         # TODO: Figure out why >3 :)
-        if len(self.ao_filename[0]) > 3:
+        # print(f"len of self.ao_filename[0]: {len(self.ao_filename[0])}")
+        if self.ao_filename:
             is_ao = True
         else:
             is_ao = False
@@ -757,14 +758,35 @@ class Application:
 
         print(self.ruwe_check,self.gaia_check)
 
+        # print(f"self.ao_filename: {self.ao_filename}")
+        # print(f"self.ao_filename[0]: {self.ao_filename[0]}")
+        
+        # test = False
+        
+        # if self.ao_filename:
+        #     test = True
+        # else:
+        #     test = False
+            
+        # print(f"if self.ao_filename: {test}")
 
-        if not self.ao_filename[0] and not self.rv_filename and not self.ruwe_check and not self.gaia_check and not self.added_jitter:
+        # test2 = False
+        
+        # if self.ao_filename[0]:
+        #     test2 = True
+        # else:
+        #     test2 = False
+            
+        # print(f"if self.ao_filename[0]: {test2}")
+
+
+        if not (self.ao_filename[0]) and not self.rv_filename and not self.ruwe_check and not self.gaia_check and not self.added_jitter:
             print('At least one analysis type needs to be chosen')
             return False
-        if self.ao_filename[0] and not self.filter:
+        if (self.ao_filename[0]) and not self.filter:
             print('AO given without filter')
             return False
-        if self.ao_filename[0] and not (self.filter[0] in ['J','K','H','G', 'Bp','Rp','R','I','L','LL','M']):
+        if (self.ao_filename[0]) and not (self.filter[0] in ['J','K','H','G', 'Bp','Rp','R','I','L','LL','M']):
             print(self.filter[0])
             print(self.filter[0] in ['J','K','H','G', 'Bp','Rp','R','I','L','LL','M'])
             print("Unknown filter. Filter must be one of ['J','K','H','G', 'Bp','Rp','R','I','L','LL','M']")
