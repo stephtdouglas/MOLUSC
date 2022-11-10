@@ -707,7 +707,7 @@ class Application:
 
                 self.filter = data["ao_params"]["filter"]
             else:
-                self.ao_filename = []
+                self.ao_filename = ['']
                 self.filter = None
 
             self.ruwe_check = data["ruwe_params"]["fit"]
@@ -806,7 +806,7 @@ class Application:
         self.input_args = []
         self.using_gui = True
         # Class variables
-        self.ao_filename = ''
+        self.ao_filename = ['']
         self.filter = ''
         self.rv_filename = ''
         self.prefix = ''
