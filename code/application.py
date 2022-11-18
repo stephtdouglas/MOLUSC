@@ -1,4 +1,5 @@
-from datetime import datetime
+from datetime import datetime as dt
+import datetime
 import numpy as np
 import scipy as scipy
 import scipy.stats as stats
@@ -24,7 +25,7 @@ warnings.simplefilter('error', category=RuntimeWarning)
 warnings.simplefilter('ignore', category=AstropyWarning)
 warnings.simplefilter('ignore', category=scipy.linalg.misc.LinAlgWarning)
 
-today = datetime.today().isoformat().split("T")[0]
+today = dt.today().isoformat().split("T")[0]
 global repo_path
 repo_path = os.getenv('MOLOC').replace("\\", "/")
 
@@ -169,7 +170,7 @@ class Application:
                     failure = self.error_check(ao.read_contrast())
                     if failure: return
                     if self.extra_output:
-                        self.print_out('AO Contrast Loaded')
+                        self.print_out(f'Current time: {datetime.datetime.now()} -- AO Contrast Loaded')
                     # Perform test
                     result = ao.analyze()
                     failure = self.error_check(result)
@@ -180,28 +181,30 @@ class Application:
                         self.print_out(('AO Low Mass Limit: %.3f' %(ao.low_mass_limit)))
             # Combine reject lists from all AO tests into one
             self.ao_reject_list = np.logical_or.reduce(ao_reject_lists)
+            self.print_out(f'Current time: {datetime.datetime.now()} -- Finished analyzing AO')
         else:
             self.ao_reject_list = np.array([False]*self.num_generated)
 
         #   RV and Jitter
         if self.rv_filename:
             # Run RV (without Jitter)
-            self.print_out('Analyzing RV...')
+            self.print_out(f'Current time: {datetime.datetime.now()} -- Analyzing RV...')
             rv = RV(self.rv_filename, self.resolution, comps, self.star_mass, self.star_age, added_jitter=self.added_jitter, rv_floor=self.rv_floor, extra_output=self.extra_output)
             # Read in the RV file
             failure = self.error_check(rv.read_in_rv())
             if failure: return
-            if self.extra_output: self.print_out('RV Measurements Loaded')
+            if self.extra_output: self.print_out(f'Current time: {datetime.datetime.now()} -- RV Measurements Loaded.')
             # Run analysis
             self.rv_reject_list = rv.analyze_rv()
             self.jitter_reject_list = np.array([False]*self.num_generated)
+            self.print_out(f'Current time: {datetime.datetime.now()} -- Finished analyzing RV')
         else:
             self.rv_reject_list = np.array([False]*self.num_generated)
             self.jitter_reject_list = np.array([False] * self.num_generated)
 
         #   RUWE
         if self.ruwe_check:
-            self.print_out('Analyzing RUWE...')
+            self.print_out(f'Current time: {datetime.datetime.now()} -- Analyzing RUWE...')
             ruwe = RUWE(self.star_ra, self.star_dec, self.star_age, self.star_mass, comps)
             # Read in RUWE distribution and Normalization tables
             failure = self.error_check(ruwe.read_dist())
@@ -209,6 +212,8 @@ class Application:
             
             # Running in cl mode -- want RUWE to access gaia/ruwe params (read from Gaia database)
             
+            
+            self.print_out(f'Current time: {datetime.datetime.now()} -- Finished analyzing RUWE')
             # TODO: Should we add another layer of if statements...?
             if not np.isfinite(self.gmag): # Was changing this from self.gmag the correct fix?
                 # Get Gaia information
@@ -251,7 +256,7 @@ class Application:
 
         #   Gaia Contrast
         if self.gaia_check:
-            self.print_out('Analyzing Gaia Contrast...')
+            self.print_out(f'Current time: {datetime.datetime.now()} -- Analyzing Gaia Contrast...')
             #todo improve gaia contrast
             gaia = AO(f'{os.path.join(repo_path, "code/gaia_contrast.txt")}', comps, self.star_mass, self.star_age, self.star_ra, self.star_dec, 'G', gaia=True)
             # Determine distance
@@ -261,9 +266,10 @@ class Application:
             # Read contrast file
             failure = self.error_check(gaia.read_contrast())
             if failure: return
-            if self.extra_output: self.print_out('Gaia Contrast Loaded')
+            if self.extra_output: self.print_out(f'Current time: {datetime.datetime.now()} -- Gaia Contrast Loaded')
             # Analyze
             self.gaia_reject_list = gaia.analyze_gaia(self.gaia_limit)
+            self.print_out(f'Current time: {datetime.datetime.now()} -- Finished analyzing Gaia contrast')
         else:
             self.gaia_reject_list = np.array([False]*self.num_generated)
 

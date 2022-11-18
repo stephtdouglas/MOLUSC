@@ -64,10 +64,10 @@ class RUWE:
         
         try:
             cpu_ct = len(os.sched_getaffinity(0))-1
-            print("RUWE cpu_count normal:", cpu_ct)
+            print("RUWE cpu_count HPC:", cpu_ct)
         except AttributeError:
             cpu_ct = mp.cpu_count()-1
-            print("RUWE cpu_count AttributeError:", cpu_ct)
+            print("RUWE cpu_count PC:", cpu_ct)
             
         divisor = int(np.ceil(min(self.num_generated / cpu_ct, 200000)))
         

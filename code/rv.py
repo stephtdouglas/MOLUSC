@@ -1,4 +1,5 @@
-from datetime import datetime
+from datetime import datetime as dt
+import datetime
 import numpy as np
 import scipy as scipy
 import scipy.stats as stats
@@ -14,7 +15,7 @@ warnings.simplefilter('error', category=RuntimeWarning)
 warnings.simplefilter('ignore', category=AstropyWarning)
 warnings.simplefilter('ignore', category=scipy.linalg.misc.LinAlgWarning)
 
-today = datetime.today().isoformat().split("T")[0]
+today = dt.today().isoformat().split("T")[0]
 global repo_path
 repo_path = os.getenv('MOLOC').replace("\\", "/")
 
