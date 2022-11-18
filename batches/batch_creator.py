@@ -15,6 +15,7 @@ csv_path_github = os.path.expanduser(r'C:/Users/Jared/Documents/GitHub/data-pars
 contrast_path = os.path.expanduser(r'G:/Shared drives/DouglasGroup/Jared Sofair 2022/MOLUSC/Data Parser Tables')
 csv_path_hpc = os.path.join(repo_path, r'csvs').replace("\\", "/")
 contrast_path_hpc = os.path.join(repo_path, r'contrasts').replace("\\", "/")
+rv_path_hpc = os.path.join(repo_path, r'rvs').replace("\\", "/")
 
 anaconda_path = os.path.expanduser(r'C:/Users/Jared/anaconda3')
 
@@ -28,6 +29,7 @@ batch_path_hpc = os.path.join(repo_path, r'batches').replace("\\", "/")
 
 output_path_drive = os.path.expanduser(r'G:/Shared drives/DouglasGroup/Jared Sofair 2022/MOLUSC/MOLUSC Outputs/Tables')
 table_output_path_hpc = os.path.join(repo_path, r'../saves/outputs/tables').replace("\\", "/")
+scratch_output_path_hpc = os.path.join(repo_path, r'/scratch') #TODO: Get actual scratch path
 yml_output_path_hpc = os.path.join(repo_path, r'../saves/outputs/yml').replace("\\", "/")
 
 pm = Table.read(os.path.join(csv_path_hpc, r'praesepe_merged.csv').replace("\\", "/"))
@@ -39,7 +41,7 @@ targets = Table.read(os.path.join(csv_path_hpc, r'targets_abr.csv').replace("\\"
 # Example:
 # python "C:/Users/Jared/Documents/GitHub/MOLUSC/code/BinaryStarGUI.py" -v -a --ao "G:/Shared drives/DouglasGroup/Jared Sofair 2022/MOLUSC/Data Parser Tables/JS355.txt" --filter K --age 0.8000 "G:/Shared drives/DouglasGroup/Jared Sofair 2022/MOLUSC/MOLUSC Outputs/Tables/JS355" 08h40m22.16s -- +18d07m24.8s 3 0.599
 
-def run_batch_stars(stars=["JS355"], yml=True, analysis_options=["ao"], write_all=True, extra_output=True, filt=None, companions=3, opsys="win"):
+def run_batch_stars(stars=["JS355"], yml=True, analysis_options=["ao"], write_all=True, extra_output=True, filt=None, res=None, companions=10, opsys="win"):
     if opsys=="win":
         #%% Create .bat file, write line necessary to run the script for Windows
         with open(os.path.join(batch_path, r"batch_runner.bat").replace("\\", "/"), 'w') as f:
@@ -64,8 +66,8 @@ def run_batch_stars(stars=["JS355"], yml=True, analysis_options=["ao"], write_al
                 if "ao" in analysis_options: # HRI
                     ao_path = os.path.join(contrast_path, star.replace(" ", "_")).replace("\\", "/")
                     f.write(f'--ao "{ao_path}.txt" --filter {filt} ')
-                # if "rv" in analysis_options: # RV
-                #   f.write(r'--rv "{os.path.join(rv_path, star.replace(" ", "_")).replace("\\", "/")}.txt" --resolution 50000')
+                if "rv" in analysis_options: # RV
+                    f.write(r'--rv "{os.path.join(rv_path, star.replace(" ", "_")).replace("\\", "/")}.txt" --resolution {res}')
                 if "ruwe" in analysis_options: # RUWE
                     f.write('--gaia ')
                 if "gaia" in analysis_options: # Gaia
@@ -143,8 +145,8 @@ def run_batch_stars(stars=["JS355"], yml=True, analysis_options=["ao"], write_al
                     if "ao" in analysis_options: # HRI
                         ao_path = os.path.join(contrast_path_hpc, star.replace(" ", "_")).replace("\\", "/")
                         f.write(f'--ao "{ao_path}.txt" --filter {filt} ')
-                    # if "rv" in analysis_options: # RV
-                    #   f.write(r'--rv "{os.path.join(rv_path, star.replace(" ", "_")).replace("\\", "/")}.txt" --resolution 50000')
+                    if "rv" in analysis_options: # RV
+                        f.write(r'--rv "{os.path.join(rv_path, star.replace(" ", "_")).replace("\\", "/")}.txt" --resolution {res}')
                     if "ruwe" in analysis_options: # RUWE
                         f.write('--gaia ')
                     if "gaia" in analysis_options: # Gaia
@@ -157,10 +159,12 @@ def run_batch_stars(stars=["JS355"], yml=True, analysis_options=["ao"], write_al
                     mass = np.round(targets["M/Ms"][np.where(targets["name"] == star)[0][0]], 3)
                     age = targets["age"][np.where(targets["name"] == star)[0][0]]
                     
-                    out_path_hpc = os.path.join(table_output_path_hpc, star.replace(" ", "_")).replace("\\", "/")
+                    out_path_hpc = os.path.join(scratch_output_path_hpc, star.replace(" ", "_")).replace("\\", "/")
                     f.write(f'--age {age} "{out_path_hpc}" {ra} -- +{dec} {companions} {mass}\n\n')
                         
 if __name__ == "__main__": # hehe
     all_targets = targets["name"]
+    rv_targets = 1
+    no_rv_targets = 2
     # run_batch_stars(all_targets, yml=False, analysis_options=["ao"], filt="K", companions=15000, opsys='linux')
-    run_batch_stars(all_targets, yml=False, write_all=False, extra_output=False, analysis_options=["ao", "gaia", "ruwe"], filt="K", companions=10, opsys='linux')
+    run_batch_stars(all_targets, yml=False, write_all=True, extra_output=True, analysis_options=["ao", "rv", "gaia", "ruwe"], filt="K", companions=10, res=1000, opsys='linux')
