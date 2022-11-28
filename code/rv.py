@@ -99,7 +99,7 @@ class RV:
         #     the predicted RV at that time, which I can then compare to the experimental values using least squares
         num_generated = self.companions.num_generated
         # Unpack parameters
-        self.print_out(f'Current time: {datetime.datetime.now()} -- Unpacking parameters...')
+        print(f'Current time: {datetime.datetime.now()} -- Unpacking parameters...')
         period = self.companions.P
         mass_ratio = self.companions.mass_ratio
         a = self.companions.a
@@ -107,8 +107,11 @@ class RV:
         cos_i = self.companions.cos_i
         arg_peri = self.companions.arg_peri
         phase = self.companions.phase
+        print(f'Current time: {datetime.datetime.now()} -- Finished unpacking parameters')
+
 
         # Determine velocity limit
+        print(f'Current time: {datetime.datetime.now()} -- Determining velocity limit...')
         delta_v = 2.998e5 / self.resolution  # m/s
 
         t = time()
@@ -121,8 +124,11 @@ class RV:
         prim_model_mag = f_mag(self.star_mass)
         cmp_model_mag = [f_mag(x) if x >= self.model['M/Ms'][0] else float('inf') for x in cmp_mass]  # companion mags, assign infinite magnitude if below lowest modeled mass
         contrast = np.subtract(cmp_model_mag, prim_model_mag)
+        print(f'Current time: {datetime.datetime.now()} -- Finished determining velocity limit')
+
 
         # Determine luminosity
+        print(f'Current time: {datetime.datetime.now()} -- Determining luminosity...')
         f_lum = scipy.interpolate.interp1d(self.model['M/Ms'], self.model['L/Ls'], kind='cubic', fill_value='extrapolate')
         prim_lum = np.power(10, f_lum(self.star_mass))  # primary luminosity
         cmp_lum = [np.power(10, f_lum(x)) if x >= self.model['M/Ms'][0] else 0. for x in cmp_mass]  # companion luminosity, 0 if below limit
@@ -204,6 +210,7 @@ class RV:
             max_delta_rv = np.max(np.absolute(np.subtract(prim_rv, cmp_rv)), axis=1)
 
             # Determine the overall predicted RV
+            print(f'Current time: {datetime.datetime.now()} -- Determining overall predicted RV...')
             self.predicted_RV = [np.zeros(len(self.MJD)) for x in range(num_generated)]  # pre-allocate
 
             for i in range(num_generated):
@@ -214,8 +221,11 @@ class RV:
                     # SB2, looks like SB1. RV is weighted average
                     rv = np.average([prim_rv[i], cmp_rv[i]], axis=0, weights=[prim_lum, cmp_lum[i]])
                     self.predicted_RV[i] = rv
+                    
+            print(f'Current time: {datetime.datetime.now()} -- Determined overall predicted RV')
 
             # Use Pool to calculate zero point
+            print(f'Current time: {datetime.datetime.now()} -- Calculating zero point and shifting all by zero point...')
             split_RV  = [self.predicted_RV[i:i+divisor] for i  in range(0,  num_generated, divisor)]
             zero_points = pool.starmap(zero_point_fit_parallel, [(self.experimental_RV, self.measurement_error, split_RV[j]) for j in range(n_divisor)])
             zero_points = np.concatenate(zero_points, axis=0)
@@ -229,9 +239,12 @@ class RV:
             chi_squared = [sum(np.divide(np.square(np.subtract(self.experimental_RV, self.predicted_RV[i])),
                            np.add(np.square(self.measurement_error), self.added_jitter**2))) for i in range(num_generated)]
             prob = [stats.chi2.cdf(chi_squared[i], len(self.MJD)-1) for i in range(0, num_generated)]
+            
+            print(f'Current time: {datetime.datetime.now()} -- Calculated and shifted all by zero point')
         # End Parallelized
 
         # Reject things with a rejection probability greater than 0.997, corresponding to 3 sigma
+        print(f'Current time: {datetime.datetime.now()} -- Rejecting unlikely companions...')
         rv_fit_reject = np.array([True if np.random.rand() < x else False for x in prob])
         # Check amplitude and resolution
         above_amplitude = np.array([True if abs(x) > self.rv_floor else False for x in amp])
@@ -247,6 +260,7 @@ class RV:
                 self.b_type[i] = 'Resolved SB2'
 
         self.rv_reject_list = np.array([True if (rv_fit_reject[i] and above_amplitude[i]) or visible_sb2[i] else False for i in range(num_generated)])
+        print(f'Current time: {datetime.datetime.now()} -- Rejected unlikely companions')
         return self.rv_reject_list
 
     def calculate_jitter(self, predicted, experimental, error, threshold=0.00001):
