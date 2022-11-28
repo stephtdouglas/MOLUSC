@@ -99,6 +99,7 @@ class RV:
         #     the predicted RV at that time, which I can then compare to the experimental values using least squares
         num_generated = self.companions.num_generated
         # Unpack parameters
+        self.print_out(f'Current time: {datetime.datetime.now()} -- Unpacking parameters...')
         period = self.companions.P
         mass_ratio = self.companions.mass_ratio
         a = self.companions.a

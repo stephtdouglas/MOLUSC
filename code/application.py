@@ -147,11 +147,11 @@ class Application:
         self.print_out(('Star Mass: ' + str(self.star_mass)))
 
         # Generate Companions
-        self.print_out('Generating Companions..')
+        self.print_out(f'Current time: {datetime.datetime.now()} -- Generating Companions..')
         comps = Companions(self.num_generated, self.limits, self.star_mass, self.pd_mu, self.pd_sig, self.q_exp)
         failure = self.error_check(comps.generate())
         if failure: return
-        self.print_out('Companions Generated')
+        self.print_out(f'Current time: {datetime.datetime.now()} -- Companions Generated')
         self.print_out(('Number of companions: ' + str(self.num_generated)))
 
         # Decide which parts to run, and run them
@@ -160,12 +160,12 @@ class Application:
             ao_reject_lists = []
             for i in range(len(self.ao_filename)):
                 if self.ao_filename[i]:
-                    self.print_out(f'Analyzing contrast curve in {self.ao_filename[i]}')
+                    self.print_out(f'Current time: {datetime.datetime.now()} -- Analyzing contrast curve in {self.ao_filename[i]}')
                     ao = AO(self.ao_filename[i], comps, self.star_mass, self.star_age, self.star_ra, self.star_dec, self.filter[i])
                     # Determine distance
                     failure = self.error_check(ao.get_distance(self.star_ra, self.star_dec, self.parallax))
                     if failure: return
-                    if self.extra_output: self.print_out(('Calculated distance to star: %.0f pc' % (ao.star_distance*4.84e-6)))
+                    if self.extra_output: self.print_out((f'Current time: {datetime.datetime.now()} -- Calculated distance to star: %.0f pc' % (ao.star_distance*4.84e-6)))
                     # Read contrast file
                     failure = self.error_check(ao.read_contrast())
                     if failure: return
@@ -177,8 +177,8 @@ class Application:
                     if failure: return
                     ao_reject_lists.append(result)
                     if self.extra_output:
-                        self.print_out('Star Model Mag: %.2f' %(ao.star_model_mag))
-                        self.print_out(('AO Low Mass Limit: %.3f' %(ao.low_mass_limit)))
+                        self.print_out(f'Current time: {datetime.datetime.now()} -- Star Model Mag: %.2f' %(ao.star_model_mag))
+                        self.print_out((f'Current time: {datetime.datetime.now()} -- AO Low Mass Limit: %.3f' %(ao.low_mass_limit)))
             # Combine reject lists from all AO tests into one
             self.ao_reject_list = np.logical_or.reduce(ao_reject_lists)
             self.print_out(f'Current time: {datetime.datetime.now()} -- Finished analyzing AO')
@@ -195,7 +195,7 @@ class Application:
             if failure: return
             if self.extra_output: self.print_out(f'Current time: {datetime.datetime.now()} -- RV Measurements Loaded.')
             # Run analysis
-            self.rv_reject_list = rv.analyze_rv()
+            self.rv_reject_list = rv.analyze_rv() # TODO!
             self.jitter_reject_list = np.array([False]*self.num_generated)
             self.print_out(f'Current time: {datetime.datetime.now()} -- Finished analyzing RV')
         else:
@@ -227,7 +227,7 @@ class Application:
                 self.parallax_error = ruwe.parallax_error
                 self.ln_ruwe = ruwe.ln_ruwe
                 self.gaia_id = ruwe.gaia_id
-
+                
                 # logging.debug(f"ruwe gmag: {ruwe.gmag}")
                 # logging.debug(f"self.ln_ruwe vs. ruwe.ln_ruwe round 1: {self.ln_ruwe} vs. {ruwe.ln_ruwe}")
             # Running in yml mode -- want Application to access gaia/ruwe params (read from yml)
@@ -293,10 +293,11 @@ class Application:
         # Put together reject lists and output
         keep = np.invert(self.ao_reject_list)*np.invert(self.rv_reject_list)*np.invert(self.jitter_reject_list)*np.invert(self.ruwe_reject_list)*np.invert(self.gaia_reject_list)
         num_kept = sum([1 for x in keep if x])
-        self.print_out(('Total number of surviving binaries: ' + str(num_kept)))
+        self.print_out((f'Current time: {datetime.datetime.now()} -- Total number of surviving binaries: ' + str(num_kept)))
 
         # Write out files
         #   Write out the survivors file
+        self.print_out(f'Current time: {datetime.datetime.now()} -- Writing out survivors file...')
         cols = ['mass ratio', 'period(days)', 'semi-major axis(AU)', 'cos_i', 'eccentricity', 'arg periastron', 'phase']
         keep_table = np.vstack((comps.mass_ratio[keep], comps.P[keep], comps.a[keep],
                                 comps.cos_i[keep], comps.ecc[keep], comps.arg_peri[keep],
@@ -327,12 +328,13 @@ class Application:
         
         ascii.write(keep_table, (self.prefix + "_kept.csv"), format='csv', names=cols, overwrite=True)
 
-        self.print_out(('Surviving binary parameters saved to: ' + self.prefix + '_kept.csv'))
+        self.print_out((f'Current time: {datetime.datetime.now()} -- Surviving binary parameters saved to: ' + self.prefix + '_kept.csv'))
         
        
 
         
         #  Write out the input file
+        self.print_out(f'Current time: {datetime.datetime.now()} -- Writing out input file...')
         if self.all_output:
             cols = ['mass ratio', 'period(days)', 'semi-major axis(AU)', 'cos_i', 'eccentricity', 'arg periastron', 'phase']
             all_table = np.vstack((comps.mass_ratio, comps.P, comps.a, comps.cos_i,
@@ -376,9 +378,10 @@ class Application:
             ascii.write(all_table, (self.prefix + "_all.csv"), format='csv', names=cols, overwrite=True)
 
 
-            self.print_out(('Generated binary parameters saved to: ' + self.prefix + '_all.csv'))
+            self.print_out((f'Current time: {datetime.datetime.now()} -- Generated binary parameters saved to: ' + self.prefix + '_all.csv'))
 
         # Write out run inputs to a yaml file
+        self.print_out(f'Current time: {datetime.datetime.now()} -- Writing out run inputs to yaml file...')
         if self.limits[3] == "transit":
             is_transit = True
         else:
@@ -453,7 +456,7 @@ class Application:
         yaml_fname = f"{yaml_path}_params_output.yml"
         with open(yaml_fname,"w") as f:
             yaml.dump(yaml_data,f)
-        self.print_out(('Run parameters saved to: ' + self.prefix + '_params_output.yml'))
+        self.print_out((f'Current time: {datetime.datetime.now()} -- Run parameters saved to: ' + self.prefix + '_params_output.yml'))
 
 
         if self.using_gui: self.gui.update_status('Finished - Successful')
@@ -463,6 +466,7 @@ class Application:
 
     def error_check(self, error_code):
         # If the return value is a list, array, zero or none, no error was found and the process completed successfully
+        self.print_out(f'Current time: {datetime.datetime.now()} -- Running error check...')
         if isinstance(error_code, list) or isinstance(error_code, np.ndarray):
             return False
         if error_code == 0 or error_code is None:
@@ -595,6 +599,9 @@ class Application:
             else:
                 self.print_out('Finished - Unsuccessful')
             return True
+    
+        self.print_out(f'Current time: {datetime.datetime.now()} -- Finished error check')
+    
         return
 
     def parse_input(self):
