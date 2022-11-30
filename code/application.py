@@ -181,14 +181,14 @@ class Application:
                         self.print_out((f'Current time: {datetime.datetime.now()} -- AO Low Mass Limit: %.3f' %(ao.low_mass_limit)))
             # Combine reject lists from all AO tests into one
             self.ao_reject_list = np.logical_or.reduce(ao_reject_lists)
-            self.print_out(f'Current time: {datetime.datetime.now()} -- Finished analyzing AO')
+            self.print_out(f'\nCurrent time: {datetime.datetime.now()} -- Finished analyzing AO')
         else:
             self.ao_reject_list = np.array([False]*self.num_generated)
 
         #   RV and Jitter
         if self.rv_filename:
             # Run RV (without Jitter)
-            self.print_out(f'Current time: {datetime.datetime.now()} -- Analyzing RV...')
+            self.print_out(f'\nCurrent time: {datetime.datetime.now()} -- Analyzing RV...')
             rv = RV(self.rv_filename, self.resolution, comps, self.star_mass, self.star_age, added_jitter=self.added_jitter, rv_floor=self.rv_floor, extra_output=self.extra_output)
             # Read in the RV file
             failure = self.error_check(rv.read_in_rv())
@@ -204,7 +204,7 @@ class Application:
 
         #   RUWE
         if self.ruwe_check:
-            self.print_out(f'Current time: {datetime.datetime.now()} -- Analyzing RUWE...')
+            self.print_out(f'\nCurrent time: {datetime.datetime.now()} -- Analyzing RUWE...')
             ruwe = RUWE(self.star_ra, self.star_dec, self.star_age, self.star_mass, comps)
             # Read in RUWE distribution and Normalization tables
             failure = self.error_check(ruwe.read_dist())
@@ -256,7 +256,7 @@ class Application:
 
         #   Gaia Contrast
         if self.gaia_check:
-            self.print_out(f'Current time: {datetime.datetime.now()} -- Analyzing Gaia Contrast...')
+            self.print_out(f'\nCurrent time: {datetime.datetime.now()} -- Analyzing Gaia Contrast...')
             #todo improve gaia contrast
             gaia = AO(f'{os.path.join(repo_path, "code/gaia_contrast.txt")}', comps, self.star_mass, self.star_age, self.star_ra, self.star_dec, 'G', gaia=True)
             # Determine distance
