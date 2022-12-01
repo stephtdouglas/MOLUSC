@@ -92,7 +92,10 @@ class RV:
         self.added_jitter = added_jitter/1000  # convert to km/s
         self.rv_floor = rv_floor/1000  # km/s
         self.extra_output = extra_output
+        
+        print(f'Current time: {datetime.datetime.now()} -- \n\nLoading stellar model...\n\n')
         self.model = self.load_stellar_model('G', age)
+        print(f'Current time: {datetime.datetime.now()} -- Finished loading stellar model')
 
     def analyze_rv(self):
         # Calculate predicted RV
@@ -122,6 +125,8 @@ class RV:
         cmp_mass = np.multiply(self.star_mass, mass_ratio)  # companion mass in solar masses
 
         f_mag = scipy.interpolate.interp1d(self.model['M/Ms'], self.model['Mag'], kind='cubic', fill_value='extrapolate')
+        self.model.show_in_browser(jsviewer=True, tableid="self.model")
+
 
         prim_model_mag = f_mag(self.star_mass)
         cmp_model_mag = [f_mag(x) if x >= self.model['M/Ms'][0] else float('inf') for x in cmp_mass]  # companion mags, assign infinite magnitude if below lowest modeled mass
@@ -390,7 +395,7 @@ class RV:
         self.MJD = rv['JD']-t_0
         self.experimental_RV = rv['RV']
         self.measurement_error = rv['RVerr']
-        print(f'Current time: {datetime.datetime.now()} -- Finished renaming and sorting RV columns...')
+        print(f'Current time: {datetime.datetime.now()} -- Finished renaming and sorting RV columns')
 
         return 0
 
@@ -409,13 +414,18 @@ class RV:
 
     def zero_point_model(self, prediction, a):
         # Alters the prediction by some zero point shift, a
+        print(f'Current time: {datetime.datetime.now()} -- Running zero point model...')
         y = prediction + a
+        print(f'Current time: {datetime.datetime.now()} -- Finished running zero point model')
         return y
 
     def load_stellar_model(self, filter, star_age):
+        print(f'Current time: {datetime.datetime.now()} -- Loading stellar model from the actual function itself...')
         # Read in file containing stellar model with the filter needed
         # RV always loads G filter
+        print(f'Current time: {datetime.datetime.now()} -- Reading file containing stellar model with necessary filter...')
         if filter == 'J' or filter == 'H' or filter == 'K':  # 2MASS filters
+            print(f'Current time: {datetime.datetime.now()} -- Reading BHAC file and creating table...')
             model_chart = {}
             BHAC_file = f'{os.path.join(repo_path, "code/BHAC15_2MASS.txt")}'
             with open(BHAC_file, 'r') as content_file:
@@ -423,11 +433,16 @@ class RV:
             tables = content.split(
                 sep='\n-----------------------------------------------------------------------------------------------\n')
             tables = [x for x in tables if len(x) > 1]
+            print("\nTables: {tables}")
+            print(f'Current time: {datetime.datetime.now()} -- Finished reading BHAC file and creating table')
 
+            print(f'Current time: {datetime.datetime.now()} -- ...')
             for table in tables:
                 n = table.find('M')
                 time_segment = table[0:n]
+                print(f"\nTime segment: {time_segment}")
                 table_segment = table[n:]
+                print(f"\nTable segment: {time_segment}")
                 age = float(time_segment[time_segment.find('=') + 1:])
                 year_chart = Table.read(table_segment, format='ascii', fast_reader=False)
                 if filter == 'J':
@@ -439,21 +454,26 @@ class RV:
                 elif filter == 'K':
                     year_chart = year_chart['M/Ms', 'Mk']
                     year_chart.rename_column('Mk', 'Mag')
+                year_chart.show_in_browser(jsviewer=True, tableid="year_chart")
                 model_chart[age] = year_chart
+                print(f"\nModel chart[age]: {model_chart[age]}")
 
         elif filter == 'G' or filter == 'R' or filter == 'I':
             model_chart = {}
             BHAC_file = f'{os.path.join(repo_path, "code/BHAC15_CFHT.txt")}'
+            print(f'Current time: {datetime.datetime.now()} -- Reading BHAC file and creating table...')
             with open(BHAC_file, 'r') as content_file:
                 content = content_file.read()
             tables = content.split(
                 sep='\n----------------------------------------------------------------------------------------------------------------------------------------\n')
             tables = [x for x in tables if len(x) > 1]
+            print(f'Current time: {datetime.datetime.now()} -- Finished reading BHAC file and creating table...')
 
             for table in tables:
                 n = table.find('M')
                 time_segment = table[0:n]
                 table_segment = table[n:]
+
                 age = float(time_segment[time_segment.find('=') + 1:])
                 year_chart = Table.read(table_segment, format='ascii', fast_reader=False)
                 if filter == 'G':
@@ -466,6 +486,11 @@ class RV:
                     year_chart = year_chart['M/Ms', 'I', 'L/Ls']
                     year_chart.rename_column('I', 'Mag')
                 model_chart[age] = year_chart
+           
+            print(f"\nTime segment: {time_segment}")
+            print(f"\nTable segment: {time_segment}")
+            year_chart.show_in_browser(jsviewer=True, tableid="year_chart")
+            print(f"\nModel chart[age]: {model_chart[age]}")
 
         ages = np.array(list(model_chart.keys()))
         #  Check if age is modeled, and if it is simply return that table
