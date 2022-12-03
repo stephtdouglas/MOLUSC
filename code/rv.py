@@ -11,6 +11,7 @@ import warnings
 import os
 from astropy.utils.exceptions import AstropyWarning
 import logging
+from timeit import timeit
 warnings.simplefilter('error', category=RuntimeWarning)
 warnings.simplefilter('ignore', category=AstropyWarning)
 warnings.simplefilter('ignore', category=scipy.linalg.misc.LinAlgWarning)
@@ -265,7 +266,33 @@ class RV:
 
             # Compare experimental and predicted RVs
             print(f'Current time: {datetime.datetime.now()} -- Comparing experimental and predicted RVs...')
+            # self.predicted_RV.show_in_browser(js_viewer=True)
+            # print(f"---------------------------------------------Predicted RV: {type(self.predicted_RV)}")
+            # print(f"---------------------------------------------Predicted RV length: {len(self.predicted_RV)}")
+            # print(f"---------------------------------------------Num generated: {num_generated}")
+            # print(f"---------------------------------------------Predicted RV[num]: {self.predicted_RV[range(num_generated-1)]}")
+            # print(f"---------------------------------------------Predicted RV[i]:")
+            # for i in range(3):
+            #     print(self.predicted_RV[i])
+            
+            print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre map')
+            amp_test = list(map(apply_ptp, self.predicted_RV))
+            print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post map')
+
+            print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre amp loop')
             amp = [np.ptp(self.predicted_RV[i]) for i in range(num_generated)]
+            print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post amp loop')
+
+            # if amp_test == amp:
+            #     print("They are equal!")
+            #     print(len(amp_test))
+            #     print(len(amp))
+            # else:
+            #     print("Not equal :(((")
+            #     print(len(amp_test))
+            #     print(len(amp))
+
+            # amp = [np.ptp(self.predicted_RV[range(num_generated-1)])]
             chi_squared = [sum(np.divide(np.square(np.subtract(self.experimental_RV, self.predicted_RV[i])),
                            np.add(np.square(self.measurement_error), self.added_jitter**2))) for i in range(num_generated)]
             prob = [stats.chi2.cdf(chi_squared[i], len(self.MJD)-1) for i in range(0, num_generated)]
@@ -330,7 +357,7 @@ class RV:
         # Calculates the RVs for each item when passed arrays of orbital parameters
         # Inputs: Arrays of Period, Mass Ratio, Semi-Major Axis, eccentricity, inclination, arg peri, phase, calculation times
         # Outputs: Velocity Semi-Amplitude (km/s), RVs at each time in MJD
-        print(f'Current time: {datetime.datetime.now()} -- Calculating RVs...')
+        print(f'Current time: {datetime.datetime.now()} -- Calculating RVs {mp.current_process()}...')
 
         sin_i = np.sin(np.arccos(cos_i))
 
@@ -356,7 +383,7 @@ class RV:
                 # Find predicted RV
                 RV[i][j] = K[i] * (np.sin(arg_peri[i] + f) + e[i] * np.sin(arg_peri[i]))  # km/s
       
-        print(f'Current time: {datetime.datetime.now()} -- Finished calculating RVs!')
+        print(f'Current time: {datetime.datetime.now()} -- Finished calculating RVs! {mp.current_process()}')
         return K, RV
 
     def read_in_rv(self):
@@ -533,3 +560,6 @@ class RV:
         print(f'Current time: {datetime.datetime.now()} -- Finished getting masses...')
 
         return new_model
+    
+def apply_ptp(a=[0,1,2]):
+    return np.ptp(a)
