@@ -221,7 +221,7 @@ class RV:
             prim_results = pool.starmap(self.calculate_RV, [(period[j], mass_ratio[j], a[j], e[j], cos_i[j], arg_peri[j], phase[j], self.MJD) for j in range(n_divisor)])
             cmp_results = pool.starmap(calculate_RV_parallel, [(period[j], np.divide(1, mass_ratio[j]), a[j],
                     e[j], cos_i[j], arg_peri[j], phase[j], self.MJD, contrast_check[j]) for j in range(n_divisor)])
-            print(f'Current time: {datetime.datetime.now()} -- Parallel processes done now calculating RVs!')
+            print(f'Current time: {datetime.datetime.now()} -- Parallel processes done calculating RVs!')
 
             # Concatenate Results
             print(f'Current time: {datetime.datetime.now()} -- Concatenating RV results...')
@@ -498,13 +498,17 @@ class RV:
             return model_chart[star_age]
         # If the age is not included in the models, linearly interpolate the parameters from included ages
         #  Find ages above and below the desired age
+        print(f'Current time: {datetime.datetime.now()} -- Find ages above and below desired age...')
         diff = [star_age - x for x in ages]
         low_age = ages[np.argmin([x if x > 0 else float('inf') for x in diff])]
         high_age = ages[np.argmin([abs(x) if x < 0 else float('inf') for x in diff])]
         young_chart = model_chart[low_age]
         old_chart = model_chart[high_age]
+        print(f'Current time: {datetime.datetime.now()} -- Finished find ages above and below desired age')
+
 
         #  Get masses
+        print(f'Current time: {datetime.datetime.now()} -- Getting masses...')
         common_mass = np.intersect1d(young_chart['M/Ms'], old_chart['M/Ms'])
 
         young_chart = young_chart[[x in common_mass for x in  young_chart['M/Ms']]]
@@ -514,6 +518,7 @@ class RV:
         new_model['M/Ms'] = common_mass
 
         #  Interpolate
+        print(f'Current time: {datetime.datetime.now()} -- Interpolating masses...')
         for col in model_chart[low_age].colnames[1:]:
             col_list = []
             for i in range(len(common_mass)):
@@ -524,5 +529,7 @@ class RV:
                 col_list.append(f(star_age))
             # add to table
             new_model[col] = col_list
+            print(f'Current time: {datetime.datetime.now()} -- Finished interpolating masses...')
+        print(f'Current time: {datetime.datetime.now()} -- Finished getting masses...')
 
         return new_model
