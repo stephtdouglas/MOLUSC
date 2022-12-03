@@ -125,7 +125,7 @@ class RV:
         cmp_mass = np.multiply(self.star_mass, mass_ratio)  # companion mass in solar masses
 
         f_mag = scipy.interpolate.interp1d(self.model['M/Ms'], self.model['Mag'], kind='cubic', fill_value='extrapolate')
-        self.model.show_in_browser(jsviewer=True, tableid="self.model")
+        # self.model.show_in_browser(jsviewer=True, tableid="self.model")
 
 
         prim_model_mag = f_mag(self.star_mass)
@@ -440,9 +440,9 @@ class RV:
             for table in tables:
                 n = table.find('M')
                 time_segment = table[0:n]
-                print(f"\nTime segment: {time_segment}")
+                # print(f"\nTime segment: {time_segment}")
                 table_segment = table[n:]
-                print(f"\nTable segment: {time_segment}")
+                # print(f"\nTable segment: {time_segment}")
                 age = float(time_segment[time_segment.find('=') + 1:])
                 year_chart = Table.read(table_segment, format='ascii', fast_reader=False)
                 if filter == 'J':
@@ -454,9 +454,9 @@ class RV:
                 elif filter == 'K':
                     year_chart = year_chart['M/Ms', 'Mk']
                     year_chart.rename_column('Mk', 'Mag')
-                year_chart.show_in_browser(jsviewer=True, tableid="year_chart")
+                # year_chart.show_in_browser(jsviewer=True, tableid="year_chart")
                 model_chart[age] = year_chart
-                print(f"\nModel chart[age]: {model_chart[age]}")
+                # print(f"\nModel chart[age]: {model_chart[age]}")
 
         elif filter == 'G' or filter == 'R' or filter == 'I':
             model_chart = {}
@@ -487,10 +487,10 @@ class RV:
                     year_chart.rename_column('I', 'Mag')
                 model_chart[age] = year_chart
            
-            print(f"\nTime segment: {time_segment}")
-            print(f"\nTable segment: {time_segment}")
-            year_chart.show_in_browser(jsviewer=True, tableid="year_chart")
-            print(f"\nModel chart[age]: {model_chart[age]}")
+            # print(f"\nTime segment: {time_segment}")
+            # print(f"\nTable segment: {time_segment}")
+            # year_chart.show_in_browser(jsviewer=True, tableid="year_chart")
+            # print(f"\nModel chart[age]: {model_chart[age]}")
 
         ages = np.array(list(model_chart.keys()))
         #  Check if age is modeled, and if it is simply return that table
