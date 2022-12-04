@@ -147,7 +147,8 @@ class Application:
         self.print_out(('Star Mass: ' + str(self.star_mass)))
 
         # Generate Companions
-        self.print_out(f'Current time: {datetime.datetime.now()} -- Generating Companions..')
+        t1 = datetime.datetime.now()
+        self.print_out(f'Current time: {t1} -- Generating Companions..')
         comps = Companions(self.num_generated, self.limits, self.star_mass, self.pd_mu, self.pd_sig, self.q_exp)
         failure = self.error_check(comps.generate())
         if failure: return
@@ -456,8 +457,9 @@ class Application:
         yaml_fname = f"{yaml_path}_params_output.yml"
         with open(yaml_fname,"w") as f:
             yaml.dump(yaml_data,f)
-        self.print_out((f'Current time: {datetime.datetime.now()} -- Run parameters saved to: ' + self.prefix + '_params_output.yml'))
-
+        t2 = datetime.datetime.now()
+        self.print_out((f'Current time: {t2} -- Run parameters saved to: ' + self.prefix + '_params_output.yml'))
+        self.print_out(f'\nTime started: {t1}\nTime ended: {t2}')
 
         if self.using_gui: self.gui.update_status('Finished - Successful')
         self.restore_defaults()

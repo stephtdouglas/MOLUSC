@@ -275,13 +275,21 @@ class RV:
             # for i in range(3):
             #     print(self.predicted_RV[i])
             
-            print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre map')
-            amp_test = list(map(apply_ptp, self.predicted_RV))
-            print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post map')
+            print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre amp test1')
+            amp_test1 = list(map(apply_ptp, self.predicted_RV))
+            print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post amp test1')
+            
+            
+            
+            print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre amp test2')
+            amp_test2 = np.apply_along_axis(func1d=np.ptp, axis=1, arr=self.predicted_RV)
+            print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post amp test2')
 
-            print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre amp loop')
+
+
+            print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre amp')
             amp = [np.ptp(self.predicted_RV[i]) for i in range(num_generated)]
-            print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post amp loop')
+            print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post amp')
 
             # if amp_test == amp:
             #     print("They are equal!")
@@ -293,10 +301,20 @@ class RV:
             #     print(len(amp))
 
             # amp = [np.ptp(self.predicted_RV[range(num_generated-1)])]
+            print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre chi sq')
             chi_squared = [sum(np.divide(np.square(np.subtract(self.experimental_RV, self.predicted_RV[i])),
                            np.add(np.square(self.measurement_error), self.added_jitter**2))) for i in range(num_generated)]
+            print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post chi sq')
+
+
+
+
+            print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre prob')
             prob = [stats.chi2.cdf(chi_squared[i], len(self.MJD)-1) for i in range(0, num_generated)]
-            
+            print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post prob')
+
+
+
             print(f'Current time: {datetime.datetime.now()} -- Compared experimental and predicted RVs!')
         # End Parallelized
 
