@@ -275,15 +275,15 @@ class RV:
             # for i in range(3):
             #     print(self.predicted_RV[i])
             
-            print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre amp test1')
-            amp_test1 = list(map(apply_ptp, self.predicted_RV))
-            print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post amp test1')
+            # print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre amp test1')
+            # amp_test1 = list(map(apply_ptp, self.predicted_RV))
+            # print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post amp test1')
             
             
             
-            print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre amp test2')
-            amp_test2 = np.apply_along_axis(func1d=np.ptp, axis=1, arr=self.predicted_RV)
-            print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post amp test2')
+            # print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre amp test2')
+            # amp_test2 = np.apply_along_axis(func1d=np.ptp, axis=1, arr=self.predicted_RV)
+            # print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post amp test2')
 
 
 
