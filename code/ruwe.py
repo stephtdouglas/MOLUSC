@@ -64,7 +64,7 @@ class RUWE:
         
         try:
             cpu_ct = len(os.sched_getaffinity(0))-1
-            print("RUWE cpu_count HPC:", cpu_ct)
+            print("Current time: {datetime.datetime.now()} -- RUWE cpu_count HPC:", cpu_ct)
         except AttributeError:
             cpu_ct = mp.cpu_count()-1
             print("RUWE cpu_count PC:", cpu_ct)

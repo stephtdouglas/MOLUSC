@@ -249,7 +249,7 @@ class Application:
             # Perform Test
             self.ruwe_reject_list = ruwe.analyze()
             if self.extra_output:
-                self.print_out(('The star has ln(ruwe) of %f.' % (ruwe.ln_ruwe)))
+                self.print_out((f'Current time: {datetime.datetime.now()} -- The star has ln(ruwe) of %f.' % (ruwe.ln_ruwe)))
             # logging.debug(f"self.ln_ruwe vs. ruwe.ln_ruwe round 2: {self.ln_ruwe} vs. {ruwe.ln_ruwe}")
         else:
             self.ruwe_reject_list = np.array([False]*self.num_generated)
@@ -263,7 +263,7 @@ class Application:
             # Determine distance
             failure = self.error_check(gaia.get_distance(self.star_ra, self.star_dec, self.parallax))
             if failure: return
-            if self.extra_output: self.print_out(('Calculated distance to star: %.0f pc' % (gaia.star_distance*4.84e-6)))
+            if self.extra_output: self.print_out((f'Current time: {datetime.datetime.now()} -- Calculated distance to star: %.0f pc' % (gaia.star_distance*4.84e-6)))
             # Read contrast file
             failure = self.error_check(gaia.read_contrast())
             if failure: return

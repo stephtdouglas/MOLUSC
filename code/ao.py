@@ -1,4 +1,5 @@
-from datetime import datetime
+from datetime import datetime as dt
+import datetime
 import numpy as np
 import scipy as scipy
 import scipy.stats as stats
@@ -18,7 +19,7 @@ warnings.simplefilter('error', category=RuntimeWarning)
 warnings.simplefilter('ignore', category=AstropyWarning)
 warnings.simplefilter('ignore', category=scipy.linalg.misc.LinAlgWarning)
 
-today = datetime.today().isoformat().split("T")[0]
+today = dt.today().isoformat().split("T")[0]
 global repo_path
 repo_path = os.getenv('MOLOC').replace("\\", "/")
 
@@ -117,7 +118,7 @@ class AO:
         # Find model mag of primary star
         star_model_mag = self.find_mag(self.star_mass, self.age_model)
         self.star_model_mag = star_model_mag
-        print('Star Model Mag', self.star_model_mag)
+        print(f'Current time: {datetime.datetime.now()} -- Star Model Mag {self.star_model_mag}')
 
         # Get masses of companion stars
         cmp_mass = self.star_mass * self.mass_ratio  # companion mass in solar masses
@@ -142,10 +143,10 @@ class AO:
         
         try:
             cpu_ct = len(os.sched_getaffinity(0))-1
-            print("AO cpu_count normal:", cpu_ct)
+            print(f"Current time: {datetime.datetime.now()} -- AO cpu_count normal:", cpu_ct)
         except AttributeError:
             cpu_ct = mp.cpu_count()-1
-            print("AO cpu_count AttributeError:", cpu_ct)
+            print(f"Current time: {datetime.datetime.now()} -- AO cpu_count PC:", cpu_ct)
             
         divisor = int(np.ceil(min(num_generated / cpu_ct, 200000)))
         
@@ -260,7 +261,7 @@ class AO:
         # Find model mag of primary star
         star_model_mag = self.find_mag(self.star_mass, self.age_model)
         self.star_model_mag = star_model_mag
-        print('Star Model Mag', self.star_model_mag)  # TESTING
+        print(f'Current time: {datetime.datetime.now()} -- Star Model Mag {self.star_model_mag}')  # TESTING
 
         # Get masses of companion stars
         cmp_mass = self.star_mass * self.mass_ratio  # companion mass in solar masses

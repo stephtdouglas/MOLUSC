@@ -301,10 +301,10 @@ class RV:
             #     print(len(amp))
 
             # amp = [np.ptp(self.predicted_RV[range(num_generated-1)])]
-            print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre chi sq old')
-            chi_squared = [sum(np.divide(np.square(np.subtract(self.experimental_RV, self.predicted_RV[i])),
-                           np.add(np.square(self.measurement_error), self.added_jitter**2))) for i in range(num_generated)]
-            print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post chi sq old')
+            # print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre chi sq old')
+            # chi_squared = [sum(np.divide(np.square(np.subtract(self.experimental_RV, self.predicted_RV[i])),
+            #                 np.add(np.square(self.measurement_error), self.added_jitter**2))) for i in range(num_generated)]
+            # print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post chi sq old')
 
 
             print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre chi sq new1')
@@ -314,31 +314,39 @@ class RV:
             print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post chi sq new1')
 
 
-            print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre chi sq new2')
-            chi_sq_denominator = np.add(np.square(self.measurement_error), self.added_jitter**2)
-            # chi_sq_num = np.square(np.subtract(self.experimental_RV, self.predicted_RV[i])
+            # print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre chi sq new3')
+            # chi_sq_denom = np.square(self.measurement_error) + np.square(self.added_jitter)
+            # chi_squared = [np.sum(np.divide(np.square(np.subtract(self.experimental_RV, self.predicted_RV[i])), 
+            #               chi_sq_denom)) for i in range(num_generated)]
+            # print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post chi sq new3')
             
-            # Idea: turn np.subtract self exp - self pred[i] into an array
-            # exp_rv = []
             
-            # exp_rv = np.full(shape=np.shape(self.predicted_RV), fill_value=self.experimental_RV)
-            
-            neg_pred_rv = -1*self.predicted_RV
-            
-            # TODO: Look at experimental and predicted again because they're actually the same shape (maybe) :)
-            
-            print(f"Type exp: {type(self.experimental_RV)}, shape: {np.shape(self.experimental_RV)}")
-            print(f"Type pred: {type(self.predicted_RV[1])}, shape: {np.shape(self.experimental_RV)}")
-            print(f"Type neg pred: {type(neg_pred_rv)}, shape: {np.shape(neg_pred_rv)}")
 
-            test = self.experimental_RV + neg_pred_rv
+            # print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre chi sq new2')
+            # chi_sq_denominator = np.add(np.square(self.measurement_error), self.added_jitter**2)
+            # # chi_sq_num = np.square(np.subtract(self.experimental_RV, self.predicted_RV[i])
+            
+            # # Idea: turn np.subtract self exp - self pred[i] into an array
+            # # exp_rv = []
+            
+            # # exp_rv = np.full(shape=np.shape(self.predicted_RV), fill_value=self.experimental_RV)
+            
+            # neg_pred_rv = -1*self.predicted_RV
+            
+            # # TODO: Look at experimental and predicted again because they're actually the same shape (maybe) :)
+            
+            # print(f"Type exp: {type(self.experimental_RV)}, shape: {np.shape(self.experimental_RV)}")
+            # print(f"Type pred: {type(self.predicted_RV[1])}, shape: {np.shape(self.experimental_RV)}")
+            # print(f"Type neg pred: {type(neg_pred_rv)}, shape: {np.shape(neg_pred_rv)}")
 
-            chi_sq_numerator = np.square(neg_pred_rv + self.experimental_RV)
+            # test = self.experimental_RV + neg_pred_rv
+
+            # chi_sq_numerator = np.square(neg_pred_rv + self.experimental_RV)
             
-            # chi_sq_numerator = np.square(np.subtract(exp_rv, self.predicted_RV))
+            # # chi_sq_numerator = np.square(np.subtract(exp_rv, self.predicted_RV))
             
-            chi_squared = [sum(np.divide(chi_sq_numerator, chi_sq_denominator)) for i in range(num_generated)]
-            print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post chi sq new2')
+            # chi_squared = [sum(np.divide(chi_sq_numerator, chi_sq_denominator)) for i in range(num_generated)]
+            # print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post chi sq new2')
 
 
 
