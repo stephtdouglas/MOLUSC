@@ -296,28 +296,6 @@ class RV:
             print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre amp')
             amp = [np.ptp(self.predicted_RV[i]) for i in range(num_generated)]
             print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post amp')
-
-            # if amp_test == amp:
-            #     print("They are equal!")
-            #     print(len(amp_test))
-            #     print(len(amp))
-            # else:
-            #     print("Not equal :(((")
-            #     print(len(amp_test))
-            #     print(len(amp))
-
-            # amp = [np.ptp(self.predicted_RV[range(num_generated-1)])]
-            # print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre chi sq old')
-            # chi_squared = [sum(np.divide(np.square(np.subtract(self.experimental_RV, self.predicted_RV[i])),
-            #                 np.add(np.square(self.measurement_error), self.added_jitter**2))) for i in range(num_generated)]
-            # print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post chi sq old')
-
-
-            print(f"shape,type of exp_rv: {np.shape(self.experimental_RV)}, {type(self.experimental_RV)}")
-            print(f"shape, type of pred_rv: {np.shape(self.predicted_RV)}, {type(self.predicted_RV)}")
-            print(f"shape, type of pred_rv[1]: {np.shape(self.predicted_RV[1])}, {type(self.predicted_RV[1])}")
-            print(f"shape, type of pred_rv[5]: {np.shape(self.predicted_RV[5])}, {type(self.predicted_RV[5])}") 
-            print(self.experimental_RV)
             
             
             print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre chi sq new1a')
@@ -326,38 +304,32 @@ class RV:
                           chi_sq_denom)) for i in range(num_generated)]
             print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post chi sq new1a')
             
-            
-            print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre test1')
-            test1 = self.experimental_RV - self.predicted_RV
-            print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post test1')
-            print(f"shape, type of test1: {np.shape(test1)}, {type(test1)})")
 
             print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre test2')
             test2 = np.subtract(self.experimental_RV, self.predicted_RV)
             print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post test2')
             print(f"shape, type of test2: {np.shape(test2)}, {type(test2)})")
 
-
-            print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre test3')
-            test3 = [np.subtract(self.experimental_RV, self.predicted_RV[i]) for i in range(num_generated)]
-            print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post test3')
-            print(f"shape, type of test3: {np.shape(test3)}, {type(test3)})")
-
-            print("Are tests 1-3 all the same, other than their types?")
-            print(f"1=2: {(test1 == test2).all()}")
-            print(f"1=3: {(test1 == test3).all()}")
             
             
 
             print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre test_sq2')
-            test_sq2 = np.square(test1)
+            test_sq2 = np.square(test2)
             print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post test_sq2')
+            print(f"shape, type of test_sq2: {np.shape(test_sq2)}, {type(test_sq2)}")
 
+
+            print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre test_sq3')
+            test_sq3 = np.square(np.subtract(self.experimental_RV, self.predicted_RV))
+            print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post test_sq3')
+            print(f"shape, type of test_sq3: {np.shape(test_sq3)}, {type(test_sq3)}")
+            
+            
+            print(f"Are test_sq1 and 2 the same?: {(test_sq2 == test_sq3).all()}")
 
             print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre chi sq new1b')
             chi_sq_denom = self.measurement_error**2 + self.added_jitter**2
-            chi_squared = [np.sum(np.divide(test_sq2[i], 
-                          chi_sq_denom)) for i in range(num_generated)]
+            chi_squared = [np.sum(np.divide(test_sq2[i], chi_sq_denom)) for i in range(num_generated)]
             print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post chi sq new1b')
 
 
