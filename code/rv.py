@@ -166,11 +166,14 @@ class RV:
                     rv = np.average([prim_rv[i], cmp_rv[i]], axis=0, weights=[prim_lum, cmp_lum[i]])
                     self.predicted_RV[i] = rv
 
+            print(f'Current time: {datetime.datetime.now()} -- Running zero point models...')
             for i in range(0, num_generated):
                 # Fit the zero point
                 [zero_point], pcov = scipy.optimize.curve_fit(self.zero_point_model, self.predicted_RV[i], self.experimental_RV, sigma=self.measurement_error)
                 # Shift all predicted values by the zero_point
                 self.predicted_RV[i] += zero_point
+            print(f'Current time: {datetime.datetime.now()} -- Finished running zero point models')
+            
             print(f'Current time: {datetime.datetime.now()} -- Determined overall predicted RV')
 
             print(f'Current time: {datetime.datetime.now()} -- Comparing experimental RV to predicted RV...')
@@ -188,8 +191,11 @@ class RV:
             # Determine cpu count
             try:
                 cpu_ct = len(os.sched_getaffinity(0))-1
+                print("Current time: {datetime.datetime.now()} -- RV cpu_count HPC:", cpu_ct)
             except AttributeError:
                 cpu_ct = mp.cpu_count()-1
+                print("Current time: {datetime.datetime.now()} -- RV cpu_count PC:", cpu_ct)
+
 
             print(f'Current time: {datetime.datetime.now()} -- Running contrast check...')
             contrast_check = [True if x <= 5 else False for x in contrast]
@@ -500,9 +506,7 @@ class RV:
 
     def zero_point_model(self, prediction, a):
         # Alters the prediction by some zero point shift, a
-        print(f'Current time: {datetime.datetime.now()} -- Running zero point model...')
         y = prediction + a
-        print(f'Current time: {datetime.datetime.now()} -- Finished running zero point model')
         return y
 
     def load_stellar_model(self, filter, star_age):
