@@ -313,11 +313,53 @@ class RV:
             # print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post chi sq old')
 
 
-            print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre chi sq new1')
+            print(f"shape,type of exp_rv: {np.shape(self.experimental_RV)}, {type(self.experimental_RV)}")
+            print(f"shape, type of pred_rv: {np.shape(self.predicted_RV)}, {type(self.predicted_RV)}")
+            print(f"shape, type of pred_rv[1]: {np.shape(self.predicted_RV[1])}, {type(self.predicted_RV[1])}")
+            print(f"shape, type of pred_rv[5]: {np.shape(self.predicted_RV[5])}, {type(self.predicted_RV[5])}") 
+            print(self.experimental_RV)
+            
+            
+            print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre chi sq new1a')
             chi_sq_denom = self.measurement_error**2 + self.added_jitter**2
             chi_squared = [np.sum(np.divide(np.square(np.subtract(self.experimental_RV, self.predicted_RV[i])), 
                           chi_sq_denom)) for i in range(num_generated)]
-            print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post chi sq new1')
+            print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post chi sq new1a')
+            
+            
+            print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre test1')
+            test1 = self.experimental_RV - self.predicted_RV
+            print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post test1')
+            print(f"shape, type of test1: {np.shape(test1)}, {type(test1)})")
+
+            print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre test2')
+            test2 = np.subtract(self.experimental_RV, self.predicted_RV)
+            print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post test2')
+            print(f"shape, type of test2: {np.shape(test2)}, {type(test2)})")
+
+
+            print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre test3')
+            test3 = [np.subtract(self.experimental_RV, self.predicted_RV[i]) for i in range(num_generated)]
+            print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post test3')
+            print(f"shape, type of test3: {np.shape(test3)}, {type(test3)})")
+
+            print("Are tests 1-3 all the same, other than their types?")
+            print(f"1=2: {(test1 == test2).all()}")
+            print(f"1=3: {(test1 == test3).all()}")
+            
+            
+
+            print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre test_sq2')
+            test_sq2 = np.square(test1)
+            print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post test_sq2')
+
+
+            print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre chi sq new1b')
+            chi_sq_denom = self.measurement_error**2 + self.added_jitter**2
+            chi_squared = [np.sum(np.divide(test_sq2[i], 
+                          chi_sq_denom)) for i in range(num_generated)]
+            print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post chi sq new1b')
+
 
 
             # print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre chi sq new3')
@@ -422,7 +464,7 @@ class RV:
         # Calculates the RVs for each item when passed arrays of orbital parameters
         # Inputs: Arrays of Period, Mass Ratio, Semi-Major Axis, eccentricity, inclination, arg peri, phase, calculation times
         # Outputs: Velocity Semi-Amplitude (km/s), RVs at each time in MJD
-        print(f'Current time: {datetime.datetime.now()} -- Calculating RVs {mp.current_process()}...\n\n')
+        print(f'\n\nCurrent time: {datetime.datetime.now()} -- Calculating RVs {mp.current_process()}...\n\n')
         
         print(f'Current time: {datetime.datetime.now()} -- sin_i {mp.current_process()}...')
         sin_i = np.sin(np.arccos(cos_i))
