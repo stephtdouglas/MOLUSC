@@ -422,16 +422,32 @@ class RV:
         # Calculates the RVs for each item when passed arrays of orbital parameters
         # Inputs: Arrays of Period, Mass Ratio, Semi-Major Axis, eccentricity, inclination, arg peri, phase, calculation times
         # Outputs: Velocity Semi-Amplitude (km/s), RVs at each time in MJD
-        print(f'Current time: {datetime.datetime.now()} -- Calculating RVs {mp.current_process()}...')
-
+        print(f'Current time: {datetime.datetime.now()} -- Calculating RVs {mp.current_process()}...\n\n')
+        
+        print(f'Current time: {datetime.datetime.now()} -- sin_i {mp.current_process()}...')
         sin_i = np.sin(np.arccos(cos_i))
+        print(f'Current time: {datetime.datetime.now()} -- Finished sin_i {mp.current_process()}')
+
 
         n = len(period)
-        RV = [[0.0 for i in range(len(MJD))] for j in range(n)]
-        a_star = np.multiply(a, np.divide(mass_ratio, np.add(mass_ratio, 1)))
-        K = np.multiply(np.divide((2 * np.pi), period),np.divide(np.multiply(a_star, sin_i), np.sqrt((1 - np.square(e)))))  # AU/days
-        K = np.multiply(K, 1731.48)  # km/s
         
+        print(f'Current time: {datetime.datetime.now()} -- RV=for loop {mp.current_process()}...')
+        RV = [[0.0 for i in range(len(MJD))] for j in range(n)]
+        print(f'Current time: {datetime.datetime.now()} -- Finished RV=for loop {mp.current_process()}')
+
+        print(f'Current time: {datetime.datetime.now()} -- a* {mp.current_process()}')
+        a_star = np.multiply(a, np.divide(mass_ratio, np.add(mass_ratio, 1)))
+        print(f'Current time: {datetime.datetime.now()} -- Finished a* {mp.current_process()}')
+
+        print(f'Current time: {datetime.datetime.now()} -- K=first {mp.current_process()}')
+        K = np.multiply(np.divide((2 * np.pi), period),np.divide(np.multiply(a_star, sin_i), np.sqrt((1 - np.square(e)))))  # AU/days
+        print(f'Current time: {datetime.datetime.now()} -- Finished K=first {mp.current_process()}')
+        
+        print(f'Current time: {datetime.datetime.now()} -- K=second {mp.current_process()}...')
+        K = np.multiply(K, 1731.48)  # km/s
+        print(f'Current time: {datetime.datetime.now()} -- Finished K=second {mp.current_process()}')
+
+        print(f'Current time: {datetime.datetime.now()} -- Iterating over companions {mp.current_process()}...')
         for i in range(n):  # Iterate over companions
             for j in range(0, len(MJD)):  # Iterate over times
                 # Find E
@@ -447,7 +463,9 @@ class RV:
                 f = 2 * np.arctan2(np.tan(current_E / 2), np.sqrt((1 - e[i]) / (1 + e[i])))
                 # Find predicted RV
                 RV[i][j] = K[i] * (np.sin(arg_peri[i] + f) + e[i] * np.sin(arg_peri[i]))  # km/s
-      
+        print(f'Current time: {datetime.datetime.now()} -- Finished iterating over companions {mp.current_process()}...')
+
+
         print(f'Current time: {datetime.datetime.now()} -- Finished calculating RVs! {mp.current_process()}')
         return K, RV
 
