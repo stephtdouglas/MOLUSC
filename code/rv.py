@@ -191,10 +191,10 @@ class RV:
             # Determine cpu count
             try:
                 cpu_ct = len(os.sched_getaffinity(0))-1
-                print("Current time: {datetime.datetime.now()} -- RV cpu_count HPC:", cpu_ct)
+                print(f"Current time: {datetime.datetime.now()} -- RV cpu_count HPC:", cpu_ct)
             except AttributeError:
                 cpu_ct = mp.cpu_count()-1
-                print("Current time: {datetime.datetime.now()} -- RV cpu_count PC:", cpu_ct)
+                print(f"Current time: {datetime.datetime.now()} -- RV cpu_count PC:", cpu_ct)
 
 
             print(f'Current time: {datetime.datetime.now()} -- Running contrast check...')
