@@ -292,88 +292,30 @@ class RV:
             # print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post amp test2')
 
 
-
+            # Calculate amp
             print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre amp')
             amp = [np.ptp(self.predicted_RV[i]) for i in range(num_generated)]
             print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post amp')
             
             
-            print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre chi sq new1a')
-            chi_sq_denom = self.measurement_error**2 + self.added_jitter**2
-            chi_squared = [np.sum(np.divide(np.square(np.subtract(self.experimental_RV, self.predicted_RV[i])), 
-                          chi_sq_denom)) for i in range(num_generated)]
-            print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post chi sq new1a')
-            
-
-            print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre test2')
-            test2 = np.subtract(self.experimental_RV, self.predicted_RV)
-            print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post test2')
-            print(f"shape, type of test2: {np.shape(test2)}, {type(test2)})")
-
-            
-            
-
-            print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre test_sq2')
-            test_sq2 = np.square(test2)
-            print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post test_sq2')
-            print(f"shape, type of test_sq2: {np.shape(test_sq2)}, {type(test_sq2)}")
-
-
-            print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre test_sq3')
-            test_sq3 = np.square(np.subtract(self.experimental_RV, self.predicted_RV))
-            print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post test_sq3')
-            print(f"shape, type of test_sq3: {np.shape(test_sq3)}, {type(test_sq3)}")
-            
-            
-            print(f"Are test_sq1 and 2 the same?: {(test_sq2 == test_sq3).all()}")
-
-            print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre chi sq new1b')
-            chi_sq_denom = self.measurement_error**2 + self.added_jitter**2
-            chi_squared = [np.sum(np.divide(test_sq2[i], chi_sq_denom)) for i in range(num_generated)]
-            print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post chi sq new1b')
-
-
-
-            # print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre chi sq new3')
-            # chi_sq_denom = np.square(self.measurement_error) + np.square(self.added_jitter)
+            # print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre chi sq new1a')
+            # chi_sq_denom = self.measurement_error**2 + self.added_jitter**2
             # chi_squared = [np.sum(np.divide(np.square(np.subtract(self.experimental_RV, self.predicted_RV[i])), 
             #               chi_sq_denom)) for i in range(num_generated)]
-            # print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post chi sq new3')
-            
+            # print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post chi sq new1a')
             
 
-            # print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre chi sq new2')
-            # chi_sq_denominator = np.add(np.square(self.measurement_error), self.added_jitter**2)
-            # # chi_sq_num = np.square(np.subtract(self.experimental_RV, self.predicted_RV[i])
-            
-            # # Idea: turn np.subtract self exp - self pred[i] into an array
-            # # exp_rv = []
-            
-            # # exp_rv = np.full(shape=np.shape(self.predicted_RV), fill_value=self.experimental_RV)
-            
-            # neg_pred_rv = -1*self.predicted_RV
-            
-            # # TODO: Look at experimental and predicted again because they're actually the same shape (maybe) :)
-            
-            # print(f"Type exp: {type(self.experimental_RV)}, shape: {np.shape(self.experimental_RV)}")
-            # print(f"Type pred: {type(self.predicted_RV[1])}, shape: {np.shape(self.experimental_RV)}")
-            # print(f"Type neg pred: {type(neg_pred_rv)}, shape: {np.shape(neg_pred_rv)}")
-
-            # test = self.experimental_RV + neg_pred_rv
-
-            # chi_sq_numerator = np.square(neg_pred_rv + self.experimental_RV)
-            
-            # # chi_sq_numerator = np.square(np.subtract(exp_rv, self.predicted_RV))
-            
-            # chi_squared = [sum(np.divide(chi_sq_numerator, chi_sq_denominator)) for i in range(num_generated)]
-            # print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post chi sq new2')
-
-
-
+            # Calculate chi^2            
+            print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre chi sq')
+            chi_sq_numer = np.square(np.subtract(self.experimental_RV, self.predicted_RV))
+            chi_sq_denom = self.measurement_error**2 + self.added_jitter**2
+            chi_squared = [np.sum(np.divide(chi_sq_numer[i], chi_sq_denom)) for i in range(num_generated)]
+            print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post chi sq')
+       
+            # Calculate prob
             print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre prob')
             prob = [stats.chi2.cdf(chi_squared[i], len(self.MJD)-1) for i in range(0, num_generated)]
             print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post prob')
-
 
 
             print(f'Current time: {datetime.datetime.now()} -- Compared experimental and predicted RVs!')
