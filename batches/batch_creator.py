@@ -15,7 +15,7 @@ csv_path_github = os.path.expanduser(r'C:/Users/Jared/Documents/GitHub/data-pars
 contrast_path = os.path.expanduser(r'G:/Shared drives/DouglasGroup/Jared Sofair 2022/MOLUSC/Data Parser Tables')
 csv_path_hpc = os.path.join(repo_path, r'csvs').replace("\\", "/")
 contrast_path_hpc = os.path.join(repo_path, r'contrasts').replace("\\", "/")
-rv_path_hpc = os.path.join(repo_path, r'rvs').replace("\\", "/")
+rv_table_path_hpc = os.path.join(repo_path, r'rvs').replace("\\", "/")
 
 anaconda_path = os.path.expanduser(r'C:/Users/Jared/anaconda3')
 
@@ -40,8 +40,11 @@ targets = Table.read(os.path.join(csv_path_hpc, r'targets_abr.csv').replace("\\"
 # python [GUI code path] [input data type(s)] [contrast/RV path] [input args] [output path] [other input args]
 # Example:
 # python "C:/Users/Jared/Documents/GitHub/MOLUSC/code/BinaryStarGUI.py" -v -a --ao "G:/Shared drives/DouglasGroup/Jared Sofair 2022/MOLUSC/Data Parser Tables/JS355.txt" --filter K --age 0.8000 "G:/Shared drives/DouglasGroup/Jared Sofair 2022/MOLUSC/MOLUSC Outputs/Tables/JS355" 08h40m22.16s -- +18d07m24.8s 3 0.599
+ao_path = ''
+rv_path = ''
 
-def run_batch_stars(stars=["JS355"], yml=True, analysis_options=["ao"], write_all=True, extra_output=True, filt=None, res=None, companions=10, opsys="win"):
+
+def run_batch_stars(stars=["JS355", "JS364"], yml=True, analysis_options=["ao"], write_all=True, extra_output=True, filt=None, res=None, rv_floor=None, companions=10, opsys="linux"):
     if opsys=="win":
         #%% Create .bat file, write line necessary to run the script for Windows
         with open(os.path.join(batch_path, r"batch_runner.bat").replace("\\", "/"), 'w') as f:
@@ -64,10 +67,11 @@ def run_batch_stars(stars=["JS355"], yml=True, analysis_options=["ao"], write_al
                 
                 # Analysis options and output
                 if "ao" in analysis_options: # HRI
-                    ao_path = os.path.join(contrast_path, star.replace(" ", "_")).replace("\\", "/")
+                    ao_path = os.path.join(contrast_path, star.replace(" ", "_")).replace("\\", "/")    
                     f.write(f'--ao "{ao_path}.txt" --filter {filt} ')
                 if "rv" in analysis_options: # RV
-                    f.write(r'--rv "{os.path.join(rv_path, star.replace(" ", "_")).replace("\\", "/")}.txt" --resolution {res}')
+                    rv_path = os.path.join(rv_table_path_hpc, star.replace(" ", "_")).replace("\\", "/")
+                    f.write(f'--rv "{rv_path}.txt" --resolution {res} --rv_floor {rv_floor} ')
                 if "ruwe" in analysis_options: # RUWE
                     f.write('--gaia ')
                 if "gaia" in analysis_options: # Gaia
@@ -146,10 +150,11 @@ def run_batch_stars(stars=["JS355"], yml=True, analysis_options=["ao"], write_al
                         ao_path = os.path.join(contrast_path_hpc, star.replace(" ", "_")).replace("\\", "/")
                         f.write(f'--ao "{ao_path}.txt" --filter {filt} ')
                     if "rv" in analysis_options: # RV
-                        f.write(r'--rv "{os.path.join(rv_path, star.replace(" ", "_")).replace("\\", "/")}.txt" --resolution {res}')
-                    if "ruwe" in analysis_options: # RUWE
-                        f.write('--gaia ')
+                        rv_path = os.path.join(rv_table_path_hpc, star.replace(" ", "_")).replace("\\", "/")
+                        f.write(f'--rv "{rv_path}.txt" --resolution {res} --rv_floor {rv_floor} ')
                     if "gaia" in analysis_options: # Gaia
+                        f.write('--gaia ')
+                    if "RUWE" in analysis_options: # RUWE
                         f.write('--ruwe ')
                     
                     # Star info (age, output path, ra, dec, # companions, mass)
@@ -164,7 +169,10 @@ def run_batch_stars(stars=["JS355"], yml=True, analysis_options=["ao"], write_al
                         
 if __name__ == "__main__": # hehe
     all_targets = targets["name"]
-    rv_targets = 1
-    no_rv_targets = 2
+    # rv_targets = 1
+    # no_rv_targets = 2
     # run_batch_stars(all_targets, yml=False, analysis_options=["ao"], filt="K", companions=15000, opsys='linux')
-    run_batch_stars(all_targets, yml=False, write_all=True, extra_output=True, analysis_options=["ao", "rv", "gaia", "ruwe"], filt="K", companions=10, res=1000, opsys='linux')
+    # run_batch_stars(all_targets, yml=False, write_all=True, extra_output=True, analysis_options=["ao", "rv", "gaia", "ruwe"], filt="K", companions=10, res=1000, opsys='linux')
+    run_batch_stars(stars=["JS355", "JS364"], yml=False, analysis_options=["ao", "gaia", "ruwe", "rv"], write_all=True, extra_output=True, filt="K", rv_floor=1000, res=20000, companions=10, opsys="linux")
+
+
