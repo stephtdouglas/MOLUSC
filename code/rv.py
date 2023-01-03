@@ -313,45 +313,51 @@ class RV:
             chi_sq_denom = self.measurement_error**2 + self.added_jitter**2
             chi_squared = [np.sum(np.divide(chi_sq_numer[i], chi_sq_denom)) for i in range(num_generated)]
             print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post chi sq1')
-            print(f'shape, type of chi_squared: {np.shape(chi_squared)}, {type(chi_squared)}')
+            # print(f'shape, type of chi_squared: {np.shape(chi_squared)}, {type(chi_squared)}')
 
-        
-        
+            # print(f'chi_sq_numer[i]: {chi_sq_numer[1]}')
+            # print(f'chi_sq_denom: {chi_sq_denom}')
+            # print(f'np.divide(chi_sq_numer[1], chi_sq_denom): {np.divide(chi_sq_numer[1], chi_sq_denom)}')
+
        
-            # Isolate chi_squared for no reason
-            print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre chi sq raw')
-            chi_sq_raw = [np.sum(np.divide(chi_sq_numer[i], chi_sq_denom)) for i in range(num_generated)]
-            print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post chi sq raw')
-            print(f'shape, type of chi_sq_raw: {np.shape(chi_sq_raw)}, {type(chi_sq_raw)}')
+            # # Isolate chi_squared for no reason
+            # # print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre chi sq raw')
+            # # chi_sq_raw = [np.sum(np.divide(chi_sq_numer[i], chi_sq_denom)) for i in range(num_generated)]
+            # # print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post chi sq raw')
+            # # print(f'shape, type of chi_sq_raw: {np.shape(chi_sq_raw)}, {type(chi_sq_raw)}')
         
-            print(f'Are chi_sq_raw and chi_squared the same?: {(chi_sq_raw == chi_squared).all()}')
+            # # print(f'Are chi_sq_raw and chi_squared the same?: {(chi_sq_raw == chi_squared).all()}')
 
         
-            # Use vectorized operations to get an array of all of the terms that have to be summed
-            print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre test_fnl')
-            test_fnl = np.divide(chi_sq_numer, chi_sq_denom)
-            print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post test_fnl')
-            print(f'shape, type of test_fnl: {np.shape(test_fnl)}, {type(test_fnl)}')
+            # # Use vectorized operations to get an array of all of the terms that have to be summed
+            # print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre test_fnl')
+            # test_fnl = np.divide(chi_sq_numer, chi_sq_denom)
+            # print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post test_fnl')
+            # print(f'shape, type of test_fnl: {np.shape(test_fnl)}, {type(test_fnl)}')
             
-            print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre chi sq items')
-            chi_sq_items = [(np.divide(chi_sq_numer[i], chi_sq_denom)) for i in range(num_generated)]
-            print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post chi sq items')
-            print(f'shape, type of chi_sq_items: {np.shape(chi_sq_items)}, {type(chi_sq_items)}')
+            # np.set_printoptions(threshold=0)
+            # print(f'test_fnl: {test_fnl}')
+            
+            
+            # print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre chi sq items')
+            # chi_sq_items = [(np.divide(chi_sq_numer[i], chi_sq_denom)) for i in range(num_generated)]
+            # print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post chi sq items')
+            # print(f'shape, type of chi_sq_items: {np.shape(chi_sq_items)}, {type(chi_sq_items)}')
 
-            print(f'Are test_fnl and chi_sq_items the same?: {(test_fnl == chi_sq_items).all()}')
+            # print(f'Are test_fnl and chi_sq_items the same?: {(test_fnl == chi_sq_items).all()}')
 
 
-            print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre chi sq new1')
-            chi_sq_new1 = [np.sum(np.divide(chi_sq_numer, chi_sq_denom), axis=1)]
-            print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post chi sq new1')
-            print(f'shape, type of chi_sq_new1: {np.shape(chi_sq_new1)}, {type(chi_sq_new1)}')
+            # print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre chi sq new1')
+            # chi_sq_new1 = [np.sum(np.divide(chi_sq_numer, chi_sq_denom), axis=1)]
+            # print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post chi sq new1')
+            # print(f'shape, type of chi_sq_new1: {np.shape(chi_sq_new1)}, {type(chi_sq_new1)}')
             
             
-            np.set_printoptions(threshold=0)
-            print(f'chi_sq_new1: {chi_sq_new1}')
+            # np.set_printoptions(threshold=0)
+            # print(f'chi_sq_new1: {chi_sq_new1}')
             
-            np.set_printoptions(threshold=0)
-            print(f'chi_sq_raw: {chi_sq_raw}')
+            # np.set_printoptions(threshold=0)
+            # print(f'chi_sq_raw: {chi_sq_raw}')
 
             # np.set_printoptions(threshold=5)
 
@@ -365,7 +371,7 @@ class RV:
 
 
 
-            print(f'Are chi_sq_new1 and chi_sq_raw the same?: {(chi_sq_new1 == chi_sq_raw).all()}')
+            # print(f'Are chi_sq_new1 and chi_sq_raw the same?: {(chi_sq_new1 == chi_sq_raw).all()}')
 
 
 
@@ -435,7 +441,7 @@ class RV:
         # Calculates the RVs for each item when passed arrays of orbital parameters
         # Inputs: Arrays of Period, Mass Ratio, Semi-Major Axis, eccentricity, inclination, arg peri, phase, calculation times
         # Outputs: Velocity Semi-Amplitude (km/s), RVs at each time in MJD
-        print(f'\n\nCurrent time: {datetime.datetime.now()} -- Calculating RVs {mp.current_process()}...\n\n')
+        print(f'\n\nCurrent time: {datetime.datetime.now()} -- Calculating RVs {mp.current_process()}...')
         
         print(f'Current time: {datetime.datetime.now()} -- sin_i {mp.current_process()}...')
         sin_i = np.sin(np.arccos(cos_i))
