@@ -29,7 +29,7 @@ batch_path_hpc = os.path.join(repo_path, r'batches').replace("\\", "/")
 
 output_path_drive = os.path.expanduser(r'G:/Shared drives/DouglasGroup/Jared Sofair 2022/MOLUSC/MOLUSC Outputs/Tables')
 table_output_path_hpc = os.path.join(repo_path, r'../saves/outputs/tables').replace("\\", "/")
-scratch_output_path_hpc = os.path.join(repo_path, r'/scratch') #TODO: Get actual scratch path
+scratch_output_path_hpc = os.path.join(repo_path, r'/scratch/sofairj')
 yml_output_path_hpc = os.path.join(repo_path, r'../saves/outputs/yml').replace("\\", "/")
 
 pm = Table.read(os.path.join(csv_path_hpc, r'praesepe_merged.csv').replace("\\", "/"))
