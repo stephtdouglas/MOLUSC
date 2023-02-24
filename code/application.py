@@ -16,7 +16,11 @@ from ruwe import RUWE
 from rv import RV
 from astropy.utils.exceptions import AstropyWarning
 import logging
+from guppy import hpy
+import tracemalloc
 
+tracemalloc.start()
+hp = hpy()
 arrayid = int(os.getenv("SLURM_ARRAY_TASK_ID",9999))
 jobid = int(os.getenv("SLURM_JOB_ID",9999))
 jobname = os.getenv("SLURM_JOB_NAME", 'MOLUSC_999')
@@ -459,8 +463,15 @@ class Application:
             yaml.dump(yaml_data,f)
         t2 = datetime.datetime.now()
         self.print_out((f'Current time: {t2} -- Run parameters saved to: ' + self.prefix + '_params_output.yml'))
-        self.print_out(f'\nTime started: {t1}\nTime ended: {t2}')
+        
+        h = hp.heap()
+        print(f"THIS IS h for the whole application: \n\n\n{h}")
+        
+        print(f"\n{tracemalloc.get_traced_memory()}\n")
+        tracemalloc.stop()
 
+        
+        self.print_out(f'\nTime started: {t1}\nTime ended: {t2}')        
         if self.using_gui: self.gui.update_status('Finished - Successful')
         self.restore_defaults()
         return
