@@ -15,8 +15,8 @@ import logging
 from multiprocessing import Process
 from multiprocessing.pool import Pool
 import multiprocessing as mp
-from guppy import hpy
-import tracemalloc
+# from guppy import hpy
+# import tracemalloc
 
 # from pkgcore.config import load_config
 warnings.simplefilter('error', category=RuntimeWarning)
@@ -24,7 +24,7 @@ warnings.simplefilter('ignore', category=AstropyWarning)
 warnings.simplefilter('ignore', category=scipy.linalg.misc.LinAlgWarning)
 
 # c = load_config()
-hp = hpy()
+# hp = hpy()
 today = dt.today().isoformat().split("T")[0]
 global repo_path
 repo_path = os.getenv('MOLOC').replace("\\", "/")
@@ -140,10 +140,10 @@ class AO:
         model_contrast = [x - star_model_mag for x in cmp_model_mag]
 
 
-        hp.setrelheap()
+        # hp.setrelheap()
         # Parallelization
         # Get projected separation
-        tracemalloc.start()
+        # tracemalloc.start()
         star_params = []
         all_stars = []
         for i in range(num_generated):            
@@ -162,12 +162,12 @@ class AO:
         with Pool(cpu_ct) as pool:
             pro_sep = pool.starmap(get_pro_sep, all_stars, chunksize=divisor)
         # End parallelization
-        del(star_params)
+        # del(star_params)
         # l = list(x for x in c.repo["portdir"] if x.data)
-        h = hp.heap()
-        print(f"THIS IS h: \n\n\n{h}\n\n")
-        print(f"\n{tracemalloc.get_traced_memory()}\n")
-        tracemalloc.stop()
+        # h = hp.heap()
+        # print(f"THIS IS h: \n\n\n{h}\n\n")
+        # print(f"\n{tracemalloc.get_traced_memory()}\n")
+        # tracemalloc.stop()
 
         four_arc = round(self.star_distance * 0.0000193906, 1)  # 4" in AU at distance of primary
         
