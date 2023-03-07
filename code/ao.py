@@ -129,6 +129,7 @@ class AO:
         # Get masses of companion stars
         cmp_mass = self.star_mass * self.mass_ratio  # companion mass in solar masses
         cmp_mass = [round(i, 3) for i in cmp_mass]
+        del(self.mass_ratio)
 
         # Get companion star magnitudes, assign infinite magnitude if below lowest modeled mass
         f_mag = scipy.interpolate.interp1d(self.age_model['M/Ms'], self.age_model['Mag'], kind='cubic', fill_value='extrapolate')
@@ -138,6 +139,7 @@ class AO:
 
         # Find Delta Mag
         model_contrast = [x - star_model_mag for x in cmp_model_mag]
+        del(cmp_mass)
 
 
         # hp.setrelheap()
@@ -161,13 +163,12 @@ class AO:
         
         with Pool(cpu_ct) as pool:
             pro_sep = pool.starmap(get_pro_sep, all_stars, chunksize=divisor)
+       
         # End parallelization
-        # del(star_params)
-        # l = list(x for x in c.repo["portdir"] if x.data)
-        # h = hp.heap()
-        # print(f"THIS IS h: \n\n\n{h}\n\n")
-        # print(f"\n{tracemalloc.get_traced_memory()}\n")
-        # tracemalloc.stop()
+        del(star_params)
+        del(self.a)
+        # period[i], phase[i], e[i], arg_peri[i], cos_i[i], self.a[i]
+
 
         four_arc = round(self.star_distance * 0.0000193906, 1)  # 4" in AU at distance of primary
         
@@ -282,6 +283,8 @@ class AO:
         cmp_mass = self.star_mass * self.mass_ratio  # companion mass in solar masses
         cmp_mass = [round(i, 3) for i in cmp_mass]
 
+        del(self.mass_ratio)
+
         # Get companion star magnitudes, assign infinite magnitude if below lowest modeled mass
         f_mag = scipy.interpolate.interp1d(self.age_model['M/Ms'], self.age_model['Mag'], kind='cubic', fill_value='extrapolate')
         cmp_model_mag = [f_mag(x) if x >= low_mass_limit else float('Inf') for x in cmp_mass]
@@ -306,7 +309,9 @@ class AO:
             alpha = f + arg_peri[i]
             sqt = np.sqrt(np.sin(alpha)**2+np.cos(alpha)**2 * cos_i[i]**2)
             pro_sep[i] = self.a[i] * (1-e[i]**2)/(1+e[i]*np.cos(f))*sqt
-
+        del(self.a)
+        # del(period[i], phase[i], e[i], arg_peri[i], cos_i[i], self.a[i])
+        
         #  Determine Gaia completeness detection limits
         four_arc = round(self.star_distance * 0.0000193906, 1)  # 4" in AU at distance of primary
         completness_absolute = gaia_limit - 5 * np.log10(self.star_distance / 2062650)  # apparent converted to absolute
@@ -591,6 +596,7 @@ class AO:
                 y_list.append(f(star_age))
             #  add to table
             new_model[y] = y_list
+        del(y_list)
         return new_model
 
     def read_contrast(self):

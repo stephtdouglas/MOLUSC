@@ -381,7 +381,12 @@ class Application:
             all_table = np.transpose(all_table)
                 
             ascii.write(all_table, (self.prefix + "_all.csv"), format='csv', names=cols, overwrite=True)
-
+            
+            del(self.ao_reject_list)
+            del(self.rv_reject_list)
+            del(self.jitter_reject_list)
+            del(self.ruwe_reject_list)
+            del(self.gaia_reject_list)
 
             self.print_out((f'Current time: {datetime.datetime.now()} -- Generated binary parameters saved to: ' + self.prefix + '_all.csv'))
 
