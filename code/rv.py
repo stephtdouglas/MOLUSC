@@ -11,6 +11,7 @@ import warnings
 import os
 from astropy.utils.exceptions import AstropyWarning
 import logging
+from timeit import timeit
 warnings.simplefilter('error', category=RuntimeWarning)
 warnings.simplefilter('ignore', category=AstropyWarning)
 warnings.simplefilter('ignore', category=scipy.linalg.misc.LinAlgWarning)
@@ -25,6 +26,8 @@ def calculate_RV_parallel(period, mass_ratio, a, e, cos_i, arg_peri, phase, MJD,
     # Inputs: Arrays of Period, Mass Ratio, Semi-Major Axis, eccentricity, inclination, arg peri, phase, calculation times
     # Outputs: Velocity Semi-Amplitude (km/s), RVs at each time in MJD
 
+
+    # print(f'Current time: {datetime.datetime.now()} -- Calculating RV Para
     sin_i = np.sin(np.arccos(cos_i))
 
     n = len(period)
@@ -90,7 +93,10 @@ class RV:
         self.added_jitter = added_jitter/1000  # convert to km/s
         self.rv_floor = rv_floor/1000  # km/s
         self.extra_output = extra_output
+        
+        print(f'Current time: {datetime.datetime.now()} -- \n\nLoading stellar model...\n\n')
         self.model = self.load_stellar_model('G', age)
+        print(f'Current time: {datetime.datetime.now()} -- Finished loading stellar model')
 
     def analyze_rv(self):
         # Calculate predicted RV
@@ -99,6 +105,7 @@ class RV:
         #     the predicted RV at that time, which I can then compare to the experimental values using least squares
         num_generated = self.companions.num_generated
         # Unpack parameters
+        print(f'Current time: {datetime.datetime.now()} -- Unpacking parameters...')
         period = self.companions.P
         mass_ratio = self.companions.mass_ratio
         a = self.companions.a
@@ -106,8 +113,11 @@ class RV:
         cos_i = self.companions.cos_i
         arg_peri = self.companions.arg_peri
         phase = self.companions.phase
+        print(f'Current time: {datetime.datetime.now()} -- Finished unpacking parameters')
+
 
         # Determine velocity limit
+        print(f'Current time: {datetime.datetime.now()} -- Determining velocity limit...')
         delta_v = 2.998e5 / self.resolution  # m/s
 
         t = time()
@@ -116,18 +126,26 @@ class RV:
         cmp_mass = np.multiply(self.star_mass, mass_ratio)  # companion mass in solar masses
 
         f_mag = scipy.interpolate.interp1d(self.model['M/Ms'], self.model['Mag'], kind='cubic', fill_value='extrapolate')
+        # self.model.show_in_browser(jsviewer=True, tableid="self.model")
+
 
         prim_model_mag = f_mag(self.star_mass)
         cmp_model_mag = [f_mag(x) if x >= self.model['M/Ms'][0] else float('inf') for x in cmp_mass]  # companion mags, assign infinite magnitude if below lowest modeled mass
         contrast = np.subtract(cmp_model_mag, prim_model_mag)
+        print(f'Current time: {datetime.datetime.now()} -- Finished determining velocity limit')
+
 
         # Determine luminosity
+        print(f'Current time: {datetime.datetime.now()} -- Determining luminosity...')
         f_lum = scipy.interpolate.interp1d(self.model['M/Ms'], self.model['L/Ls'], kind='cubic', fill_value='extrapolate')
         prim_lum = np.power(10, f_lum(self.star_mass))  # primary luminosity
         cmp_lum = [np.power(10, f_lum(x)) if x >= self.model['M/Ms'][0] else 0. for x in cmp_mass]  # companion luminosity, 0 if below limit
+        print(f'Current time: {datetime.datetime.now()} -- Determined luminosity')
 
         # Choose to run either parallelized or non-parallelized based on the number of generated companions
+        print(f'Current time: {datetime.datetime.now()} -- Determining whether or not to run parallelized...')
         if num_generated < 50000:  # Serial
+            print(f'Current time: {datetime.datetime.now()} -- Decided to run non-parallelzied')
             self.predicted_RV = [np.zeros(len(self.MJD)) for x in range(num_generated)] # pre-allocate
 
             # calculate RV curves
@@ -138,6 +156,7 @@ class RV:
             max_delta_rv = np.max(np.absolute(np.subtract(prim_rv, cmp_rv)), axis=1)
 
             # Determine the overall predicted RV
+            print(f'Current time: {datetime.datetime.now()} -- Determining overall predicted RV...')
             for i in range(num_generated):
                 if contrast[i] > 5:
                     # SB1
@@ -147,33 +166,46 @@ class RV:
                     rv = np.average([prim_rv[i], cmp_rv[i]], axis=0, weights=[prim_lum, cmp_lum[i]])
                     self.predicted_RV[i] = rv
 
+            print(f'Current time: {datetime.datetime.now()} -- Running zero point models...')
             for i in range(0, num_generated):
                 # Fit the zero point
                 [zero_point], pcov = scipy.optimize.curve_fit(self.zero_point_model, self.predicted_RV[i], self.experimental_RV, sigma=self.measurement_error)
                 # Shift all predicted values by the zero_point
                 self.predicted_RV[i] += zero_point
+            print(f'Current time: {datetime.datetime.now()} -- Finished running zero point models')
+            
+            print(f'Current time: {datetime.datetime.now()} -- Determined overall predicted RV')
 
+            print(f'Current time: {datetime.datetime.now()} -- Comparing experimental RV to predicted RV...')
             # Compare experimental and predicted RVs
             amp = [np.ptp(self.predicted_RV[i]) for i in range(num_generated)]
             chi_squared = [sum(np.divide(np.square(np.subtract(self.experimental_RV, self.predicted_RV[i])),
                         np.add(np.square(self.measurement_error), self.added_jitter ** 2))) for i in range(num_generated)]
             # The degrees of freedom is equal to (N-1)+1, for the number of data points and the applied velocity shift
             prob = [stats.chi2.cdf(chi_squared[i], len(self.MJD)-1) for i in range(0, num_generated)]
+            print(f'Current time: {datetime.datetime.now()} -- Finished comparing experimental RV to predicted RV')
 
         else:  
             # Parallel
+            print(f'Current time: {datetime.datetime.now()} -- Decided to run parallelzied')
             # Determine cpu count
             try:
                 cpu_ct = len(os.sched_getaffinity(0))-1
+                print(f"Current time: {datetime.datetime.now()} -- RV cpu_count HPC:", cpu_ct)
             except AttributeError:
                 cpu_ct = mp.cpu_count()-1
+                print(f"Current time: {datetime.datetime.now()} -- RV cpu_count PC:", cpu_ct)
 
+
+            print(f'Current time: {datetime.datetime.now()} -- Running contrast check...')
             contrast_check = [True if x <= 5 else False for x in contrast]
+            print(f'Current time: {datetime.datetime.now()} -- Finished contrast check')
 
             # Split the parameters into chunks to pass to workers
+            print(f'Current time: {datetime.datetime.now()} -- Splitting parameters into chunks to pass to workers...')
             divisor = int(np.ceil(min(num_generated / cpu_ct, 200000)))
             n_divisor = int(np.ceil(num_generated / divisor))
-            
+
             # Parameters are split into chunks of size divisor
             period = [period[i:i + divisor] for i in range(0, num_generated, divisor)]
             mass_ratio = [mass_ratio[i:i + divisor] for i in range(0, num_generated, divisor)]
@@ -183,17 +215,23 @@ class RV:
             arg_peri = [arg_peri[i:i + divisor] for i in range(0, num_generated, divisor)]
             phase = [phase[i:i + divisor] for i in range(0, num_generated, divisor)]
             contrast_check = [contrast_check[i:i+divisor] for i  in range(0,  num_generated, divisor)]
+            print(f'Current time: {datetime.datetime.now()} -- Parameters have been split...')
 
             # Move into parallel processing
             #  Create Processes
+            print(f'Current time: {datetime.datetime.now()} -- Creating parallel processes...')
             pool = mp.Pool(cpu_ct)
+            print(f'Current time: {datetime.datetime.now()} -- Parallel processes have been created')
 
             # Use Pool to calculate RVs
+            print(f'Current time: {datetime.datetime.now()} -- Parallel processes are now calculating RVs (passed to workers!)...')
             prim_results = pool.starmap(self.calculate_RV, [(period[j], mass_ratio[j], a[j], e[j], cos_i[j], arg_peri[j], phase[j], self.MJD) for j in range(n_divisor)])
             cmp_results = pool.starmap(calculate_RV_parallel, [(period[j], np.divide(1, mass_ratio[j]), a[j],
                     e[j], cos_i[j], arg_peri[j], phase[j], self.MJD, contrast_check[j]) for j in range(n_divisor)])
+            print(f'Current time: {datetime.datetime.now()} -- Parallel processes done calculating RVs!')
 
             # Concatenate Results
+            print(f'Current time: {datetime.datetime.now()} -- Concatenating RV results...')
             prim_K = np.hstack([prim_results[i][0] for i in range(int(np.ceil(num_generated / divisor)))])
             prim_rv = np.vstack([prim_results[i][1] for i in range(int(np.ceil(num_generated / divisor)))])
             cmp_K = np.hstack([cmp_results[i][0] for i in range(int(np.ceil(num_generated / divisor)))])
@@ -201,8 +239,11 @@ class RV:
             cmp_rv = np.multiply(-1, cmp_rv)
 
             max_delta_rv = np.max(np.absolute(np.subtract(prim_rv, cmp_rv)), axis=1)
+            print(f'Current time: {datetime.datetime.now()} -- Finished concatenating RV results...')
+
 
             # Determine the overall predicted RV
+            print(f'Current time: {datetime.datetime.now()} -- Determining overall predicted RV...')
             self.predicted_RV = [np.zeros(len(self.MJD)) for x in range(num_generated)]  # pre-allocate
 
             for i in range(num_generated):
@@ -213,26 +254,141 @@ class RV:
                     # SB2, looks like SB1. RV is weighted average
                     rv = np.average([prim_rv[i], cmp_rv[i]], axis=0, weights=[prim_lum, cmp_lum[i]])
                     self.predicted_RV[i] = rv
+                    
+            print(f'Current time: {datetime.datetime.now()} -- Determined overall predicted RV')
 
             # Use Pool to calculate zero point
+            print(f'Current time: {datetime.datetime.now()} -- Calculating zero point...')
             split_RV  = [self.predicted_RV[i:i+divisor] for i  in range(0,  num_generated, divisor)]
             zero_points = pool.starmap(zero_point_fit_parallel, [(self.experimental_RV, self.measurement_error, split_RV[j]) for j in range(n_divisor)])
             zero_points = np.concatenate(zero_points, axis=0)
             pool.close()
+            print(f'Current time: {datetime.datetime.now()} -- Calculated zero point!')
 
             # Shift all by zero point
+            print(f'Current time: {datetime.datetime.now()} -- Shifting all by zero point...')
             self.predicted_RV = [np.add(self.predicted_RV[i], zero_points[i]) for i in range(num_generated)]
+            print(f'Current time: {datetime.datetime.now()} -- Shifted all by zero point!')
 
             # Compare experimental and predicted RVs
+            print(f'Current time: {datetime.datetime.now()} -- Comparing experimental and predicted RVs...')
+            # self.predicted_RV.show_in_browser(js_viewer=True)
+            # print(f"---------------------------------------------Predicted RV: {type(self.predicted_RV)}")
+            # print(f"---------------------------------------------Predicted RV length: {len(self.predicted_RV)}")
+            # print(f"---------------------------------------------Num generated: {num_generated}")
+            # print(f"---------------------------------------------Predicted RV[num]: {self.predicted_RV[range(num_generated-1)]}")
+            # print(f"---------------------------------------------Predicted RV[i]:")
+            # for i in range(3):
+            #     print(self.predicted_RV[i])
+            
+            # print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre amp test1')
+            # amp_test1 = list(map(apply_ptp, self.predicted_RV))
+            # print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post amp test1')
+            
+            
+            
+            # print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre amp test2')
+            # amp_test2 = np.apply_along_axis(func1d=np.ptp, axis=1, arr=self.predicted_RV)
+            # print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post amp test2')
+
+
+            # Calculate amp
+            print(f'Current time: {datetime.datetime.now()} -- Pre amp')
             amp = [np.ptp(self.predicted_RV[i]) for i in range(num_generated)]
-            chi_squared = [sum(np.divide(np.square(np.subtract(self.experimental_RV, self.predicted_RV[i])),
-                           np.add(np.square(self.measurement_error), self.added_jitter**2))) for i in range(num_generated)]
+            print(f'Current time: {datetime.datetime.now()} -- Post amp')
+            
+            
+            # print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre chi sq new1a')
+            # chi_sq_denom = self.measurement_error**2 + self.added_jitter**2
+            # chi_squared = [np.sum(np.divide(np.square(np.subtract(self.experimental_RV, self.predicted_RV[i])), 
+            #               chi_sq_denom)) for i in range(num_generated)]
+            # print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post chi sq new1a')
+
+            
+
+
+            # Calculate chi^2            
+            print(f'Current time: {datetime.datetime.now()} -- Pre chi sq1')
+            chi_sq_numer = np.square(np.subtract(self.experimental_RV, self.predicted_RV))
+            chi_sq_denom = self.measurement_error**2 + self.added_jitter**2
+            chi_squared = [np.sum(np.divide(chi_sq_numer[i], chi_sq_denom)) for i in range(num_generated)]
+            print(f'Current time: {datetime.datetime.now()} -- Post chi sq1')
+            # print(f'shape, type of chi_squared: {np.shape(chi_squared)}, {type(chi_squared)}')
+
+            # print(f'chi_sq_numer[i]: {chi_sq_numer[1]}')
+            # print(f'chi_sq_denom: {chi_sq_denom}')
+            # print(f'np.divide(chi_sq_numer[1], chi_sq_denom): {np.divide(chi_sq_numer[1], chi_sq_denom)}')
+
+       
+            # # Isolate chi_squared for no reason
+            # # print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre chi sq raw')
+            # # chi_sq_raw = [np.sum(np.divide(chi_sq_numer[i], chi_sq_denom)) for i in range(num_generated)]
+            # # print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post chi sq raw')
+            # # print(f'shape, type of chi_sq_raw: {np.shape(chi_sq_raw)}, {type(chi_sq_raw)}')
+        
+            # # print(f'Are chi_sq_raw and chi_squared the same?: {(chi_sq_raw == chi_squared).all()}')
+
+        
+            # # Use vectorized operations to get an array of all of the terms that have to be summed
+            # print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre test_fnl')
+            # test_fnl = np.divide(chi_sq_numer, chi_sq_denom)
+            # print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post test_fnl')
+            # print(f'shape, type of test_fnl: {np.shape(test_fnl)}, {type(test_fnl)}')
+            
+            # np.set_printoptions(threshold=0)
+            # print(f'test_fnl: {test_fnl}')
+            
+            
+            # print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre chi sq items')
+            # chi_sq_items = [(np.divide(chi_sq_numer[i], chi_sq_denom)) for i in range(num_generated)]
+            # print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post chi sq items')
+            # print(f'shape, type of chi_sq_items: {np.shape(chi_sq_items)}, {type(chi_sq_items)}')
+
+            # print(f'Are test_fnl and chi_sq_items the same?: {(test_fnl == chi_sq_items).all()}')
+
+
+            # print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre chi sq new1')
+            # chi_sq_new1 = [np.sum(np.divide(chi_sq_numer, chi_sq_denom), axis=1)]
+            # print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post chi sq new1')
+            # print(f'shape, type of chi_sq_new1: {np.shape(chi_sq_new1)}, {type(chi_sq_new1)}')
+            
+            
+            # np.set_printoptions(threshold=0)
+            # print(f'chi_sq_new1: {chi_sq_new1}')
+            
+            # np.set_printoptions(threshold=0)
+            # print(f'chi_sq_raw: {chi_sq_raw}')
+
+            # np.set_printoptions(threshold=5)
+
+
+
+            # print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre chi sq new2')
+            # chi_sq_new2 = np.sum(np.divide(chi_sq_numer, chi_sq_denom))
+            # print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post chi sq new2')
+            # print(f'shape, type of chi_sq_new2: {np.shape(chi_sq_new2)}, {type(chi_sq_new2)}')
+
+
+
+
+            # print(f'Are chi_sq_new1 and chi_sq_raw the same?: {(chi_sq_new1 == chi_sq_raw).all()}')
+
+
+
+            # Calculate prob
+            print(f'Current time: {datetime.datetime.now()} -- Pre prob')
             prob = [stats.chi2.cdf(chi_squared[i], len(self.MJD)-1) for i in range(0, num_generated)]
+            print(f'Current time: {datetime.datetime.now()} -- Post prob')
+
+
+            print(f'Current time: {datetime.datetime.now()} -- Compared experimental and predicted RVs!')
         # End Parallelized
 
         # Reject things with a rejection probability greater than 0.997, corresponding to 3 sigma
+        print(f'Current time: {datetime.datetime.now()} -- Rejecting unlikely companions...')
         rv_fit_reject = np.array([True if np.random.rand() < x else False for x in prob])
         # Check amplitude and resolution
+        print(f'Current time: {datetime.datetime.now()} -- Checking amplitude and resolution...')
         above_amplitude = np.array([True if abs(x) > self.rv_floor else False for x in amp])
         self.amp = amp
         visible_sb2 = np.array([True if contrast[i] < 5 and max_delta_rv[i] > delta_v else False for i in range(num_generated)])
@@ -244,14 +400,18 @@ class RV:
                 self.b_type[i] = 'Unresolved SB2'
             elif contrast[i] <=5 and max_delta_rv[i] > delta_v:
                 self.b_type[i] = 'Resolved SB2'
+        print(f'Current time: {datetime.datetime.now()} -- Finished checking amplitude and resolution')
 
         self.rv_reject_list = np.array([True if (rv_fit_reject[i] and above_amplitude[i]) or visible_sb2[i] else False for i in range(num_generated)])
+        print(f'Current time: {datetime.datetime.now()} -- Rejected unlikely companions')
+        
         return self.rv_reject_list
 
     def calculate_jitter(self, predicted, experimental, error, threshold=0.00001):
         # Calculates the stellar jitter term necessary to produce a chi_squared value of 1
         # Inputs: Measured RV, Predicted RV, Measurement Error
         # Outputs: Jitter
+        print(f'Current time: {datetime.datetime.now()} -- Calculating jitter')
         a = [experimental[i]-predicted[i] for i in range(0, len(experimental))]
         b = np.std(a)**2
         c = np.median(error)**2
@@ -270,8 +430,10 @@ class RV:
             new_jitter = prev_jitter - (chi_square - 1) / chi_square_prime
             itr += 1
         if abs(new_jitter - prev_jitter) < threshold:
+            print(f'Current time: {datetime.datetime.now()} -- Finished calculating jitter')
             return new_jitter
         else:
+            print(f'Current time: {datetime.datetime.now()} -- Finished calculating jitter')
             return -1
 
     @ staticmethod
@@ -279,15 +441,32 @@ class RV:
         # Calculates the RVs for each item when passed arrays of orbital parameters
         # Inputs: Arrays of Period, Mass Ratio, Semi-Major Axis, eccentricity, inclination, arg peri, phase, calculation times
         # Outputs: Velocity Semi-Amplitude (km/s), RVs at each time in MJD
-
+        print(f'\n\nCurrent time: {datetime.datetime.now()} -- Calculating RVs {mp.current_process()}...')
+        
+        print(f'Current time: {datetime.datetime.now()} -- sin_i {mp.current_process()}...')
         sin_i = np.sin(np.arccos(cos_i))
+        print(f'Current time: {datetime.datetime.now()} -- Finished sin_i {mp.current_process()}')
+
 
         n = len(period)
+        
+        print(f'Current time: {datetime.datetime.now()} -- RV=for loop {mp.current_process()}...')
         RV = [[0.0 for i in range(len(MJD))] for j in range(n)]
-        a_star = np.multiply(a, np.divide(mass_ratio, np.add(mass_ratio, 1)))
-        K = np.multiply(np.divide((2 * np.pi), period),np.divide(np.multiply(a_star, sin_i), np.sqrt((1 - np.square(e)))))  # AU/days
-        K = np.multiply(K, 1731.48)  # km/s
+        print(f'Current time: {datetime.datetime.now()} -- Finished RV=for loop {mp.current_process()}')
 
+        print(f'Current time: {datetime.datetime.now()} -- a* {mp.current_process()}')
+        a_star = np.multiply(a, np.divide(mass_ratio, np.add(mass_ratio, 1)))
+        print(f'Current time: {datetime.datetime.now()} -- Finished a* {mp.current_process()}')
+
+        print(f'Current time: {datetime.datetime.now()} -- K=first {mp.current_process()}')
+        K = np.multiply(np.divide((2 * np.pi), period),np.divide(np.multiply(a_star, sin_i), np.sqrt((1 - np.square(e)))))  # AU/days
+        print(f'Current time: {datetime.datetime.now()} -- Finished K=first {mp.current_process()}')
+        
+        print(f'Current time: {datetime.datetime.now()} -- K=second {mp.current_process()}...')
+        K = np.multiply(K, 1731.48)  # km/s
+        print(f'Current time: {datetime.datetime.now()} -- Finished K=second {mp.current_process()}')
+
+        print(f'Current time: {datetime.datetime.now()} -- Iterating over companions {mp.current_process()}...')
         for i in range(n):  # Iterate over companions
             for j in range(0, len(MJD)):  # Iterate over times
                 # Find E
@@ -303,12 +482,18 @@ class RV:
                 f = 2 * np.arctan2(np.tan(current_E / 2), np.sqrt((1 - e[i]) / (1 + e[i])))
                 # Find predicted RV
                 RV[i][j] = K[i] * (np.sin(arg_peri[i] + f) + e[i] * np.sin(arg_peri[i]))  # km/s
+        print(f'Current time: {datetime.datetime.now()} -- Finished iterating over companions {mp.current_process()}...')
 
+
+        print(f'Current time: {datetime.datetime.now()} -- Finished calculating RVs! {mp.current_process()}')
         return K, RV
 
     def read_in_rv(self):
+        print(f'Current time: {datetime.datetime.now()} -- Reading in RVs...')
+
         try:
             rv_in = open(self.rv_filename, 'r')
+            print(f'Current time: {datetime.datetime.now()} -- Finished reading in RVs!')
         except FileNotFoundError:
             return -31
 
@@ -316,11 +501,15 @@ class RV:
             rv = Table.read(self.rv_filename, format='ascii', delimiter=' ', fast_reader=False)
             col_names = list(rv.columns)
             assert len(col_names) == 3
+            print(f'Current time: {datetime.datetime.now()} -- Finished reading in RVs!')
         except:
             try:
                 rv = Table.read(self.rv_filename, format='ascii', delimiter='\t', fast_reader=False)
+                print(f'Current time: {datetime.datetime.now()} -- Finished reading in RVs!')
             except Exception as e:
                 return -32
+        
+        print(f'Current time: {datetime.datetime.now()} -- Renaming and sorting RV columns...')
         # rename the columns so they match what i want
         col_names = list(rv.columns)
         if len(col_names) != 3:
@@ -335,6 +524,8 @@ class RV:
         self.MJD = rv['JD']-t_0
         self.experimental_RV = rv['RV']
         self.measurement_error = rv['RVerr']
+        print(f'Current time: {datetime.datetime.now()} -- Finished renaming and sorting RV columns')
+
         return 0
 
     def restore_defaults(self):
@@ -356,9 +547,12 @@ class RV:
         return y
 
     def load_stellar_model(self, filter, star_age):
+        print(f'Current time: {datetime.datetime.now()} -- Loading stellar model from the actual function itself...')
         # Read in file containing stellar model with the filter needed
         # RV always loads G filter
+        print(f'Current time: {datetime.datetime.now()} -- Reading file containing stellar model with necessary filter...')
         if filter == 'J' or filter == 'H' or filter == 'K':  # 2MASS filters
+            print(f'Current time: {datetime.datetime.now()} -- Reading BHAC file and creating table...')
             model_chart = {}
             BHAC_file = f'{os.path.join(repo_path, "code/BHAC15_2MASS.txt")}'
             with open(BHAC_file, 'r') as content_file:
@@ -366,11 +560,16 @@ class RV:
             tables = content.split(
                 sep='\n-----------------------------------------------------------------------------------------------\n')
             tables = [x for x in tables if len(x) > 1]
+            print("\nTables: {tables}")
+            print(f'Current time: {datetime.datetime.now()} -- Finished reading BHAC file and creating table')
 
+            print(f'Current time: {datetime.datetime.now()} -- ...')
             for table in tables:
                 n = table.find('M')
                 time_segment = table[0:n]
+                # print(f"\nTime segment: {time_segment}")
                 table_segment = table[n:]
+                # print(f"\nTable segment: {time_segment}")
                 age = float(time_segment[time_segment.find('=') + 1:])
                 year_chart = Table.read(table_segment, format='ascii', fast_reader=False)
                 if filter == 'J':
@@ -382,21 +581,26 @@ class RV:
                 elif filter == 'K':
                     year_chart = year_chart['M/Ms', 'Mk']
                     year_chart.rename_column('Mk', 'Mag')
+                # year_chart.show_in_browser(jsviewer=True, tableid="year_chart")
                 model_chart[age] = year_chart
+                # print(f"\nModel chart[age]: {model_chart[age]}")
 
         elif filter == 'G' or filter == 'R' or filter == 'I':
             model_chart = {}
             BHAC_file = f'{os.path.join(repo_path, "code/BHAC15_CFHT.txt")}'
+            print(f'Current time: {datetime.datetime.now()} -- Reading BHAC file and creating table...')
             with open(BHAC_file, 'r') as content_file:
                 content = content_file.read()
             tables = content.split(
                 sep='\n----------------------------------------------------------------------------------------------------------------------------------------\n')
             tables = [x for x in tables if len(x) > 1]
+            print(f'Current time: {datetime.datetime.now()} -- Finished reading BHAC file and creating table...')
 
             for table in tables:
                 n = table.find('M')
                 time_segment = table[0:n]
                 table_segment = table[n:]
+
                 age = float(time_segment[time_segment.find('=') + 1:])
                 year_chart = Table.read(table_segment, format='ascii', fast_reader=False)
                 if filter == 'G':
@@ -409,6 +613,11 @@ class RV:
                     year_chart = year_chart['M/Ms', 'I', 'L/Ls']
                     year_chart.rename_column('I', 'Mag')
                 model_chart[age] = year_chart
+           
+            # print(f"\nTime segment: {time_segment}")
+            # print(f"\nTable segment: {time_segment}")
+            # year_chart.show_in_browser(jsviewer=True, tableid="year_chart")
+            # print(f"\nModel chart[age]: {model_chart[age]}")
 
         ages = np.array(list(model_chart.keys()))
         #  Check if age is modeled, and if it is simply return that table
@@ -416,13 +625,17 @@ class RV:
             return model_chart[star_age]
         # If the age is not included in the models, linearly interpolate the parameters from included ages
         #  Find ages above and below the desired age
+        print(f'Current time: {datetime.datetime.now()} -- Find ages above and below desired age...')
         diff = [star_age - x for x in ages]
         low_age = ages[np.argmin([x if x > 0 else float('inf') for x in diff])]
         high_age = ages[np.argmin([abs(x) if x < 0 else float('inf') for x in diff])]
         young_chart = model_chart[low_age]
         old_chart = model_chart[high_age]
+        print(f'Current time: {datetime.datetime.now()} -- Finished find ages above and below desired age')
+
 
         #  Get masses
+        print(f'Current time: {datetime.datetime.now()} -- Getting masses...')
         common_mass = np.intersect1d(young_chart['M/Ms'], old_chart['M/Ms'])
 
         young_chart = young_chart[[x in common_mass for x in  young_chart['M/Ms']]]
@@ -432,6 +645,7 @@ class RV:
         new_model['M/Ms'] = common_mass
 
         #  Interpolate
+        print(f'Current time: {datetime.datetime.now()} -- Interpolating masses...')
         for col in model_chart[low_age].colnames[1:]:
             col_list = []
             for i in range(len(common_mass)):
@@ -442,5 +656,10 @@ class RV:
                 col_list.append(f(star_age))
             # add to table
             new_model[col] = col_list
+            print(f'Current time: {datetime.datetime.now()} -- Finished interpolating masses...')
+        print(f'Current time: {datetime.datetime.now()} -- Finished getting masses...')
 
         return new_model
+    
+def apply_ptp(a=[0,1,2]):
+    return np.ptp(a)

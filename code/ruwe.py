@@ -1,4 +1,5 @@
-from datetime import datetime
+from datetime import datetime as dt
+import datetime
 import numpy as np
 import scipy as scipy
 import scipy.stats as stats
@@ -18,7 +19,7 @@ warnings.simplefilter('error', category=RuntimeWarning)
 warnings.simplefilter('ignore', category=AstropyWarning)
 warnings.simplefilter('ignore', category=scipy.linalg.misc.LinAlgWarning)
 
-today = datetime.today().isoformat().split("T")[0]
+today = dt.today().isoformat().split("T")[0]
 global repo_path
 repo_path = os.getenv('MOLOC').replace("\\", "/")
 
@@ -64,10 +65,10 @@ class RUWE:
         
         try:
             cpu_ct = len(os.sched_getaffinity(0))-1
-            print("RUWE cpu_count HPC:", cpu_ct)
+            print(f"Current time: {datetime.datetime.now()} -- RUWE cpu_count HPC:", cpu_ct)
         except AttributeError:
             cpu_ct = mp.cpu_count()-1
-            print("RUWE cpu_count PC:", cpu_ct)
+            print(f"Current time: {datetime.datetime.now()} -- RUWE cpu_count PC:", cpu_ct)
             
         divisor = int(np.ceil(min(self.num_generated / cpu_ct, 200000)))
         

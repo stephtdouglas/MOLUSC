@@ -16,7 +16,11 @@ from ruwe import RUWE
 from rv import RV
 from astropy.utils.exceptions import AstropyWarning
 import logging
+# from guppy import hpy
+# import tracemalloc
 
+# tracemalloc.start()
+# hp = hpy()
 arrayid = int(os.getenv("SLURM_ARRAY_TASK_ID",9999))
 jobid = int(os.getenv("SLURM_JOB_ID",9999))
 jobname = os.getenv("SLURM_JOB_NAME", 'MOLUSC_999')
@@ -67,7 +71,6 @@ class Application:
     # Class functions
     def __init__(self, input_args):
         self.input_args = input_args
-        # self.input_yml = 'rubbah'
 
     def start(self):
         # Start has to handle the input arguments
@@ -147,11 +150,12 @@ class Application:
         self.print_out(('Star Mass: ' + str(self.star_mass)))
 
         # Generate Companions
-        self.print_out('Generating Companions..')
+        t1 = datetime.datetime.now()
+        self.print_out(f'Current time: {t1} -- Generating Companions..')
         comps = Companions(self.num_generated, self.limits, self.star_mass, self.pd_mu, self.pd_sig, self.q_exp)
         failure = self.error_check(comps.generate())
         if failure: return
-        self.print_out('Companions Generated')
+        self.print_out(f'Current time: {datetime.datetime.now()} -- Companions Generated')
         self.print_out(('Number of companions: ' + str(self.num_generated)))
 
         # Decide which parts to run, and run them
@@ -160,12 +164,12 @@ class Application:
             ao_reject_lists = []
             for i in range(len(self.ao_filename)):
                 if self.ao_filename[i]:
-                    self.print_out(f'Analyzing contrast curve in {self.ao_filename[i]}')
+                    self.print_out(f'Current time: {datetime.datetime.now()} -- Analyzing contrast curve in {self.ao_filename[i]}')
                     ao = AO(self.ao_filename[i], comps, self.star_mass, self.star_age, self.star_ra, self.star_dec, self.filter[i])
                     # Determine distance
                     failure = self.error_check(ao.get_distance(self.star_ra, self.star_dec, self.parallax))
                     if failure: return
-                    if self.extra_output: self.print_out(('Calculated distance to star: %.0f pc' % (ao.star_distance*4.84e-6)))
+                    if self.extra_output: self.print_out((f'Current time: {datetime.datetime.now()} -- Calculated distance to star: %.0f pc' % (ao.star_distance*4.84e-6)))
                     # Read contrast file
                     failure = self.error_check(ao.read_contrast())
                     if failure: return
@@ -177,34 +181,35 @@ class Application:
                     if failure: return
                     ao_reject_lists.append(result)
                     if self.extra_output:
-                        self.print_out('Star Model Mag: %.2f' %(ao.star_model_mag))
-                        self.print_out(('AO Low Mass Limit: %.3f' %(ao.low_mass_limit)))
+                        self.print_out(f'Current time: {datetime.datetime.now()} -- Star Model Mag: %.2f' %(ao.star_model_mag))
+                        self.print_out((f'Current time: {datetime.datetime.now()} -- AO Low Mass Limit: %.3f' %(ao.low_mass_limit)))
             # Combine reject lists from all AO tests into one
             self.ao_reject_list = np.logical_or.reduce(ao_reject_lists)
-            self.print_out(f'Current time: {datetime.datetime.now()} -- Finished analyzing AO')
+            self.print_out(f'\nCurrent time: {datetime.datetime.now()} -- Finished analyzing AO')
         else:
-            self.ao_reject_list = np.array([False]*self.num_generated)
+            self.ao_reject_list = np.zeros(shape=self.num_generated, dtype=bool)
 
         #   RV and Jitter
         if self.rv_filename:
             # Run RV (without Jitter)
-            self.print_out(f'Current time: {datetime.datetime.now()} -- Analyzing RV...')
+            self.print_out(f'\nCurrent time: {datetime.datetime.now()} -- Analyzing RV...')
             rv = RV(self.rv_filename, self.resolution, comps, self.star_mass, self.star_age, added_jitter=self.added_jitter, rv_floor=self.rv_floor, extra_output=self.extra_output)
             # Read in the RV file
             failure = self.error_check(rv.read_in_rv())
             if failure: return
             if self.extra_output: self.print_out(f'Current time: {datetime.datetime.now()} -- RV Measurements Loaded.')
             # Run analysis
-            self.rv_reject_list = rv.analyze_rv()
-            self.jitter_reject_list = np.array([False]*self.num_generated)
+            self.rv_reject_list = rv.analyze_rv() # TODO!???
+            self.jitter_reject_list = np.zeros(shape=self.num_generated, dtype=bool)          
             self.print_out(f'Current time: {datetime.datetime.now()} -- Finished analyzing RV')
+            
         else:
-            self.rv_reject_list = np.array([False]*self.num_generated)
-            self.jitter_reject_list = np.array([False] * self.num_generated)
+            self.rv_reject_list = np.zeros(shape=self.num_generated, dtype=bool)
+            self.jitter_reject_list = np.zeros(shape=self.num_generated, dtype=bool)
 
         #   RUWE
         if self.ruwe_check:
-            self.print_out(f'Current time: {datetime.datetime.now()} -- Analyzing RUWE...')
+            self.print_out(f'\nCurrent time: {datetime.datetime.now()} -- Analyzing RUWE...')
             ruwe = RUWE(self.star_ra, self.star_dec, self.star_age, self.star_mass, comps)
             # Read in RUWE distribution and Normalization tables
             failure = self.error_check(ruwe.read_dist())
@@ -227,7 +232,7 @@ class Application:
                 self.parallax_error = ruwe.parallax_error
                 self.ln_ruwe = ruwe.ln_ruwe
                 self.gaia_id = ruwe.gaia_id
-
+                
                 # logging.debug(f"ruwe gmag: {ruwe.gmag}")
                 # logging.debug(f"self.ln_ruwe vs. ruwe.ln_ruwe round 1: {self.ln_ruwe} vs. {ruwe.ln_ruwe}")
             # Running in yml mode -- want Application to access gaia/ruwe params (read from yml)
@@ -248,21 +253,21 @@ class Application:
             # Perform Test
             self.ruwe_reject_list = ruwe.analyze()
             if self.extra_output:
-                self.print_out(('The star has ln(ruwe) of %f.' % (ruwe.ln_ruwe)))
+                self.print_out((f'Current time: {datetime.datetime.now()} -- The star has ln(ruwe) of %f.' % (ruwe.ln_ruwe)))
             # logging.debug(f"self.ln_ruwe vs. ruwe.ln_ruwe round 2: {self.ln_ruwe} vs. {ruwe.ln_ruwe}")
         else:
-            self.ruwe_reject_list = np.array([False]*self.num_generated)
+            self.ruwe_reject_list = np.zeros(shape=self.num_generated, dtype=bool)
             # logging.debug(f"n is not finite!: {self.ln_ruwe} vs. {ruwe.ln_ruwe}")
 
         #   Gaia Contrast
         if self.gaia_check:
-            self.print_out(f'Current time: {datetime.datetime.now()} -- Analyzing Gaia Contrast...')
+            self.print_out(f'\nCurrent time: {datetime.datetime.now()} -- Analyzing Gaia Contrast...')
             #todo improve gaia contrast
             gaia = AO(f'{os.path.join(repo_path, "code/gaia_contrast.txt")}', comps, self.star_mass, self.star_age, self.star_ra, self.star_dec, 'G', gaia=True)
             # Determine distance
             failure = self.error_check(gaia.get_distance(self.star_ra, self.star_dec, self.parallax))
             if failure: return
-            if self.extra_output: self.print_out(('Calculated distance to star: %.0f pc' % (gaia.star_distance*4.84e-6)))
+            if self.extra_output: self.print_out((f'Current time: {datetime.datetime.now()} -- Calculated distance to star: %.0f pc' % (gaia.star_distance*4.84e-6)))
             # Read contrast file
             failure = self.error_check(gaia.read_contrast())
             if failure: return
@@ -271,7 +276,7 @@ class Application:
             self.gaia_reject_list = gaia.analyze_gaia(self.gaia_limit)
             self.print_out(f'Current time: {datetime.datetime.now()} -- Finished analyzing Gaia contrast')
         else:
-            self.gaia_reject_list = np.array([False]*self.num_generated)
+            self.gaia_reject_list = np.zeros(shape=self.num_generated, dtype=bool)
 
         # Check successes
         w = [True if x == -1 else False for x in self.ao_reject_list]
@@ -293,10 +298,11 @@ class Application:
         # Put together reject lists and output
         keep = np.invert(self.ao_reject_list)*np.invert(self.rv_reject_list)*np.invert(self.jitter_reject_list)*np.invert(self.ruwe_reject_list)*np.invert(self.gaia_reject_list)
         num_kept = sum([1 for x in keep if x])
-        self.print_out(('Total number of surviving binaries: ' + str(num_kept)))
+        self.print_out((f'Current time: {datetime.datetime.now()} -- Total number of surviving binaries: ' + str(num_kept)))
 
         # Write out files
         #   Write out the survivors file
+        self.print_out(f'Current time: {datetime.datetime.now()} -- Writing out survivors file...')
         cols = ['mass ratio', 'period(days)', 'semi-major axis(AU)', 'cos_i', 'eccentricity', 'arg periastron', 'phase']
         keep_table = np.vstack((comps.mass_ratio[keep], comps.P[keep], comps.a[keep],
                                 comps.cos_i[keep], comps.ecc[keep], comps.arg_peri[keep],
@@ -327,12 +333,13 @@ class Application:
         
         ascii.write(keep_table, (self.prefix + "_kept.csv"), format='csv', names=cols, overwrite=True)
 
-        self.print_out(('Surviving binary parameters saved to: ' + self.prefix + '_kept.csv'))
+        self.print_out((f'Current time: {datetime.datetime.now()} -- Surviving binary parameters saved to: ' + self.prefix + '_kept.csv'))
         
        
 
         
         #  Write out the input file
+        self.print_out(f'Current time: {datetime.datetime.now()} -- Writing out input file...')
         if self.all_output:
             cols = ['mass ratio', 'period(days)', 'semi-major axis(AU)', 'cos_i', 'eccentricity', 'arg periastron', 'phase']
             all_table = np.vstack((comps.mass_ratio, comps.P, comps.a, comps.cos_i,
@@ -374,11 +381,17 @@ class Application:
             all_table = np.transpose(all_table)
                 
             ascii.write(all_table, (self.prefix + "_all.csv"), format='csv', names=cols, overwrite=True)
+            
+            del(self.ao_reject_list)
+            del(self.rv_reject_list)
+            del(self.jitter_reject_list)
+            del(self.ruwe_reject_list)
+            del(self.gaia_reject_list)
 
-
-            self.print_out(('Generated binary parameters saved to: ' + self.prefix + '_all.csv'))
+            self.print_out((f'Current time: {datetime.datetime.now()} -- Generated binary parameters saved to: ' + self.prefix + '_all.csv'))
 
         # Write out run inputs to a yaml file
+        self.print_out(f'Current time: {datetime.datetime.now()} -- Writing out run inputs to yaml file...')
         if self.limits[3] == "transit":
             is_transit = True
         else:
@@ -453,9 +466,17 @@ class Application:
         yaml_fname = f"{yaml_path}_params_output.yml"
         with open(yaml_fname,"w") as f:
             yaml.dump(yaml_data,f)
-        self.print_out(('Run parameters saved to: ' + self.prefix + '_params_output.yml'))
+        t2 = datetime.datetime.now()
+        self.print_out((f'Current time: {t2} -- Run parameters saved to: ' + self.prefix + '_params_output.yml'))
+        
+        # h = hp.heap()
+        # print(f"THIS IS h for the whole application: \n\n\n{h}")
+        
+        # print(f"\n{tracemalloc.get_traced_memory()}\n")
+        # tracemalloc.stop()
 
-
+        
+        self.print_out(f'\nTime started: {t1}\nTime ended: {t2}')        
         if self.using_gui: self.gui.update_status('Finished - Successful')
         self.restore_defaults()
         return
@@ -463,6 +484,7 @@ class Application:
 
     def error_check(self, error_code):
         # If the return value is a list, array, zero or none, no error was found and the process completed successfully
+        self.print_out(f'Current time: {datetime.datetime.now()} -- Running error check...')
         if isinstance(error_code, list) or isinstance(error_code, np.ndarray):
             return False
         if error_code == 0 or error_code is None:
@@ -595,6 +617,9 @@ class Application:
             else:
                 self.print_out('Finished - Unsuccessful')
             return True
+    
+        self.print_out(f'Current time: {datetime.datetime.now()} -- Finished error check')
+    
         return
 
     def parse_input(self):
