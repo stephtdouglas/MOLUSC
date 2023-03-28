@@ -33,7 +33,7 @@ class Companions:
 
     def generate(self):
 
-        np.random.seed()
+        np.random.seed(999)
         # Period (days), Mass Ratio and Semi-Major Axis (AU)
         G = 39.478  # Gravitational constant in AU^3/years^2*M_solar
         P_fixed = self.limits[0]
