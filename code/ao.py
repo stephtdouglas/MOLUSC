@@ -167,11 +167,6 @@ class AO:
         # End parallelization
         del(star_params)
         del(self.a)
-        del(period)
-        del(phase)
-        del(e)
-        del(arg_peri)
-        del(cos_i)
         # period[i], phase[i], e[i], arg_peri[i], cos_i[i], self.a[i]
 
 

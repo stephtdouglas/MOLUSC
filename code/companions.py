@@ -56,22 +56,18 @@ class Companions:
         if a_fixed is None and a_lower is None and a_upper is None:
             # Generate Period independently of mass ratio and separation
             if P_fixed is not None:
-                self.P = np.array([P_fixed] * self.num_generated) #TODO: Delete self.P
+                self.P = np.array([P_fixed] * self.num_generated)
             else:
                 if P_upper is None:
                     P_upper = float('inf')
                 self.P = np.array([-1.0] * self.num_generated)  # Initializing
                 for i in range(0, self.num_generated):
                     while self.P[i] < P_lower or self.P[i] > P_upper:
-                        log_P = np.random.normal(self.mu_log_P, self.sig_log_P) #TODO: Check log_P size for possible deletion
-                        self.P[i] = 10 ** log_P            
-            
-                print("\n\n\nHere are some tables:")
-                print(f"log_P: {np.shape(log_P)}\n")
-            
+                        log_P = np.random.normal(self.mu_log_P, self.sig_log_P)
+                        self.P[i] = 10 ** log_P
             # Now Generate mass ratio
             if mass_fixed is not None:
-                self.mass_ratio = np.array([mass_fixed] * self.num_generated) #TODO: Delete self.mass_ratio size for possible deletion
+                self.mass_ratio = np.array([mass_fixed] * self.num_generated)
             elif self.q_exp == 0.0:
                 # This generates all the  way to q=0 for a uniform distribution
                 if mass_lower is None:
@@ -89,19 +85,9 @@ class Companions:
                 p = np.power(q_range, self.q_exp)    # probabilities
                 p = [x / np.sum(p) for x in p]  # normalized probabilities
                 self.mass_ratio = np.random.choice(q_range, p=p, size=self.num_generated)
-                print("\n\n\nHere are some tables:")
-                print(f"q_range: {np.shape(q_range)}\n")
-                print(f"p: {np.shape(p)}\n")
-
             # Now calculate Semi-Major Axis using P and m
             self.a = ((self.P / 365)**2 * G * self.star_mass*(1 + self.mass_ratio)/(4 * np.pi ** 2))**(1/3)  # AU
             # Simple Cases Done
-            
-            print("\n\n\nHere are some tables:")
-            print(f"self.P: {np.shape(self.P)}\n")
-
-
-            
         elif a_fixed is not None and mass_fixed is not None and P_fixed is not None:
             # Ideally the GUI will not allow you to try to fix all three of them, but for now I will put it here
             return -11
@@ -229,8 +215,6 @@ class Companions:
                 # Calculate a
                 self.a = ((self.P / 365)**2 * G * self.star_mass * (1 + self.mass_ratio) / (
                             4 * np.pi ** 2))**(1/3)  # AU
-                
-                # del(self.mass_ratio) #TODO: Check is deleting self.mass_ratio causes issues with the get_all accessor
         else:
             print("I really don't think you should be able to get here ever...")
 
@@ -258,11 +242,7 @@ class Companions:
             if cos_i_upper is None:
                 cos_i_upper = 1.
             self.cos_i = np.random.uniform(cos_i_lower, cos_i_upper, self.num_generated)  # uniform distribution between 0 and 1
-            #TODO: Check self.cos_i for deletion
-            
-        print("\n\n\nHere are some tables:")
-        print(f"self.cos_i: {np.shape(self.cos_i)}\n")
-          
+
         # Pericenter Phase (radians)
         phase_fixed = self.limits[18]
         phase_lower = self.limits[19]
@@ -285,9 +265,6 @@ class Companions:
         e_upper = self.limits[8]
 
         log_P = np.log10(self.P)
-
-        print("\n\n\nHere are some tables:")
-        print(f"log_P: {np.shape(log_P)}\n")
 
         if e_fixed is not None:
             self.ecc = np.array([e_fixed] * self.num_generated)
@@ -317,10 +294,6 @@ class Companions:
                     ecc[i] = np.random.uniform(e_lower, e_upper)
             self.ecc = ecc
 
-        print("\n\n\nHere are some tables:")
-        print(f"self.ecc: {np.shape(self.ecc)}\n")
-        print(f"x: {np.shape(x)}\n")
-
         # Argument of Periapsis (radians)
         arg_fixed = self.limits[9]
         arg_lower = self.limits[10]
@@ -334,18 +307,6 @@ class Companions:
             if arg_upper is None:
                 arg_upper = np.pi
             self.arg_peri = np.random.uniform(arg_lower, arg_upper, self.num_generated)
-
-        print("\n\n\nHere are some tables:")
-        print(f"self.arg_peri: {np.shape(self.arg_peri)}\n")
-        print(f"self.limits: {np.shape(self.limits)}\n")
-        print(f"self.star_mass: {np.shape(self.star_mass)}\n")
-        print(f"self.mu_log_P: {np.shape(self.mu_log_P)}\n")
-        print(f"self.sig_log_P: {np.shape(self.sig_log_P)}\n")
-        print(f"self.q_exp: {np.shape(self.q_exp)}\n\n\n")
-        #TODO: Check how large some of these are to see if they are worth deleting after use.
-
-        # del(self.P)
-
 
         return
 

@@ -293,9 +293,9 @@ class RV:
 
 
             # Calculate amp
-            print(f'Current time: {datetime.datetime.now()} -- Pre amp')
+            print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre amp')
             amp = [np.ptp(self.predicted_RV[i]) for i in range(num_generated)]
-            print(f'Current time: {datetime.datetime.now()} -- Post amp')
+            print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post amp')
             
             
             # print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre chi sq new1a')
@@ -308,11 +308,11 @@ class RV:
 
 
             # Calculate chi^2            
-            print(f'Current time: {datetime.datetime.now()} -- Pre chi sq1')
+            print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre chi sq1')
             chi_sq_numer = np.square(np.subtract(self.experimental_RV, self.predicted_RV))
             chi_sq_denom = self.measurement_error**2 + self.added_jitter**2
             chi_squared = [np.sum(np.divide(chi_sq_numer[i], chi_sq_denom)) for i in range(num_generated)]
-            print(f'Current time: {datetime.datetime.now()} -- Post chi sq1')
+            print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post chi sq1')
             # print(f'shape, type of chi_squared: {np.shape(chi_squared)}, {type(chi_squared)}')
 
             # print(f'chi_sq_numer[i]: {chi_sq_numer[1]}')
@@ -376,9 +376,9 @@ class RV:
 
 
             # Calculate prob
-            print(f'Current time: {datetime.datetime.now()} -- Pre prob')
+            print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre prob')
             prob = [stats.chi2.cdf(chi_squared[i], len(self.MJD)-1) for i in range(0, num_generated)]
-            print(f'Current time: {datetime.datetime.now()} -- Post prob')
+            print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post prob')
 
 
             print(f'Current time: {datetime.datetime.now()} -- Compared experimental and predicted RVs!')
