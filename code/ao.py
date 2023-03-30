@@ -167,12 +167,6 @@ class AO:
         # End parallelization
         del(star_params)
         del(self.a)
-        del(period)
-        del(phase)
-        del(e)
-        del(arg_peri)
-        del(cos_i)
-        # period[i], phase[i], e[i], arg_peri[i], cos_i[i], self.a[i]
 
 
         four_arc = round(self.star_distance * 0.0000193906, 1)  # 4" in AU at distance of primary
@@ -189,7 +183,6 @@ class AO:
             f_con = scipy.interpolate.interp1d(contrast['Sep (AU)'], contrast['Contrast'], kind='linear', bounds_error=False, fill_value=0)
                     
             # Parallelziation
-            # TODO: Keep this for now, do a larger test on the cluster to see if it is faster than no parallelization
             with Pool(cpu_ct) as pool:
                 contrast_limit = pool.map(f_con, pro_sep, chunksize=divisor)
                 

@@ -71,6 +71,7 @@ class Application:
     # Class functions
     def __init__(self, input_args):
         self.input_args = input_args
+        # self.input_yml = 'rubbah'
 
     def start(self):
         # Start has to handle the input arguments
@@ -187,7 +188,7 @@ class Application:
             self.ao_reject_list = np.logical_or.reduce(ao_reject_lists)
             self.print_out(f'\nCurrent time: {datetime.datetime.now()} -- Finished analyzing AO')
         else:
-            self.ao_reject_list = np.zeros(shape=self.num_generated, dtype=bool)
+            self.ao_reject_list = np.array([False]*self.num_generated)
 
         #   RV and Jitter
         if self.rv_filename:
@@ -199,13 +200,12 @@ class Application:
             if failure: return
             if self.extra_output: self.print_out(f'Current time: {datetime.datetime.now()} -- RV Measurements Loaded.')
             # Run analysis
-            self.rv_reject_list = rv.analyze_rv() # TODO!???
-            self.jitter_reject_list = np.zeros(shape=self.num_generated, dtype=bool)          
+            self.rv_reject_list = rv.analyze_rv() # TODO!
+            self.jitter_reject_list = np.array([False]*self.num_generated)
             self.print_out(f'Current time: {datetime.datetime.now()} -- Finished analyzing RV')
-            
         else:
-            self.rv_reject_list = np.zeros(shape=self.num_generated, dtype=bool)
-            self.jitter_reject_list = np.zeros(shape=self.num_generated, dtype=bool)
+            self.rv_reject_list = np.array([False]*self.num_generated)
+            self.jitter_reject_list = np.array([False] * self.num_generated)
 
         #   RUWE
         if self.ruwe_check:
@@ -256,7 +256,7 @@ class Application:
                 self.print_out((f'Current time: {datetime.datetime.now()} -- The star has ln(ruwe) of %f.' % (ruwe.ln_ruwe)))
             # logging.debug(f"self.ln_ruwe vs. ruwe.ln_ruwe round 2: {self.ln_ruwe} vs. {ruwe.ln_ruwe}")
         else:
-            self.ruwe_reject_list = np.zeros(shape=self.num_generated, dtype=bool)
+            self.ruwe_reject_list = np.array([False]*self.num_generated)
             # logging.debug(f"n is not finite!: {self.ln_ruwe} vs. {ruwe.ln_ruwe}")
 
         #   Gaia Contrast
@@ -276,7 +276,7 @@ class Application:
             self.gaia_reject_list = gaia.analyze_gaia(self.gaia_limit)
             self.print_out(f'Current time: {datetime.datetime.now()} -- Finished analyzing Gaia contrast')
         else:
-            self.gaia_reject_list = np.zeros(shape=self.num_generated, dtype=bool)
+            self.gaia_reject_list = np.array([False]*self.num_generated)
 
         # Check successes
         w = [True if x == -1 else False for x in self.ao_reject_list]
@@ -400,7 +400,6 @@ class Application:
         # Check if you are using the AO datatype
         # print(f"This is the output of self.ao_filename: {self.ao_filename}")
         
-        # TODO: Figure out why >3 :)
         # print(f"len of self.ao_filename[0]: {len(self.ao_filename[0])}")
         if self.ao_filename[0]:
             is_ao = True
