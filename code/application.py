@@ -400,7 +400,6 @@ class Application:
         # Check if you are using the AO datatype
         # print(f"This is the output of self.ao_filename: {self.ao_filename}")
         
-        # TODO: Figure out why >3 :)
         # print(f"len of self.ao_filename[0]: {len(self.ao_filename[0])}")
         if self.ao_filename[0]:
             is_ao = True
