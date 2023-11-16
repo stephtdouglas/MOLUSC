@@ -18,7 +18,7 @@ jobname = os.getenv("SLURM_JOB_NAME", 'MOLUSC_999')
 
 logger = logging.getLogger("one_star_2e28")
 logging.basicConfig(level=logging.INFO,
-                    filename=f'{os.getenv("MOLOC")}/../script_logs/one_star_2e28_{0}_{1}.log'.format(jobid,arrayid),
+                    filename=f'{os.getenv("MOLOC")}/testing.log'.format(jobid,arrayid),
                     format='%(asctime)s %(message)s')
 logging.getLogger("matplotlib").setLevel(logging.WARNING)
 

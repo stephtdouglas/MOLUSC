@@ -1,13 +1,15 @@
 from datetime import datetime as dt
 import datetime
+import argparse
+import warnings
+import os
+import logging
+
 import numpy as np
 import scipy as scipy
 import scipy.stats as stats
 from astropy.io import ascii
-import argparse
 import gc
-import warnings
-import os
 import yaml
 from ao import AO
 from companions import Companions
@@ -15,7 +17,6 @@ from gui import GUI
 from ruwe import RUWE
 from rv import RV
 from astropy.utils.exceptions import AstropyWarning
-import logging
 # from guppy import hpy
 # import tracemalloc
 
@@ -30,6 +31,7 @@ warnings.simplefilter('ignore', category=AstropyWarning)
 warnings.simplefilter('ignore', category=scipy.linalg.misc.LinAlgWarning)
 
 today = dt.today().isoformat().split("T")[0]
+# TODO: replace this with the pathlib.parent version, once package is importable
 global repo_path
 repo_path = os.getenv('MOLOC').replace("\\", "/")
 

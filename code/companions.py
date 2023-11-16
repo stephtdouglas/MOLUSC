@@ -1,10 +1,11 @@
 from datetime import datetime
+import warnings
+import logging
+
 import numpy as np
 import scipy as scipy
 import scipy.stats as stats
-import warnings
 from astropy.utils.exceptions import AstropyWarning
-import logging
 warnings.simplefilter('error', category=RuntimeWarning)
 warnings.simplefilter('ignore', category=AstropyWarning)
 warnings.simplefilter('ignore', category=scipy.linalg.misc.LinAlgWarning)

@@ -1,5 +1,9 @@
 from datetime import datetime as dt
 import datetime
+import warnings
+import os
+import logging
+
 import numpy as np
 import scipy as scipy
 import scipy.stats as stats
@@ -8,10 +12,7 @@ import astropy.units as u
 from astropy.table import Table
 from astroquery.gaia import Gaia
 from time import time
-import warnings
-import os
 from astropy.utils.exceptions import AstropyWarning
-import logging
 from multiprocessing import Process
 from multiprocessing.pool import Pool
 import multiprocessing as mp
@@ -26,8 +27,10 @@ warnings.simplefilter('ignore', category=scipy.linalg.misc.LinAlgWarning)
 # c = load_config()
 # hp = hpy()
 today = dt.today().isoformat().split("T")[0]
+
+# TODO: replace this with the pathlib.parent version, once package is importable
 global repo_path
-repo_path = os.getenv('MOLOC').replace("\\", "/")
+repo_path = os.getenv('MOLOC')
 
 
 def get_pro_sep(T_init, per, pha, eccentricity, a_peri, cos_inc, semi_maj_a):

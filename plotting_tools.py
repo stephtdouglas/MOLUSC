@@ -21,8 +21,10 @@ rcParams['axes.labelweight'] = 'bold'
 rcParams['axes.linewidth'] = 1
 
 
-style_path = os.getenv("MPLCONFIGDIR", os.path.expanduser(r"C:\Users\Jared\anaconda3\Lib\site-packages\matplotlib\mpl-data\stylelib")).replace("\\", "/")
-mpl.style.use(os.path.join(style_path, 'bmh.mplstyle').replace("\\", "/"))
+# style_path = os.getenv("MPLCONFIGDIR", os.path.expanduser(r"C:\Users\Jared\anaconda3\Lib\site-packages\matplotlib\mpl-data\stylelib")).replace("\\", "/")
+# mpl.style.use(os.path.join(style_path, 'bmh.mplstyle').replace("\\", "/"))
+
+output_dir = os.getenv("MOLOUT", './')
 
 # Convenience functions
 def jup_mass_to_sol(jupiter_mass):
@@ -43,9 +45,9 @@ def a_to_period(a):
     return np.sqrt((4*np.pi**2 * a**3) / (2*G)) * 365
 
 def get_info(star):
-    output_path1 = os.path.join(os.getenv("MOLOUT", r'G:/Shared drives/DouglasGroup/Jared Sofair 2022/MOLUSC/MOLUSC Outputs'), "tables").replace("\\", "/")
-    output_path2 = os.path.join(os.getenv("MOLOUT", r'G:/Shared drives/DouglasGroup/Jared Sofair 2022/MOLUSC/MOLUSC Outputs'), "graphs").replace("\\", "/")
-    output_path3 = os.path.join(os.getenv("MOLOUT", r'G:/Shared drives/DouglasGroup/Jared Sofair 2022/MOLUSC/MOLUSC Outputs'), "yml").replace("\\", "/")
+    output_path1 = os.path.join(output_dir, "tables/")
+    output_path2 = os.path.join(output_dir, "graphs/")
+    output_path3 = os.path.join(output_dir, "yml/")
 
     survivors_file = os.path.expanduser(f'{output_path1}/{star}_kept.csv')
     all_file = os.path.expanduser(f'{output_path1}/{star}_all.csv')

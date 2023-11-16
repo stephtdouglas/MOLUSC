@@ -1,5 +1,9 @@
 from datetime import datetime as dt
 import datetime
+import warnings
+import os
+import logging
+
 import numpy as np
 import scipy as scipy
 import scipy.stats as stats
@@ -7,18 +11,16 @@ from astropy.table import Table
 from time import time
 import multiprocessing as mp
 import gc
-import warnings
-import os
 from astropy.utils.exceptions import AstropyWarning
-import logging
 from timeit import timeit
 warnings.simplefilter('error', category=RuntimeWarning)
 warnings.simplefilter('ignore', category=AstropyWarning)
 warnings.simplefilter('ignore', category=scipy.linalg.misc.LinAlgWarning)
 
 today = dt.today().isoformat().split("T")[0]
+# TODO: replace this with the pathlib.parent version, once package is importable
 global repo_path
-repo_path = os.getenv('MOLOC').replace("\\", "/")
+repo_path = os.getenv('MOLOC')
 
 def calculate_RV_parallel(period, mass_ratio, a, e, cos_i, arg_peri, phase, MJD, calc):
     # Exactly the same as calculate_RV, but with an extra parameter stating whether you need to calculate RV
