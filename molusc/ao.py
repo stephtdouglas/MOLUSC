@@ -1,7 +1,7 @@
 from datetime import datetime as dt
 import datetime
 import warnings
-import os
+import os, pathlib
 import logging
 
 import numpy as np
@@ -28,9 +28,8 @@ warnings.simplefilter('ignore', category=scipy.linalg.misc.LinAlgWarning)
 # hp = hpy()
 today = dt.today().isoformat().split("T")[0]
 
-# TODO: replace this with the pathlib.parent version, once package is importable
-global repo_path
-repo_path = os.getenv('MOLOC')
+import molusc
+repo_path = pathlib.Path(molusc.__file__).resolve().parent
 
 
 def get_pro_sep(T_init, per, pha, eccentricity, a_peri, cos_inc, semi_maj_a):

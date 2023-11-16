@@ -1,7 +1,7 @@
 from datetime import datetime as dt
 import datetime
 import warnings
-import os
+import os, pathlib
 import logging
 
 import numpy as np
@@ -18,9 +18,8 @@ warnings.simplefilter('ignore', category=AstropyWarning)
 warnings.simplefilter('ignore', category=scipy.linalg.misc.LinAlgWarning)
 
 today = dt.today().isoformat().split("T")[0]
-# TODO: replace this with the pathlib.parent version, once package is importable
-global repo_path
-repo_path = os.getenv('MOLOC')
+import molusc
+repo_path = pathlib.Path(molusc.__file__).resolve().parent
 
 def calculate_RV_parallel(period, mass_ratio, a, e, cos_i, arg_peri, phase, MJD, calc):
     # Exactly the same as calculate_RV, but with an extra parameter stating whether you need to calculate RV
