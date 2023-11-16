@@ -475,7 +475,7 @@ class AO:
         # Read in file containing stellar model with the filter needed
         if filter == 'J' or filter == 'H' or filter == 'K':  # 2MASS filters
             model_chart = {}
-            BHAC_file = f'{os.path.join(repo_path, "code/BHAC15_2MASS.txt")}'
+            BHAC_file = f'{os.path.join(repo_path, "reference_data/BHAC15_2MASS.txt")}'
             with open(BHAC_file, 'r') as content_file:
                 content = content_file.read()
             tables = content.split(
@@ -500,7 +500,7 @@ class AO:
                 model_chart[age] = year_chart
         elif filter == 'R' or filter == 'I':
             model_chart = {}
-            BHAC_file = f'{os.path.join(repo_path, "code/BHAC15_CFHT.txt")}'
+            BHAC_file = f'{os.path.join(repo_path, "reference_data/BHAC15_CFHT.txt")}'
             with open(BHAC_file, 'r') as content_file:
                 content = content_file.read()
             tables = content.split(
@@ -521,7 +521,7 @@ class AO:
                 model_chart[age] = year_chart
         elif filter == 'G' or filter == 'Rp' or filter ==  'Bp':
             model_chart = {}
-            BHAC_file = f'{os.path.join(repo_path, "code/BHAC15_GAIA.txt")}'
+            BHAC_file = f'{os.path.join(repo_path, "reference_data/BHAC15_GAIA.txt")}'
             with open(BHAC_file, 'r') as content_file:
                 content = content_file.read()
             tables = content.split(
@@ -546,7 +546,7 @@ class AO:
         elif filter == 'L' or filter == 'LL' or filter == 'M':
             print('MODEL:  CIT2')
             model_chart = {}
-            BHAC_file = f'{os.path.join(repo_path, "code/BHAC15_CIT2.txt")}'
+            BHAC_file = f'{os.path.join(repo_path, "reference_data/BHAC15_CIT2.txt")}'
             with open(BHAC_file, 'r') as content_file:
                 content = content_file.read()
             content = content[content.find('\n\n\n'):]  # Cut off the intro material

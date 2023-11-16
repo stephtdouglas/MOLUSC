@@ -169,7 +169,7 @@ class RUWE:
         # Read in file containing stellar model
         # TODO: Interpolate to get the chart for the exact age or binned age or something that doesnt rely on the age being in the chart
         model_chart = {}
-        BHAC_file = f'{os.path.join(repo_path, "code/BHAC15_CFHT.txt")}'
+        BHAC_file = f'{os.path.join(repo_path, "reference_data/BHAC15_CFHT.txt")}'
         with open(BHAC_file, 'r') as content_file:
             content = content_file.read()
         tables = content.split(
@@ -258,7 +258,7 @@ class RUWE:
                 return -51
 
     def read_dist(self):
-        file_name = f'{os.path.join(repo_path, "code/RuweTableGP.txt")}'
+        file_name = f'{os.path.join(repo_path, "reference_data/RuweTableGP.txt")}'
         t = Table.read(file_name, format='ascii', delimiter=' ')
 
         self.ruwe_dist = t

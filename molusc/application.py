@@ -264,7 +264,7 @@ class Application:
         if self.gaia_check:
             self.print_out(f'\nCurrent time: {datetime.datetime.now()} -- Analyzing Gaia Contrast...')
             #todo improve gaia contrast
-            gaia = AO(f'{os.path.join(repo_path, "code/gaia_contrast.txt")}', comps, self.star_mass, self.star_age, self.star_ra, self.star_dec, 'G', gaia=True)
+            gaia = AO(f'{os.path.join(repo_path, "reference_data/gaia_contrast.txt")}', comps, self.star_mass, self.star_age, self.star_ra, self.star_dec, 'G', gaia=True)
             # Determine distance
             failure = self.error_check(gaia.get_distance(self.star_ra, self.star_dec, self.parallax))
             if failure: return

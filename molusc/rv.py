@@ -555,7 +555,7 @@ class RV:
         if filter == 'J' or filter == 'H' or filter == 'K':  # 2MASS filters
             print(f'Current time: {datetime.datetime.now()} -- Reading BHAC file and creating table...')
             model_chart = {}
-            BHAC_file = f'{os.path.join(repo_path, "code/BHAC15_2MASS.txt")}'
+            BHAC_file = f'{os.path.join(repo_path, "reference_data/BHAC15_2MASS.txt")}'
             with open(BHAC_file, 'r') as content_file:
                 content = content_file.read()
             tables = content.split(
@@ -588,7 +588,7 @@ class RV:
 
         elif filter == 'G' or filter == 'R' or filter == 'I':
             model_chart = {}
-            BHAC_file = f'{os.path.join(repo_path, "code/BHAC15_CFHT.txt")}'
+            BHAC_file = f'{os.path.join(repo_path, "reference_data/BHAC15_CFHT.txt")}'
             print(f'Current time: {datetime.datetime.now()} -- Reading BHAC file and creating table...')
             with open(BHAC_file, 'r') as content_file:
                 content = content_file.read()
