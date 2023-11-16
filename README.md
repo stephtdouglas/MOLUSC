@@ -1,9 +1,9 @@
 # MOLUSC
 MOLUSC (Multi Observational Limits on Unseen Stellar Companions) is a python tool for determining constraints on possible stellar companions to a target star by combining RV, High Resolution Imaging and Gaia data.
 
-Copyright (c) 2021-2023 Mackenna L. Wood, Jared Sofar, Stephanie T. Douglas
+Copyright (c) 2021-2023 Mackenna L. Wood, Jared Sofair, Stephanie T. Douglas
 
-Provided under the MIT licence; see the LICENSE file for more details. 
+Provided under the MIT license; see the LICENSE file for more details. 
 
 ## Purpose
 The goal of MOLUSC is to generate realistic binary probabilities based on non-detections. To this end we use a Monte Carlo simulation of possible companions to a target star. We compare the generated orbital properties to observational constraints from High Resolution Imaging, Gaia Imaging, RV measurements, and RUWE to determine posteriors and detection limits on the system. 
