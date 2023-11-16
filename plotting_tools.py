@@ -1,8 +1,12 @@
 # MOLUSC Survivors Plotter
 # Mackenna Wood, UNC Chapel Hill
+import glob
 import os
+
 import numpy as np
 import math as math
+import matplotlib as mpl
+import matplotlib.style
 import matplotlib.pyplot as plt
 from astropy.table import Table
 import scipy.optimize
@@ -17,6 +21,8 @@ rcParams['axes.labelweight'] = 'bold'
 rcParams['axes.linewidth'] = 1
 
 
+style_path = os.getenv("MPLCONFIGDIR", os.path.expanduser(r"C:\Users\Jared\anaconda3\Lib\site-packages\matplotlib\mpl-data\stylelib")).replace("\\", "/")
+mpl.style.use(os.path.join(style_path, 'bmh.mplstyle').replace("\\", "/"))
 
 # Convenience functions
 def jup_mass_to_sol(jupiter_mass):
@@ -36,7 +42,39 @@ def a_to_period(a):
     G = 39.478 # Gravitational constant in AU^3/years^2*M_solar
     return np.sqrt((4*np.pi**2 * a**3) / (2*G)) * 365
 
-def corner(file_in, file_out=None, given_params='auto', n_gen=5000000, smoothing=False, color='blue'):
+def get_info(star):
+    output_path1 = os.path.join(os.getenv("MOLOUT", r'G:/Shared drives/DouglasGroup/Jared Sofair 2022/MOLUSC/MOLUSC Outputs'), "tables").replace("\\", "/")
+    output_path2 = os.path.join(os.getenv("MOLOUT", r'G:/Shared drives/DouglasGroup/Jared Sofair 2022/MOLUSC/MOLUSC Outputs'), "graphs").replace("\\", "/")
+    output_path3 = os.path.join(os.getenv("MOLOUT", r'G:/Shared drives/DouglasGroup/Jared Sofair 2022/MOLUSC/MOLUSC Outputs'), "yml").replace("\\", "/")
+
+    survivors_file = os.path.expanduser(f'{output_path1}/{star}_kept.csv')
+    all_file = os.path.expanduser(f'{output_path1}/{star}_all.csv')
+    yaml_file = os.path.expanduser(f'{output_path3}/{star}_params_output.yml')
+
+    out_file1 = os.path.expanduser(f'{output_path2}/{star}_output_corner.pdf')
+    out_file2 = os.path.expanduser(f'{output_path2}/{star}_output_dtct_lims.pdf')
+    out_file3 = os.path.expanduser(f'{output_path2}/{star}_output_srv.pdf')
+    
+    # Get mass and n  
+    with open(yaml_file, 'r') as f:
+        try:
+            yaml_data = yaml.safe_load(f)
+            mass = yaml_data["star"]["mass"]
+            n = yaml_data["num_generated"]
+        except yaml.YAMLError as exc:
+            print(exc)
+            
+    info = [survivors_file, all_file, out_file1, out_file2, out_file3, mass, n]
+    # info[0] = survivors_file
+    # info[1] = all_file
+    # info[2] = out_file1
+    # info[3] = out_file2
+    # info[4] = out_file3
+    # info[5] = mass
+    # info[6] = n
+    return info
+
+def corner_plot(star, file_out=True, given_params='auto', smoothing=False, color='blue'):
     # Creates a corner plot showing period, mass ratio, eccentricity and inclination
     # Plot is a 4x4 array of subplots, with the bottom left triangle showing contour plots of 2D parameter spaces
     # The diagonal subplots show histograms of each of the parameters. The top right triangle lists the surviving
@@ -55,10 +93,12 @@ def corner(file_in, file_out=None, given_params='auto', n_gen=5000000, smoothing
     fs = 18  # fontsize
     rcParams['xtick.labelsize'] = 'large'
     rcParams['ytick.labelsize'] = 'large'
-
+    file_in = get_info(star)[0]
+    n_gen = get_info(star)[6]
+    
     # Arrange Data
     t = Table.read(file_in, format='ascii.csv')
-
+    
     P = t['period(days)']
     mass_ratio = t['mass ratio']
     e = t['eccentricity']
@@ -70,7 +110,7 @@ def corner(file_in, file_out=None, given_params='auto', n_gen=5000000, smoothing
     a_range =  [min(a), max(a)]
     i_range = [min(cos_i), max(cos_i)]
     m_range = [min(mass_ratio), max(mass_ratio)]
-
+    
     # Choose color scheme
     if color == 'blue':  # default option
         c1 = '#2a567b'  # border color
@@ -98,11 +138,11 @@ def corner(file_in, file_out=None, given_params='auto', n_gen=5000000, smoothing
         c2 = '#9dc9ee'  # face color
         colors2 = ['white', '#9dc9ee', '#2a567b']  # contour colors for 2-level
         colors3 = ['white', '#9dc9ee', '#4d9de0', '#2a567b']  # contour colors
-
+    
     # Determine which parameters to plot
     params = []
     data_list = []
-
+    
     if given_params == 'all':
         params = ['P (days)', 'e', 'cos(i)', 'q']
         data_list = [P, e, cos_i, mass_ratio]
@@ -134,18 +174,18 @@ def corner(file_in, file_out=None, given_params='auto', n_gen=5000000, smoothing
             elif x == 'mass ratio' or x == 'q':
                 params.append('q')
                 data_list.append(mass_ratio)
-
+    
     N = len(params)
     if N < 2:
         print('More than one unfixed parameter is required to make a corner plot.')
         return -1
-
+    
     # Create data structure
     data = np.vstack([np.transpose(x) for x in data_list]).transpose()
-
+    
     # Create nxn diagonal array of subplots
     fig, axes = plt.subplots(N, N, figsize=(9, 7))
-
+    
     # Changes to apply to all axes
     plt.subplots_adjust(wspace=.05, hspace=.05)  # Change spacing between axes
     for i in range(N):
@@ -161,7 +201,7 @@ def corner(file_in, file_out=None, given_params='auto', n_gen=5000000, smoothing
                 axes[i, j].tick_params(axis='x', labelbottom=True, labeltop=False, labelrotation=45)
             if j == 0:  # y axis labels
                 axes[i, j].tick_params(axis='y', labelleft=True, labelright=False, labelrotation=45)
-
+    
     # Diagonal: Plot Survivor Histograms
     n_bins = 15     # number bins for each histogram
     for i in range(N):
@@ -216,7 +256,7 @@ def corner(file_in, file_out=None, given_params='auto', n_gen=5000000, smoothing
             axes[i, i].set_xbound(round(m_range[0]), round(m_range[1]))
             ticks = np.linspace(math.floor(m_range[0]), math.ceil(m_range[1]), 5)[1:-1]
             character = 'M'
-
+    
         # Plot for all
         n, _ = np.histogram(data[:, i], bins=bins)
         widths = [bins[i + 1] - bins[i] for i in range(len(bins) - 1)]
@@ -227,20 +267,20 @@ def corner(file_in, file_out=None, given_params='auto', n_gen=5000000, smoothing
         axes[i, i].vlines([np.median(data[:, i]), np.percentile(data[:, i], 16.0), np.percentile(data[:, i], 84.0)],
                           lims[0], lims[1], linestyle='--', color='k')
         axes[i, i].set_ybound(lims[0], lims[1])
-
+    
         # Set x ticks
         axes[i, i].set_xticks(ticks)
-
+    
         # Add title printing the median and 16th and 84th percentile
         # upper = np.percentile(data[:, i], 84.0) - np.median(data[:, i])
         # lower = np.median(data[:, i]) - np.percentile(data[:, i], 16.0)
         # title = character + r'= %.3f $\pm _{%.2f}^{%.2f}$' %(np.median(data[:, i]), lower, upper)
         # axes[i, i].set_title(title)
-
+    
     # Add the x-axis label on the lowest diagonal, and y-axis label on highest diagonal
     axes[N-1, N-1].set_xlabel(params[N-1], fontsize=fs)
     axes[0, 0].set_ylabel('Frequency', fontsize=fs)
-
+    
     # Lower Triangle: Plot Parameters
     if len(P) <= 5000:  # For plots with less than 5000 survivors use a scatterplot
         for i in range(N):
@@ -302,7 +342,7 @@ def corner(file_in, file_out=None, given_params='auto', n_gen=5000000, smoothing
                 axes[(N-1), j].set_xlabel(params[j], fontsize=fs)
                 # 6. Adjust x-axis ticks
                 axes[i, j].set_xticks(axes[j, j].get_xticks())
-
+    
     # Upper Triangle:  Write survivor fraction, make invisible
     axes[0, N-2].text(0, 1, ('Surviving Fraction: %.3f' %(len(t)/n_gen)), fontsize=20)
     for i in range(N):
@@ -310,13 +350,14 @@ def corner(file_in, file_out=None, given_params='auto', n_gen=5000000, smoothing
             axes[j, i].axis('off')
 
     if file_out is not None:
-        plt.savefig(file_out, bbox_inches='tight', pad_inches=0.25)
+        out_file = get_info(star)[2]
+        plt.savefig(out_file, bbox_inches='tight', pad_inches=0.25, dpi=300)
     # plt.show()
-
+    
     return 0
 
 
-def detection_limits(file_in, star_mass, file_out=None, mark_P=None):
+def detection_limits(star, file_out=True, mark_P=None):
     # Plot 1,2 and 3 sigma mass detection limits
     # Inputs:
     #       file_in - this is the "kept" csv output by MOLUSC
@@ -329,11 +370,15 @@ def detection_limits(file_in, star_mass, file_out=None, mark_P=None):
     rcParams['xtick.labelsize'] = 'small'
     rcParams['ytick.labelsize'] = 'small'
     rcParams['axes.labelsize'] = 10
+    file_in = get_info(star)[0]
+    star_mass = get_info(star)[5]
+    # print(f"Star mass: {star_mass}")
 
     fig, ax = plt.subplots(figsize=(3.352242, 2.514181))  # this is sized to fit in one column of AAS journal format
     # Read in survivor data
     survivors = Table.read(file_in, format='ascii.csv')
     # Need to split into logarithmic period bins and take the 95th percentile of the masses in each bin
+    # print(survivors['mass ratio'])
     survivors['mass (M_Jup)'] = survivors['mass ratio']*star_mass*1047.35
 
     # Bin
@@ -360,7 +405,7 @@ def detection_limits(file_in, star_mass, file_out=None, mark_P=None):
     ax.set_ylim(0.6, 1.2*ax.get_ylim()[1])
     if mark_P:
         ax.vlines([mark_P], ax.get_ylim()[0], ax.get_ylim()[1], ls=':', colors='k', lw=2)
-    ax.vlines([6.4e5], ax.get_ylim()[0], ax.get_ylim()[1], ls='--', colors='k', lw=2)  # DS Tuc B
+    # ax.vlines([6.4e5], ax.get_ylim()[0], ax.get_ylim()[1], ls='--', colors='k', lw=2)  # DS Tuc B
 
     # Add a secondary axis, showing mass in solar masses
     secax = ax.secondary_yaxis('right', functions=(jup_mass_to_sol, sol_mass_to_jup))
@@ -381,13 +426,14 @@ def detection_limits(file_in, star_mass, file_out=None, mark_P=None):
 
     # Write out
     if file_out:
-        plt.savefig(file_out, bbox_inches='tight', pad_inches=0.2)
+        out_file = get_info(star)[3]
+        plt.savefig(out_file, bbox_inches='tight', pad_inches=0.2, dpi=300)
 
     # plt.show()
 
     return
 
-def survivor(survivors_file, all_file, param, file_out=None):
+def survivor_plot(star, param, file_out=False):
   # Creates three panel plot with histograms showing generated, and surviving parameter distribution and bar plot showing survivor fraction
   # Inputs:
   #     survivors_file - filename for kept companions. This is the _kept.csv generated by  MOLUSC
@@ -395,8 +441,12 @@ def survivor(survivors_file, all_file, param, file_out=None):
   #     param  - orbital parameter to make the plot for. Can be either period (P)  or mass ratio (m)
   #     file_out - optional, filename to write image to when complete
   # Load kept and survivors
-  t = Table.read(survivors_file, format='ascii.csv')
-  t_all = Table.read(all_file, format='ascii.csv')
+  survivors_file = get_info(star)[0]
+  all_file = get_info(star)[1]
+  # print(f'Survivors file: {survivors_file}\n All file: {all_file}\n')
+
+  t = Table.read(survivors_file, comment='#', format='ascii.csv')
+  t_all = Table.read(all_file, comment='#', format='ascii.csv')
   # Figure Options
   rcParams['xtick.labelsize'] = 'small'
   rcParams['ytick.labelsize'] = 'small'
@@ -411,7 +461,7 @@ def survivor(survivors_file, all_file, param, file_out=None):
       n, _ = np.histogram(t['period(days)'], bins=bins)
       N, _ = np.histogram(t_all['period(days)'], bins=bins)
       scale = 'log'
-      axes[2].set_xlabel('Period(days)')
+      axes[2].set_xlabel('Period (days)')
   elif param == 'm' or param == 'mass ratio' or param == 'mass_ratio':
       # Plot two histograms, top one a histogram of mass, bottom one a plot of survivorship fraction
       bins = np.linspace(0, 1, 20)
@@ -420,6 +470,7 @@ def survivor(survivors_file, all_file, param, file_out=None):
       scale = 'linear'
       axes[2].set_xlabel('Mass Ratio')
 
+    
   widths = [bins[i + 1] - bins[i] for i in range(len(bins) - 1)]
 
   # Top plot, generated histogram
@@ -452,39 +503,69 @@ def survivor(survivors_file, all_file, param, file_out=None):
   for a in axes:
       a.set_xscale(scale)
 
-  if file_out:
-      plt.savefig(file_out, bbox_inches='tight', pad_inches=0.2)
+  if file_out is not None:
+      out_file = get_info(star)[4]
+      # print(f'Out file: {out_file}')
+      plt.savefig(out_file, bbox_inches='tight', pad_inches=0.2, dpi=300)
   # plt.show()
   return
 
-if __name__=="__main__":
+### I'm saving my old main version for reference
+# if __name__=="__main__":
 
-    # yaml_fname = "code/yml_test2_params_output.yml"
-    yaml_fname = "code/prae_test_params_output.yml"
-    with open(yaml_fname,"r") as f:
-        params = yaml.safe_load(f)
+#     # yaml_fname = "code/yml_test2_params_output.yml"
+#     yaml_fname = "code/prae_test_params_output.yml"
+#     with open(yaml_fname,"r") as f:
+#         params = yaml.safe_load(f)
 
-    # Run info
-    file_dir = "code/"
-    file_base = params["file_prefix"] #yaml_fname.split("_")[0]
-    n = params["num_generated"]  # number of companions generated in run
-    mass = params["Star"]["Mass"]  # target mass in solar masses
+#     # Run info
+#     file_dir = "code/"
+#     file_base = params["file_prefix"] #yaml_fname.split("_")[0]
+#     n = params["num_generated"]  # number of companions generated in run
+#     mass = params["Star"]["Mass"]  # target mass in solar masses
 
 
-    # Input files
-    survivors_file = f'{file_dir}{file_base}_kept.csv'
-    all_file = f'{file_dir}{file_base}_all.csv'
-    # Output files
-    out_file = f'{file_base}_corner.pdf'  # writeout file for the corner plots
-    out_file2 = f'{file_base}_dtct_lims.pdf' # writeout file for the detection limit plots
-    out_file3 = f'{file_base}_srv.pdf' # writeout file for the survivor plots
+#     # Input files
+#     survivors_file = f'{file_dir}{file_base}_kept.csv'
+#     all_file = f'{file_dir}{file_base}_all.csv'
+#     # Output files
+#     out_file = f'{file_base}_corner.pdf'  # writeout file for the corner plots
+#     out_file2 = f'{file_base}_dtct_lims.pdf' # writeout file for the detection limit plots
+#     out_file3 = f'{file_base}_srv.pdf' # writeout file for the survivor plots
 
-    if os.path.exists(survivors_file):
-        corner(survivors_file,  n_gen=n, given_params='all', smoothing=True, file_out=out_file)
-        detection_limits(survivors_file, mass, file_out=out_file2)
-        if os.path.exists(all_file):
-            survivor(survivors_file, all_file, param='P', file_out=out_file3)
-        else:
-            print(f"\t{all_file} not found; no survivor plot produced")
-    else:
-        print(f"\t{survivors_file} not found; no plots produced")
+#     if os.path.exists(survivors_file):
+#         corner(survivors_file,  n_gen=n, given_params='all', smoothing=True, file_out=out_file)
+#         detection_limits(survivors_file, mass, file_out=out_file2)
+#         if os.path.exists(all_file):
+#             survivor(survivors_file, all_file, param='P', file_out=out_file3)
+#         else:
+#             print(f"\t{all_file} not found; no survivor plot produced")
+#     else:
+#         print(f"\t{survivors_file} not found; no plots produced")
+
+
+def plotter(star, corner=True, detlims=True, survivor=True):
+    if corner:
+        corner_plot(star, given_params='all', smoothing=True, file_out=True)
+    if detlims:
+        detection_limits(star, file_out=True, mark_P=False)
+    if survivor:
+        survivor_plot(star, param='P', file_out=True)
+    
+
+if __name__ == '__main__':
+    
+    # Theory crafting the setup:
+        # Pass a list of stars, return survivor file, all file, out files 1-3
+        # If specified, get graphs 1-3 for star(s)
+        # Make sure to include n and mass
+        
+    star = "JS355"
+    info = get_info(star)
+    # print(info)
+
+    plotter(star, corner=True, detlims=True, survivor=False)
+    
+    # corner(survivors_file,  n_gen=n, given_params='all', smoothing=True, file_out=out_file1)
+    # detection_limits(survivors_file, mass, file_out=out_file2)
+    # survivor(survivors_file, all_file, param='P', file_out=out_file3)

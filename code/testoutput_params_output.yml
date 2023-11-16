@@ -1,0 +1,38 @@
+ao_params:
+  ao_file:
+  - ''
+  filter:
+  - Filter
+  fit: false
+array_id: 9999
+file_prefix: testoutput
+gaia_params:
+  astrometric_chi2: 268.0704040527344
+  color: 2.013556480407715
+  fit: true
+  gmag: 14.666424751281738
+  id: 659388947224025856
+  ln_ruwe: 0.017234794795513153
+  n_good_obs: 269.0
+  parallax: 5.427515821773653
+  parallax_error: 0.03025938756763935
+  ruwe: 1.0173841707922944
+input_yaml: rubbah
+job_id: 9999
+job_name: MOLUSC_999
+num_generated: 100
+run_date: '2022-07-27'
+ruwe_params:
+  fit: true
+rv_params:
+  fit: false
+  resolution: 0.0
+  rv_file: ''
+  rv_floor: 20
+star:
+  age: 5
+  dec: +18d07m24.8s
+  jitter: 20
+  mass: 0.599
+  ra: 08h40m22.16s
+transit: false
