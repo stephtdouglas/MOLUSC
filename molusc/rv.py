@@ -19,7 +19,7 @@ warnings.simplefilter('ignore', category=scipy.linalg.misc.LinAlgWarning)
 
 today = dt.today().isoformat().split("T")[0]
 import molusc
-repo_path = pathlib.Path(molusc.__file__).resolve().parent
+repo_path = pathlib.Path(molusc.__file__).resolve().parent.parent
 
 def calculate_RV_parallel(period, mass_ratio, a, e, cos_i, arg_peri, phase, MJD, calc):
     # Exactly the same as calculate_RV, but with an extra parameter stating whether you need to calculate RV

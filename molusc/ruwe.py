@@ -23,7 +23,7 @@ warnings.simplefilter('ignore', category=scipy.linalg.misc.LinAlgWarning)
 today = dt.today().isoformat().split("T")[0]
 
 import molusc
-repo_path = pathlib.Path(molusc.__file__).resolve().parent
+repo_path = pathlib.Path(molusc.__file__).resolve().parent.parent
 
 
 class RUWE:
