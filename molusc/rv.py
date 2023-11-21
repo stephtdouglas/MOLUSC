@@ -21,7 +21,7 @@ today = dt.today().isoformat().split("T")[0]
 import molusc
 repo_path = pathlib.Path(molusc.__file__).resolve().parent.parent
 
-def calculate_RV_parallel(period, mass_ratio, a, e, cos_i, arg_peri, phase, MJD, calc):
+def calculate_RV_parallel(period, mass_ratio, a, ecc, cos_i, arg_peri, phase, MJD, calc):
     # Exactly the same as calculate_RV, but with an extra parameter stating whether you need to calculate RV
     # Calculates the RVs for each item when passed arrays of orbital parameters
     # Inputs: Arrays of Period, Mass Ratio, Semi-Major Axis, eccentricity, inclination, arg peri, phase, calculation times
@@ -32,11 +32,20 @@ def calculate_RV_parallel(period, mass_ratio, a, e, cos_i, arg_peri, phase, MJD,
     sin_i = np.sin(np.arccos(cos_i))
 
     n = len(period)
-    RV = [[0.0 for i in range(len(MJD))] for j in range(n)]
-    a_star = np.multiply(a, np.divide(mass_ratio, np.add(mass_ratio, 1)))
-    K = np.multiply(np.divide((2 * np.pi), period),np.divide(np.multiply(a_star, sin_i), np.sqrt((1 - np.square(e)))))  # AU/days
-    K = np.multiply(K, 1731.48)  # km/s
+    ndates = len(MJD)
+    # Create a blank array with one row for every input period
+    # and each row contains RVs equivalent to the observation dates
+    RV = np.zeros((n,ndates))
+    # RV = [[0.0 for i in range(len(MJD))] for j in range(n)]
+    
+    a_star = a * (mass_ratio / (mass_ratio + 1))
+    # a_star = np.multiply(a, np.divide(mass_ratio, np.add(mass_ratio, 1)))
 
+    K = (2*np.pi/period) * (a_star * sin_i) / np.sqrt(1-ecc**2)
+    # K = np.multiply(np.divide((2 * np.pi), period),np.divide(np.multiply(a_star, sin_i), np.sqrt((1 - np.square(ecc)))))  # AU/days
+    K = K * 1731.48  # km/s
+
+    # TODO: Can this be converted to array operations for faster speed?
     for i in range(n):  # Iterate over companions
         if calc[i]:
             for j in range(0, len(MJD)):  # Iterate over times
@@ -47,12 +56,12 @@ def calculate_RV_parallel(period, mass_ratio, a, e, cos_i, arg_peri, phase, MJD,
 
                 while abs(current_E - prev_E) > 0.00001:
                     prev_E = current_E
-                    current_E = M + e[i] * np.sin(prev_E)
+                    current_E = M + ecc[i] * np.sin(prev_E)
 
                 # Find true anomaly, f
-                f = 2 * np.arctan2(np.tan(current_E / 2), np.sqrt((1 - e[i]) / (1 + e[i])))
+                f = 2 * np.arctan2(np.tan(current_E / 2), np.sqrt((1 - ecc[i]) / (1 + ecc[i])))
                 # Find predicted RV
-                RV[i][j] = K[i] * (np.sin(arg_peri[i] + f) + e[i] * np.sin(arg_peri[i]))  # km/s
+                RV[i][j] = K[i] * (np.sin(arg_peri[i] + f) + ecc[i] * np.sin(arg_peri[i]))  # km/s
 
     return K, RV
 
@@ -63,7 +72,7 @@ def zero_point_model(prediction, a):
 
 def zero_point_fit_parallel(experimental, errors, predicted):
 
-    A = [0.] * len(predicted)
+    A = np.zeros(len(predicted))
     for i in range(len(predicted)):
         [a], _ = scipy.optimize.curve_fit(zero_point_model, predicted[i], experimental, sigma=errors)
         A[i] = a
@@ -110,7 +119,7 @@ class RV:
         period = self.companions.P
         mass_ratio = self.companions.mass_ratio
         a = self.companions.a
-        e = self.companions.ecc
+        ecc = self.companions.ecc
         cos_i = self.companions.cos_i
         arg_peri = self.companions.arg_peri
         phase = self.companions.phase
@@ -131,7 +140,10 @@ class RV:
 
 
         prim_model_mag = f_mag(self.star_mass)
-        cmp_model_mag = [f_mag(x) if x >= self.model['M/Ms'][0] else float('inf') for x in cmp_mass]  # companion mags, assign infinite magnitude if below lowest modeled mass
+        # companion mags, assign inf if below lowest modeled mass
+        cmp_model_mag = np.zeros(num_generated)*np.inf
+        apply_mag = cmp_mass>=self.model["M/Ms"][0]
+        cmp_model_mag[apply_mag] = fmag(cmp_mass[apply_mag])
         contrast = np.subtract(cmp_model_mag, prim_model_mag)
         print(f'Current time: {datetime.datetime.now()} -- Finished determining velocity limit')
 
@@ -140,7 +152,10 @@ class RV:
         print(f'Current time: {datetime.datetime.now()} -- Determining luminosity...')
         f_lum = scipy.interpolate.interp1d(self.model['M/Ms'], self.model['L/Ls'], kind='cubic', fill_value='extrapolate')
         prim_lum = np.power(10, f_lum(self.star_mass))  # primary luminosity
-        cmp_lum = [np.power(10, f_lum(x)) if x >= self.model['M/Ms'][0] else 0. for x in cmp_mass]  # companion luminosity, 0 if below limit
+        # companion luminosity, 0 if below limit
+        # (same limit as for mag)
+        cmp_lum = np.zeros(num_generated)
+        cmp_lum[apply_mag] = np.power(10, f_lum(cmp_mass[apply_mag]))
         print(f'Current time: {datetime.datetime.now()} -- Determined luminosity')
 
         # Choose to run either parallelized or non-parallelized based on the number of generated companions
@@ -150,24 +165,28 @@ class RV:
             self.predicted_RV = [np.zeros(len(self.MJD)) for x in range(num_generated)] # pre-allocate
 
             # calculate RV curves
-            prim_K, prim_rv = self.calculate_RV(period, mass_ratio, a, e, cos_i, arg_peri, phase, self.MJD)
-            cmp_K, cmp_rv = self.calculate_RV(period, np.divide(1, mass_ratio), a, e, cos_i, arg_peri, phase, self.MJD)
+            prim_K, prim_rv = self.calculate_RV(period, mass_ratio, a, ecc, cos_i, arg_peri, phase, self.MJD)
+            cmp_K, cmp_rv = self.calculate_RV(period, np.divide(1, mass_ratio), a, ecc, cos_i, arg_peri, phase, self.MJD)
             cmp_rv = np.multiply(-1, cmp_rv)
 
             max_delta_rv = np.max(np.absolute(np.subtract(prim_rv, cmp_rv)), axis=1)
 
             # Determine the overall predicted RV
             print(f'Current time: {datetime.datetime.now()} -- Determining overall predicted RV...')
-            for i in range(num_generated):
-                if contrast[i] > 5:
-                    # SB1
-                    self.predicted_RV[i] = prim_rv[i]
-                elif contrast[i] <= 5:
-                    # SB2, looks like SB1. RV is weighted average
-                    rv = np.average([prim_rv[i], cmp_rv[i]], axis=0, weights=[prim_lum, cmp_lum[i]])
-                    self.predicted_RV[i] = rv
+
+            # SB1s have high contrast
+            sb1 = contrast > 5
+            self.predicted_RV[sb1] = prim_rv[sb1]
+            sb2 = np.where(contrast>=5)[0]
+
+            # TODO: can this be further streamlined?
+            for i in sb2:
+                # SB2, looks like SB1. RV is weighted average
+                rv = np.average([prim_rv[i], cmp_rv[i]], axis=0, weights=[prim_lum, cmp_lum[i]])
+                self.predicted_RV[i] = rv
 
             print(f'Current time: {datetime.datetime.now()} -- Running zero point models...')
+            # TODO: can this be further streamlined?
             for i in range(0, num_generated):
                 # Fit the zero point
                 [zero_point], pcov = scipy.optimize.curve_fit(self.zero_point_model, self.predicted_RV[i], self.experimental_RV, sigma=self.measurement_error)
@@ -179,11 +198,18 @@ class RV:
 
             print(f'Current time: {datetime.datetime.now()} -- Comparing experimental RV to predicted RV...')
             # Compare experimental and predicted RVs
-            amp = [np.ptp(self.predicted_RV[i]) for i in range(num_generated)]
-            chi_squared = [sum(np.divide(np.square(np.subtract(self.experimental_RV, self.predicted_RV[i])),
-                        np.add(np.square(self.measurement_error), self.added_jitter ** 2))) for i in range(num_generated)]
+            amp = np.ptp(self.predicted_RV, axis=1)
+            # amp = [np.ptp(self.predicted_RV[i]) for i in range(num_generated)]
+
+            model_difference = self.experimental_RV - self.predicted_RV
+            sq_term = self.measurement_error**2 + self.added_jitter**2
+            chi_squared0 = model_difference / sq_term
+            chi_squared = np.sum(chi_squared0,axis=1)
+
             # The degrees of freedom is equal to (N-1)+1, for the number of data points and the applied velocity shift
-            prob = [stats.chi2.cdf(chi_squared[i], len(self.MJD)-1) for i in range(0, num_generated)]
+            ndatesm1 = len(self.MJD)-1
+            # TODO: can this be further streamlined?
+            prob = [stats.chi2.cdf(chi_squared[i], ndatesm1) for i in range(num_generated)]
             print(f'Current time: {datetime.datetime.now()} -- Finished comparing experimental RV to predicted RV')
 
         else:  
@@ -211,7 +237,7 @@ class RV:
             period = [period[i:i + divisor] for i in range(0, num_generated, divisor)]
             mass_ratio = [mass_ratio[i:i + divisor] for i in range(0, num_generated, divisor)]
             a = [a[i:i + divisor] for i in range(0, num_generated, divisor)]
-            e = [e[i:i + divisor] for i in range(0, num_generated, divisor)]
+            ecc = [ecc[i:i + divisor] for i in range(0, num_generated, divisor)]
             cos_i = [cos_i[i:i + divisor] for i in range(0, num_generated, divisor)]
             arg_peri = [arg_peri[i:i + divisor] for i in range(0, num_generated, divisor)]
             phase = [phase[i:i + divisor] for i in range(0, num_generated, divisor)]
@@ -226,9 +252,11 @@ class RV:
 
             # Use Pool to calculate RVs
             print(f'Current time: {datetime.datetime.now()} -- Parallel processes are now calculating RVs (passed to workers!)...')
-            prim_results = pool.starmap(self.calculate_RV, [(period[j], mass_ratio[j], a[j], e[j], cos_i[j], arg_peri[j], phase[j], self.MJD) for j in range(n_divisor)])
+            # TODO: I think we don't have to do the chunking ourselves? 
+            # I think starmap does it for us??
+            prim_results = pool.starmap(self.calculate_RV, [(period[j], mass_ratio[j], a[j], ecc[j], cos_i[j], arg_peri[j], phase[j], self.MJD) for j in range(n_divisor)])
             cmp_results = pool.starmap(calculate_RV_parallel, [(period[j], np.divide(1, mass_ratio[j]), a[j],
-                    e[j], cos_i[j], arg_peri[j], phase[j], self.MJD, contrast_check[j]) for j in range(n_divisor)])
+                    ecc[j], cos_i[j], arg_peri[j], phase[j], self.MJD, contrast_check[j]) for j in range(n_divisor)])
             print(f'Current time: {datetime.datetime.now()} -- Parallel processes done calculating RVs!')
 
             # Concatenate Results
