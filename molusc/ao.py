@@ -155,7 +155,7 @@ class AO:
             all_stars.append(star_params)
         
         try:
-            cpu_ct = len(os.sched_getaffinity(0))-1
+            cpu_ct = len(os.sched_getaffinity(0))
             print(f"Current time: {datetime.datetime.now()} -- AO cpu_count HPC:", cpu_ct)
         except AttributeError:
             cpu_ct = mp.cpu_count()-1
