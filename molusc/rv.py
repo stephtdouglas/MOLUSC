@@ -28,7 +28,7 @@ def calculate_RV_parallel(period, mass_ratio, a, ecc, cos_i, arg_peri, phase, MJ
     # Outputs: Velocity Semi-Amplitude (km/s), RVs at each time in MJD
 
 
-    # print(f'Current time: {datetime.datetime.now()} -- Calculating RV Para
+        print(f'\n\nCurrent time: {datetime.datetime.now()} -- Calculating RVs Parallel function {mp.current_process()}...')
     sin_i = np.sin(np.arccos(cos_i))
 
     n = len(period)
@@ -62,6 +62,7 @@ def calculate_RV_parallel(period, mass_ratio, a, ecc, cos_i, arg_peri, phase, MJ
                 f = 2 * np.arctan2(np.tan(current_E / 2), np.sqrt((1 - ecc[i]) / (1 + ecc[i])))
                 # Find predicted RV
                 RV[i][j] = K[i] * (np.sin(arg_peri[i] + f) + ecc[i] * np.sin(arg_peri[i]))  # km/s
+    print(f'Current time: {datetime.datetime.now()} -- Finished calculating RVs! Parallel {mp.current_process()}')
 
     return K, RV
 
@@ -174,14 +175,14 @@ class RV:
             # Determine the overall predicted RV
             print(f'Current time: {datetime.datetime.now()} -- Determining overall predicted RV...')
 
+            comb_rvs = np.hstack(prim_rv,cmp_rv)
+            comb_weights = np.hstack(prim_lum, cmp_lum)
+            self.predicted_RV = np.average(comb_rvs,axis=1,weights=comb_weights)
             # SB1s have high contrast
             sb1 = contrast > 5
             self.predicted_RV[sb1] = prim_rv[sb1]
             sb2 = np.where(contrast>=5)[0]
 
-            comb_rvs = np.hstack(prim_rv,cmp_rv)
-            comb_weights = np.hstack(prim_lum, cmp_lum)
-            self.predicted_RV = np.average(comb_rvs,axis=1,weights=comb_weights)
             
             print(f'Current time: {datetime.datetime.now()} -- Running zero point models...')
             # TODO: can this be further streamlined?
@@ -228,20 +229,22 @@ class RV:
 
             # Split the parameters into chunks to pass to workers
             print(f'Current time: {datetime.datetime.now()} -- Splitting parameters into chunks to pass to workers...')
-            divisor = int(np.ceil(min(num_generated / cpu_ct, 200000)))
-            n_divisor = int(np.ceil(num_generated / divisor))
+            divisor = np.min(num_generated // cpu_ct, 200000)
+            n_divisor = num_generated // divisor
 
-            # Parameters are split into chunks of size divisor
-            period = [period[i:i + divisor] for i in range(0, num_generated, divisor)]
-            mass_ratio = [mass_ratio[i:i + divisor] for i in range(0, num_generated, divisor)]
-            a = [a[i:i + divisor] for i in range(0, num_generated, divisor)]
-            ecc = [ecc[i:i + divisor] for i in range(0, num_generated, divisor)]
-            cos_i = [cos_i[i:i + divisor] for i in range(0, num_generated, divisor)]
-            arg_peri = [arg_peri[i:i + divisor] for i in range(0, num_generated, divisor)]
-            phase = [phase[i:i + divisor] for i in range(0, num_generated, divisor)]
-            contrast_check = [contrast_check[i:i+divisor] for i  in range(0,  num_generated, divisor)]
-            print(f'Current time: {datetime.datetime.now()} -- Parameters have been split...')
-
+            # Create an array with all necessary arguments for processing
+            # TODO: change calculate_rv to accept a parameter array of any length
+            # param_stack0 = np.column_stack(period,mass_ratio,a,ecc,cos_i,arg_peri,phase,contrast_check)
+            # dates_expand = np.tile(self.MJD,num_generated)
+            # param_stack = np.concatenate(param_stack0,dates_expand,axis=1)
+            param_stack = [period[j],mass_ratio[j],a[j],ecc[j],cos_i[j],
+                           arg_peri[j],phase[j],self.MJD,contrast_check[j]
+                           for j in range(num_generated)]
+            # And a set of arguments for the companion
+            inv_q = 1/mass_ratio
+            param_compa = [period[j],inv_q[j],a[j],ecc[j],cos_i[j],
+                           arg_peri[j],phase[j],self.MJD,contrast_check[j]
+                           for j in range(num_generated)]
             # Move into parallel processing
             #  Create Processes
             print(f'Current time: {datetime.datetime.now()} -- Creating parallel processes...')
@@ -252,43 +255,43 @@ class RV:
             print(f'Current time: {datetime.datetime.now()} -- Parallel processes are now calculating RVs (passed to workers!)...')
             # TODO: I think we don't have to do the chunking ourselves? 
             # I think starmap does it for us??
-            prim_results = pool.starmap(self.calculate_RV, [(period[j], mass_ratio[j], a[j], ecc[j], cos_i[j], arg_peri[j], phase[j], self.MJD) for j in range(n_divisor)])
-            cmp_results = pool.starmap(calculate_RV_parallel, [(period[j], np.divide(1, mass_ratio[j]), a[j],
-                    ecc[j], cos_i[j], arg_peri[j], phase[j], self.MJD, contrast_check[j]) for j in range(n_divisor)])
+            # TODO: why is one the class method and one an external function?
+            prim_results = pool.starmap(self.calculate_RV, param_stack, chunksize=n_divisor)
+            # TODO: can I remove this part and just rescale the primary RVs???
+            cmp_results = pool.starmap(calculate_RV_parallel, param_compa, chunksize=n_divisor)
             print(f'Current time: {datetime.datetime.now()} -- Parallel processes done calculating RVs!')
 
             # Concatenate Results
             print(f'Current time: {datetime.datetime.now()} -- Concatenating RV results...')
-            prim_K = np.hstack([prim_results[i][0] for i in range(int(np.ceil(num_generated / divisor)))])
-            prim_rv = np.vstack([prim_results[i][1] for i in range(int(np.ceil(num_generated / divisor)))])
-            cmp_K = np.hstack([cmp_results[i][0] for i in range(int(np.ceil(num_generated / divisor)))])
-            cmp_rv = np.vstack([cmp_results[i][1] for i in range(int(np.ceil(num_generated / divisor)))])
-            cmp_rv = np.multiply(-1, cmp_rv)
+            prim_K = prim_results[:,0]
+            prim_rv = prim_results[:,1]
+            cmp_K = cmp_results[:,0]
+            cmp_rv = cmp_results[:,1]*-1
 
             max_delta_rv = np.max(np.absolute(np.subtract(prim_rv, cmp_rv)), axis=1)
             print(f'Current time: {datetime.datetime.now()} -- Finished concatenating RV results...')
 
 
             # Determine the overall predicted RV
-            print(f'Current time: {datetime.datetime.now()} -- Determining overall predicted RV...')
-            self.predicted_RV = [np.zeros(len(self.MJD)) for x in range(num_generated)]  # pre-allocate
-
-            for i in range(num_generated):
-                if contrast[i] > 5:
-                    # SB1
-                    self.predicted_RV[i] = prim_rv[i]
-                elif contrast[i] <= 5:
-                    # SB2, looks like SB1. RV is weighted average
-                    rv = np.average([prim_rv[i], cmp_rv[i]], axis=0, weights=[prim_lum, cmp_lum[i]])
-                    self.predicted_RV[i] = rv
-                    
+            comb_rvs = np.hstack(prim_rv,cmp_rv)
+            comb_weights = np.hstack(prim_lum, cmp_lum)
+            self.predicted_RV = np.average(comb_rvs,axis=1,weights=comb_weights)
             print(f'Current time: {datetime.datetime.now()} -- Determined overall predicted RV')
+
+
+            # SB1s have high contrast
+            sb1 = contrast > 5
+            self.predicted_RV[sb1] = prim_rv[sb1]
+            sb2 = np.where(contrast>=5)[0]
+
+
 
             # Use Pool to calculate zero point
             print(f'Current time: {datetime.datetime.now()} -- Calculating zero point...')
-            split_RV  = [self.predicted_RV[i:i+divisor] for i  in range(0,  num_generated, divisor)]
-            zero_points = pool.starmap(zero_point_fit_parallel, [(self.experimental_RV, self.measurement_error, split_RV[j]) for j in range(n_divisor)])
-            zero_points = np.concatenate(zero_points, axis=0)
+            zp_params = [[self.experimental_RV, self.measurement_error, self.predicted_RV[j]] for j in range(num_generated)]
+
+            zero_points = pool.starmap(zero_point_fit_parallel, zp_params,
+                                       chunksize=n_divisor)
             pool.close()
             print(f'Current time: {datetime.datetime.now()} -- Calculated zero point!')
 
@@ -299,112 +302,29 @@ class RV:
 
             # Compare experimental and predicted RVs
             print(f'Current time: {datetime.datetime.now()} -- Comparing experimental and predicted RVs...')
-            # self.predicted_RV.show_in_browser(js_viewer=True)
-            # print(f"---------------------------------------------Predicted RV: {type(self.predicted_RV)}")
-            # print(f"---------------------------------------------Predicted RV length: {len(self.predicted_RV)}")
-            # print(f"---------------------------------------------Num generated: {num_generated}")
-            # print(f"---------------------------------------------Predicted RV[num]: {self.predicted_RV[range(num_generated-1)]}")
-            # print(f"---------------------------------------------Predicted RV[i]:")
-            # for i in range(3):
-            #     print(self.predicted_RV[i])
             
-            # print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre amp test1')
-            # amp_test1 = list(map(apply_ptp, self.predicted_RV))
-            # print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post amp test1')
-            
-            
-            
-            # print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre amp test2')
-            # amp_test2 = np.apply_along_axis(func1d=np.ptp, axis=1, arr=self.predicted_RV)
-            # print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post amp test2')
-
-
             # Calculate amp
             print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre amp')
-            amp = [np.ptp(self.predicted_RV[i]) for i in range(num_generated)]
+            amp = np.ptp(self.predicted_RV, axis=1)
             print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post amp')
             
-            
-            # print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre chi sq new1a')
-            # chi_sq_denom = self.measurement_error**2 + self.added_jitter**2
-            # chi_squared = [np.sum(np.divide(np.square(np.subtract(self.experimental_RV, self.predicted_RV[i])), 
-            #               chi_sq_denom)) for i in range(num_generated)]
-            # print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post chi sq new1a')
-
-            
-
 
             # Calculate chi^2            
             print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre chi sq1')
             chi_sq_numer = np.square(np.subtract(self.experimental_RV, self.predicted_RV))
             chi_sq_denom = self.measurement_error**2 + self.added_jitter**2
-            chi_squared = [np.sum(np.divide(chi_sq_numer[i], chi_sq_denom)) for i in range(num_generated)]
+            chi_squared0 = chi_sq_numer / chi_sq_denom
+            chi_squared = np.sum(chi_squared0,axis=1)
+
             print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post chi sq1')
             # print(f'shape, type of chi_squared: {np.shape(chi_squared)}, {type(chi_squared)}')
-
-            # print(f'chi_sq_numer[i]: {chi_sq_numer[1]}')
-            # print(f'chi_sq_denom: {chi_sq_denom}')
-            # print(f'np.divide(chi_sq_numer[1], chi_sq_denom): {np.divide(chi_sq_numer[1], chi_sq_denom)}')
-
-       
-            # # Isolate chi_squared for no reason
-            # # print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre chi sq raw')
-            # # chi_sq_raw = [np.sum(np.divide(chi_sq_numer[i], chi_sq_denom)) for i in range(num_generated)]
-            # # print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post chi sq raw')
-            # # print(f'shape, type of chi_sq_raw: {np.shape(chi_sq_raw)}, {type(chi_sq_raw)}')
-        
-            # # print(f'Are chi_sq_raw and chi_squared the same?: {(chi_sq_raw == chi_squared).all()}')
-
-        
-            # # Use vectorized operations to get an array of all of the terms that have to be summed
-            # print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre test_fnl')
-            # test_fnl = np.divide(chi_sq_numer, chi_sq_denom)
-            # print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post test_fnl')
-            # print(f'shape, type of test_fnl: {np.shape(test_fnl)}, {type(test_fnl)}')
-            
-            # np.set_printoptions(threshold=0)
-            # print(f'test_fnl: {test_fnl}')
-            
-            
-            # print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre chi sq items')
-            # chi_sq_items = [(np.divide(chi_sq_numer[i], chi_sq_denom)) for i in range(num_generated)]
-            # print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post chi sq items')
-            # print(f'shape, type of chi_sq_items: {np.shape(chi_sq_items)}, {type(chi_sq_items)}')
-
-            # print(f'Are test_fnl and chi_sq_items the same?: {(test_fnl == chi_sq_items).all()}')
-
-
-            # print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre chi sq new1')
-            # chi_sq_new1 = [np.sum(np.divide(chi_sq_numer, chi_sq_denom), axis=1)]
-            # print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post chi sq new1')
-            # print(f'shape, type of chi_sq_new1: {np.shape(chi_sq_new1)}, {type(chi_sq_new1)}')
-            
-            
-            # np.set_printoptions(threshold=0)
-            # print(f'chi_sq_new1: {chi_sq_new1}')
-            
-            # np.set_printoptions(threshold=0)
-            # print(f'chi_sq_raw: {chi_sq_raw}')
-
-            # np.set_printoptions(threshold=5)
-
-
-
-            # print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre chi sq new2')
-            # chi_sq_new2 = np.sum(np.divide(chi_sq_numer, chi_sq_denom))
-            # print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post chi sq new2')
-            # print(f'shape, type of chi_sq_new2: {np.shape(chi_sq_new2)}, {type(chi_sq_new2)}')
-
-
-
-
-            # print(f'Are chi_sq_new1 and chi_sq_raw the same?: {(chi_sq_new1 == chi_sq_raw).all()}')
-
 
 
             # Calculate prob
             print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre prob')
-            prob = [stats.chi2.cdf(chi_squared[i], len(self.MJD)-1) for i in range(0, num_generated)]
+            ndatesm1 = len(self.MJD)-1
+            # TODO: can this be further streamlined?
+            prob = [stats.chi2.cdf(chi_squared[i], ndatesm1) for i in range(num_generated)]
             print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post prob')
 
 
@@ -479,28 +399,22 @@ class RV:
         # Outputs: Velocity Semi-Amplitude (km/s), RVs at each time in MJD
         print(f'\n\nCurrent time: {datetime.datetime.now()} -- Calculating RVs {mp.current_process()}...')
         
-        print(f'Current time: {datetime.datetime.now()} -- sin_i {mp.current_process()}...')
         sin_i = np.sin(np.arccos(cos_i))
-        print(f'Current time: {datetime.datetime.now()} -- Finished sin_i {mp.current_process()}')
 
 
         n = len(period)
+        ndates = len(MJD)
+        # Create a blank array with one row for every input period
+        # and each row contains RVs equivalent to the observation dates
+        RV = np.zeros((n,ndates))
+        # RV = [[0.0 for i in range(len(MJD))] for j in range(n)]
         
-        print(f'Current time: {datetime.datetime.now()} -- RV=for loop {mp.current_process()}...')
-        RV = [[0.0 for i in range(len(MJD))] for j in range(n)]
-        print(f'Current time: {datetime.datetime.now()} -- Finished RV=for loop {mp.current_process()}')
+        a_star = a * (mass_ratio / (mass_ratio + 1))
+        # a_star = np.multiply(a, np.divide(mass_ratio, np.add(mass_ratio, 1)))
 
-        print(f'Current time: {datetime.datetime.now()} -- a* {mp.current_process()}')
-        a_star = np.multiply(a, np.divide(mass_ratio, np.add(mass_ratio, 1)))
-        print(f'Current time: {datetime.datetime.now()} -- Finished a* {mp.current_process()}')
-
-        print(f'Current time: {datetime.datetime.now()} -- K=first {mp.current_process()}')
-        K = np.multiply(np.divide((2 * np.pi), period),np.divide(np.multiply(a_star, sin_i), np.sqrt((1 - np.square(e)))))  # AU/days
-        print(f'Current time: {datetime.datetime.now()} -- Finished K=first {mp.current_process()}')
-        
-        print(f'Current time: {datetime.datetime.now()} -- K=second {mp.current_process()}...')
-        K = np.multiply(K, 1731.48)  # km/s
-        print(f'Current time: {datetime.datetime.now()} -- Finished K=second {mp.current_process()}')
+        K = (2*np.pi/period) * (a_star * sin_i) / np.sqrt(1-ecc**2)
+        # K = np.multiply(np.divide((2 * np.pi), period),np.divide(np.multiply(a_star, sin_i), np.sqrt((1 - np.square(ecc)))))  # AU/days
+        K = K * 1731.48  # km/s
 
         print(f'Current time: {datetime.datetime.now()} -- Iterating over companions {mp.current_process()}...')
         for i in range(n):  # Iterate over companions
