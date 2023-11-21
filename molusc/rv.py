@@ -141,9 +141,9 @@ class RV:
 
         prim_model_mag = f_mag(self.star_mass)
         # companion mags, assign inf if below lowest modeled mass
-        cmp_model_mag = np.zeros(num_generated)*np.inf
+        cmp_model_mag = np.full(num_generated,np.inf)
         apply_mag = cmp_mass>=self.model["M/Ms"][0]
-        cmp_model_mag[apply_mag] = fmag(cmp_mass[apply_mag])
+        cmp_model_mag[apply_mag] = f_mag(cmp_mass[apply_mag])
         contrast = np.subtract(cmp_model_mag, prim_model_mag)
         print(f'Current time: {datetime.datetime.now()} -- Finished determining velocity limit')
 
@@ -179,12 +179,10 @@ class RV:
             self.predicted_RV[sb1] = prim_rv[sb1]
             sb2 = np.where(contrast>=5)[0]
 
-            # TODO: can this be further streamlined?
-            for i in sb2:
-                # SB2, looks like SB1. RV is weighted average
-                rv = np.average([prim_rv[i], cmp_rv[i]], axis=0, weights=[prim_lum, cmp_lum[i]])
-                self.predicted_RV[i] = rv
-
+            comb_rvs = np.hstack(prim_rv,cmp_rv)
+            comb_weights = np.hstack(prim_lum, cmp_lum)
+            self.predicted_RV = np.average(comb_rvs,axis=1,weights=comb_weights)
+            
             print(f'Current time: {datetime.datetime.now()} -- Running zero point models...')
             # TODO: can this be further streamlined?
             for i in range(0, num_generated):
@@ -415,23 +413,32 @@ class RV:
 
         # Reject things with a rejection probability greater than 0.997, corresponding to 3 sigma
         print(f'Current time: {datetime.datetime.now()} -- Rejecting unlikely companions...')
-        rv_fit_reject = np.array([True if np.random.rand() < x else False for x in prob])
+#        rv_fit_reject = np.array([True if np.random.rand() < x else False for x in prob])
+        rv_fit_reject = np.random.rand(num_generated) < prob
         # Check amplitude and resolution
         print(f'Current time: {datetime.datetime.now()} -- Checking amplitude and resolution...')
-        above_amplitude = np.array([True if abs(x) > self.rv_floor else False for x in amp])
+#        above_amplitude = np.array([True if abs(x) > self.rv_floor else False for x in amp])
+        above_amplitude = np.abs(amp) > self.rv_floor
         self.amp = amp
-        visible_sb2 = np.array([True if contrast[i] < 5 and max_delta_rv[i] > delta_v else False for i in range(num_generated)])
-        self.b_type = ['              ']*num_generated
-        for i in range(num_generated):
-            if contrast[i] > 5:
-                self.b_type[i] = 'SB1'
-            elif contrast[i] <=5 and max_delta_rv[i] < delta_v:
-                self.b_type[i] = 'Unresolved SB2'
-            elif contrast[i] <=5 and max_delta_rv[i] > delta_v:
-                self.b_type[i] = 'Resolved SB2'
+#        visible_sb2 = np.array([True if contrast[i] < 5 and max_delta_rv[i] > delta_v else False for i in range(num_generated)])
+        visible_sb2 = (contrast <= 5) & (max_delta_rv > delta_v)
+        invisible_sb2 = (contrast <= 5) & (max_delta_rv < delta_v)
+#        self.b_type = ['              ']*num_generated
+        self.b_type = np.full(num_generated,"","U14")
+        self.b_type[contrast > 5] = "SB1"
+        self.b_type[visible_sb2] = "Resolved SB2"
+        self.b_type[invisible_sb2] = "Unresolved SB2"
+#        for i in range(num_generated):
+#            if contrast[i] > 5:
+#                self.b_type[i] = 'SB1'
+#            elif contrast[i] <=5 and max_delta_rv[i] < delta_v:
+#                self.b_type[i] = 'Unresolved SB2'
+#            elif contrast[i] <=5 and max_delta_rv[i] > delta_v:
+#                self.b_type[i] = 'Resolved SB2'
         print(f'Current time: {datetime.datetime.now()} -- Finished checking amplitude and resolution')
 
-        self.rv_reject_list = np.array([True if (rv_fit_reject[i] and above_amplitude[i]) or visible_sb2[i] else False for i in range(num_generated)])
+#        self.rv_reject_list = np.array([True if (rv_fit_reject[i] and above_amplitude[i]) or visible_sb2[i] else False for i in range(num_generated)])
+        self.rv_reject_list = (rv_fit_reject & above_amplitude) | visible_sb2
         print(f'Current time: {datetime.datetime.now()} -- Rejected unlikely companions')
         
         return self.rv_reject_list
