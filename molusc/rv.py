@@ -167,8 +167,10 @@ class RV:
 
             # calculate RV curves
             prim_K, prim_rv = self.calculate_RV(period, mass_ratio, a, ecc, cos_i, arg_peri, phase, self.MJD)
-            cmp_K, cmp_rv = self.calculate_RV(period, np.divide(1, mass_ratio), a, ecc, cos_i, arg_peri, phase, self.MJD)
-            cmp_rv = np.multiply(-1, cmp_rv)
+            # cmp_K, cmp_rv = self.calculate_RV(period, np.divide(1, mass_ratio), a, ecc, cos_i, arg_peri, phase, self.MJD)
+            cmp_K = prim_K / mass_ratio
+            cmp_rv = -1 * prim_rv / mass_ratio
+            # cmp_rv = np.multiply(-1, cmp_rv)
 
             max_delta_rv = np.max(np.absolute(np.subtract(prim_rv, cmp_rv)), axis=1)
 
@@ -249,24 +251,27 @@ class RV:
             #  Create Processes
             print(f'Current time: {datetime.datetime.now()} -- Creating parallel processes...')
             pool = mp.Pool(cpu_ct)
-            print(f'Current time: {datetime.datetime.now()} -- Parallel processes have been created')
 
             # Use Pool to calculate RVs
             print(f'Current time: {datetime.datetime.now()} -- Parallel processes are now calculating RVs (passed to workers!)...')
-            # TODO: I think we don't have to do the chunking ourselves? 
-            # I think starmap does it for us??
-            # TODO: why is one the class method and one an external function?
-            prim_results = pool.starmap(self.calculate_RV, param_stack, chunksize=divisor)
-            # TODO: can I remove this part and just rescale the primary RVs???
-            cmp_results = pool.starmap(calculate_RV_parallel, param_compa, chunksize=divisor)
+
+            unscaled_rv = pool.starmap(self.calculate_unscaled_RV, param_stack, chunksize=divisor)
             print(f'Current time: {datetime.datetime.now()} -- Parallel processes done calculating RVs!')
 
-            # Concatenate Results
-            print(f'Current time: {datetime.datetime.now()} -- Concatenating RV results...')
-            prim_K = prim_results[:,0]
-            prim_rv = prim_results[:,1]
-            cmp_K = cmp_results[:,0]
-            cmp_rv = cmp_results[:,1]*-1
+            # The barycentric semimajor axes are related by the mass ratio
+            a_prim = a * (mass_ratio / (mass_ratio + 1))
+            a_cmp = a - a_prim
+            
+            # Most of the terms in K are constants for a given orbit, 
+            # then rescale by individual a values
+            K_term = (2*np.pi/period) * sin_i / np.sqrt(1-ecc**2)
+            prim_K = K_term * a_prim
+            cmp_K = K_term * a_cmp
+
+            # scaled rvs equal unscaled rv * K
+            # and the companion moves opposite to the primary
+            prim_rv = prim_K * unscaled_rv
+            cmp_rv = -1 * cmp_K * unscaled_rv
 
             max_delta_rv = np.max(np.absolute(np.subtract(prim_rv, cmp_rv)), axis=1)
             print(f'Current time: {datetime.datetime.now()} -- Finished concatenating RV results...')
@@ -437,6 +442,41 @@ class RV:
 
         print(f'Current time: {datetime.datetime.now()} -- Finished calculating RVs! {mp.current_process()}')
         return K, RV
+
+    @ staticmethod
+    def calculate_unscaled_RV(period, mass_ratio, a, ecc, cos_i, arg_peri, phase, MJD):
+        # Calculates the RVs for each item when passed arrays of orbital parameters
+        # Inputs: Arrays of Period, Mass Ratio, Semi-Major Axis, eccentricity, inclination, arg peri, phase, calculation times
+        # Outputs: Velocity Semi-Amplitude (km/s), RVs at each time in MJD
+        print(f'\n\nCurrent time: {datetime.datetime.now()} -- Calculating RVs {mp.current_process()}...')
+        
+        sin_i = np.sin(np.arccos(cos_i))
+
+        ndates = len(MJD)
+        # RV = np.zeros(ndates)
+        
+        f_ecc_term = np.sqrt((1 - ecc) / (1 + ecc))
+        pi2per = 2*np.pi/period
+
+        true_anomaly = np.zeros(ndates)
+
+        for j in range(0, len(MJD)):  # Iterate over times
+            # Find E
+            M = pi2per * MJD[j] - phase
+            prev_E = 0.0
+            current_E = M
+
+            while abs(current_E - prev_E) > 0.00001:
+                prev_E = current_E
+                current_E = M + ecc * np.sin(prev_E)
+
+            # Find true anomaly, f
+            true_anomaly[j] = 2 * np.arctan2(np.tan(current_E / 2), f_ecc_term)
+            # Find predicted RV
+        RV = (np.sin(arg_peri + true_anomaly) + ecc * np.sin(arg_peri))  # km/s
+
+        print(f'Current time: {datetime.datetime.now()} -- Finished calculating unscaled RVs! {mp.current_process()}')
+        return RV
 
     def read_in_rv(self):
         print(f'Current time: {datetime.datetime.now()} -- Reading in RVs...')
