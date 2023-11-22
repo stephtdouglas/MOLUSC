@@ -28,7 +28,7 @@ def calculate_RV_parallel(period, mass_ratio, a, ecc, cos_i, arg_peri, phase, MJ
     # Outputs: Velocity Semi-Amplitude (km/s), RVs at each time in MJD
 
 
-        print(f'\n\nCurrent time: {datetime.datetime.now()} -- Calculating RVs Parallel function {mp.current_process()}...')
+    print(f'\n\nCurrent time: {datetime.datetime.now()} -- Calculating RVs Parallel function {mp.current_process()}...')
     sin_i = np.sin(np.arccos(cos_i))
 
     n = len(period)
@@ -229,7 +229,7 @@ class RV:
 
             # Split the parameters into chunks to pass to workers
             print(f'Current time: {datetime.datetime.now()} -- Splitting parameters into chunks to pass to workers...')
-            divisor = np.min(num_generated // cpu_ct, 200000)
+            divisor = num_generated // cpu_ct
             n_divisor = num_generated // divisor
 
             # Create an array with all necessary arguments for processing
@@ -237,13 +237,13 @@ class RV:
             # param_stack0 = np.column_stack(period,mass_ratio,a,ecc,cos_i,arg_peri,phase,contrast_check)
             # dates_expand = np.tile(self.MJD,num_generated)
             # param_stack = np.concatenate(param_stack0,dates_expand,axis=1)
-            param_stack = [period[j],mass_ratio[j],a[j],ecc[j],cos_i[j],
-                           arg_peri[j],phase[j],self.MJD,contrast_check[j]
+            param_stack = [[period[j],mass_ratio[j],a[j],ecc[j],cos_i[j],
+                           arg_peri[j],phase[j],self.MJD]
                            for j in range(num_generated)]
             # And a set of arguments for the companion
             inv_q = 1/mass_ratio
-            param_compa = [period[j],inv_q[j],a[j],ecc[j],cos_i[j],
-                           arg_peri[j],phase[j],self.MJD,contrast_check[j]
+            param_compa = [[period[j],inv_q[j],a[j],ecc[j],cos_i[j],
+                           arg_peri[j],phase[j],self.MJD,contrast_check[j]]
                            for j in range(num_generated)]
             # Move into parallel processing
             #  Create Processes
@@ -256,9 +256,9 @@ class RV:
             # TODO: I think we don't have to do the chunking ourselves? 
             # I think starmap does it for us??
             # TODO: why is one the class method and one an external function?
-            prim_results = pool.starmap(self.calculate_RV, param_stack, chunksize=n_divisor)
+            prim_results = pool.starmap(self.calculate_RV, param_stack, chunksize=divisor)
             # TODO: can I remove this part and just rescale the primary RVs???
-            cmp_results = pool.starmap(calculate_RV_parallel, param_compa, chunksize=n_divisor)
+            cmp_results = pool.starmap(calculate_RV_parallel, param_compa, chunksize=divisor)
             print(f'Current time: {datetime.datetime.now()} -- Parallel processes done calculating RVs!')
 
             # Concatenate Results
@@ -291,7 +291,7 @@ class RV:
             zp_params = [[self.experimental_RV, self.measurement_error, self.predicted_RV[j]] for j in range(num_generated)]
 
             zero_points = pool.starmap(zero_point_fit_parallel, zp_params,
-                                       chunksize=n_divisor)
+                                       chunksize=divisor)
             pool.close()
             print(f'Current time: {datetime.datetime.now()} -- Calculated zero point!')
 
