@@ -359,36 +359,46 @@ class AO:
         # # end nearest neighbor segment
 
         # Get column names and recovery rates
+        # Column headers are recovery rates as percentages
         column_rates = [float(x.strip('%')) / 100.0 for x in list(contrast.columns)[1:]]
         column_names = contrast.colnames[1:]
         recovery_rate = np.zeros(num_generated)
 
-        f = scipy.interpolate.interp2d(contrast['Sep (AU)'], column_rates, [contrast[x] for x in column_names])
+        # TODO: interp2d is deprecated
+        # 2D interpolation for contrast rate as a function of
+        # separation and recovery rate
+        calc_contr = scipy.interpolate.interp2d(contrast['Sep (AU)'],
+            column_rates, [contrast[x] for x in column_names],
+            bounds_error=False,fill_value=np.inf)
 
-        for i in range(num_generated):
+        # closer than lowest limit, recovery rate = 0
+        recovery_rate[pro_sep<contrast['Sep (AU)'][0]] = 0
+
+        # further than farthest limit, recovery rate = 1
+        recovery_rate[pro_sep>contrast['Sep (AU)'][-1]] = 1
+
+        intermediate_contrast = np.where((pro_sep>=contrast['Sep (AU)'][0]) |
+                                        (pro_sep<=contrast['Sep (AU)'][-1]))[0]
+
+        # Within the appropriate limits, interpolate to find
+        # the recovery rate
+        for i in intermediate_contrast:
             column_names = contrast.colnames  # reset the list of column names
             # Interpolate
-            if pro_sep[i] < contrast['Sep (AU)'][0]:  # closer than lowest limit, recovery rate = 0
+            new_row = Table(rows=calc_contr(pro_sep[i], column_rates), names=column_names[1:])
+
+            # new_row = Table(rows=[[float(calc_contr(pro_sep[i], x)) for x in column_rates]], names=column_names[1:])
+            new_row['Sep (AU)'] = pro_sep[i]
+            # Determine which recovery rates the magnitude falls between, and assign it the lower one
+            if model_contrast[i] < new_row[column_names[-1]]:  # Greater than largest recovery rate
+                recovery_rate[i] = column_rates[-1]
+            elif model_contrast[i] > new_row[column_names[1]]:  # Less than smallest recovery rate
                 recovery_rate[i] = 0.
-                continue
-            elif pro_sep[i] > contrast['Sep (AU)'][-1]:  # further than farthest limit, recovery rate = 1
-                recovery_rate[i] = 1.
-                continue
             else:
-                new_row = Table(rows=[[float(f(pro_sep[i], x)) for x in column_rates]], names=column_names[1:])
-                new_row['Sep (AU)'] = pro_sep[i]
-                # Determine which recovery rates the magnitude falls between, and assign it the lower one
-                if model_contrast[i] < new_row[column_names[-1]]:  # Greater than largest recovery rate
-                    recovery_rate[i] = column_rates[-1]
-                    continue
-                elif model_contrast[i] > new_row[column_names[1]]:  # Less than smallest recovery rate
-                    recovery_rate[i] = 0.
-                    continue
-                else:
-                    for j in range(1, len(column_names)):
-                        if new_row[column_names[j]][0] < model_contrast[i]:
-                            recovery_rate[i] = column_rates[j - 2]
-                            break
+                for j in range(1, len(column_names)):
+                    if new_row[column_names[j]][0] < model_contrast[i]:
+                        recovery_rate[i] = column_rates[j - 2]
+                        break
 
         # Make Reject list
         random = np.random.uniform(0, 1, num_generated)
@@ -604,30 +614,29 @@ class AO:
         # Each line in the file should have the separation in mas and the contrast for different recovery rates,
         # separated by whitespace
         # If a date is included it should be the first line of the file, starting with a # and followed by the JD date
-        try:
-            contrast_in = open(self.ao_filename, 'r')
-        except FileNotFoundError:
+        if os.path.exists(self.ao_filename)==False:
             return -21
+
         try:
-            f = open(self.ao_filename, 'r')
-            read_data = f.read()
-            if read_data.startswith('#'):
-                # Remove the date from the first part
-                split = read_data.find('\n')
-                # Get the date
-                self.obs_date = float(read_data[1:split].lstrip())
-                # Get the contrast
-                contrast = read_data[split:]
-                contrast_table = Table.read(contrast, format='ascii')
-            else:
-                # No date given, just get the contrast
-                contrast_table = Table.read(read_data, format='ascii', delimiter=' ', fast_reader=False)
-            # Rename columns, assuming they are in the correct format of separation, magnitude
-            contrast_table.rename_column(list(contrast_table.columns)[0], 'Sep')
-            # Convert separation from mas to AU, order columns correctly
-            contrast_table['Sep (AU)'] = [round(self.star_distance * np.tan(np.radians(x/(3.6e6))), 1) for x in contrast_table['Sep']]
-            order = ['Sep (AU)'] + list(contrast_table.columns)[1:-1]
-            contrast_table = contrast_table[order]
+            with open(self.ao_filename, 'r') as f:
+                read_data = f.read()
+                if read_data.startswith('#'):
+                    # Remove the date from the first part
+                    split = read_data.find('\n')
+                    # Get the date
+                    self.obs_date = float(read_data[1:split].lstrip())
+                    # Get the contrast
+                    contrast = read_data[split:]
+                    contrast_table = Table.read(contrast, format='ascii')
+                else:
+                    # No date given, just get the contrast
+                    contrast_table = Table.read(read_data, format='ascii', delimiter=' ', fast_reader=False)
+                # Rename columns, assuming they are in the correct format of separation, magnitude
+                contrast_table.rename_column(list(contrast_table.columns)[0], 'Sep')
+                # Convert separation from mas to AU, order columns correctly
+                contrast_table['Sep (AU)'] = [round(self.star_distance * np.tan(np.radians(x/(3.6e6))), 1) for x in contrast_table['Sep']]
+                order = ['Sep (AU)'] + list(contrast_table.columns)[1:-1]
+                contrast_table = contrast_table[order]
         except TypeError:
             return -22
 
