@@ -250,7 +250,7 @@ class AO:
     def analyze_gaia(self, gaia_limit):
         # Unpack companions' orbital parameters
         period = self.companions.P
-        e = self.companions.ecc
+        ecc = self.companions.ecc
         arg_peri = self.companions.arg_peri
         phase = self.companions.phase
         cos_i = self.companions.cos_i
@@ -281,19 +281,19 @@ class AO:
 
         # Get masses of companion stars
         cmp_mass = self.star_mass * self.mass_ratio  # companion mass in solar masses
-        cmp_mass = [round(i, 3) for i in cmp_mass]
+        cmp_mass = np.round(cmp_mass, 3)
 
         del(self.mass_ratio)
 
         # Get companion star magnitudes, assign infinite magnitude if below lowest modeled mass
-        f_mag = scipy.interpolate.interp1d(self.age_model['M/Ms'], self.age_model['Mag'], kind='cubic', fill_value='extrapolate')
-        cmp_model_mag = [f_mag(x) if x >= low_mass_limit else float('Inf') for x in cmp_mass]
+        f_mag = scipy.interpolate.interp1d(self.age_model['M/Ms'], self.age_model['Mag'], kind='cubic', fill_value=np.inf, bounds_error=False)
+        cmp_model_mag = f_mag(cmp_mass)
 
         # Find Delta Mag
-        model_contrast = [x - star_model_mag for x in cmp_model_mag]
+        model_contrast = cmp_model_mag - star_model_mag
 
         # Calculate projected separation for each generated companion
-        pro_sep = [0.0 for i in range(num_generated)]
+        pro_sep = np.zeros(num_generated)
         for i in range(num_generated):
             # 1. Calculate mean anomaly
             M = 2 * np.pi * T_0 / period[i] - phase[i]
@@ -302,13 +302,13 @@ class AO:
             current_E = M
             while abs(current_E - prev_E) > 0.00001:
                 prev_E = current_E
-                current_E = M + e[i] * np.sin(prev_E)
+                current_E = M + ecc[i] * np.sin(prev_E)
             # 3. Calculate true anomaly
-            f = 2 * np.arctan2(np.tan(current_E / 2), np.sqrt((1 - e[i]) / (1 + e[i])))
+            f = 2 * np.arctan2(np.tan(current_E / 2), np.sqrt((1 - ecc[i]) / (1 + ecc[i])))
             # 4. Calculate projected separation in AU
             alpha = f + arg_peri[i]
             sqt = np.sqrt(np.sin(alpha)**2+np.cos(alpha)**2 * cos_i[i]**2)
-            pro_sep[i] = self.a[i] * (1-e[i]**2)/(1+e[i]*np.cos(f))*sqt
+            pro_sep[i] = self.a[i] * (1-ecc[i]**2)/(1+ecc[i]*np.cos(f))*sqt
         del(self.a)
         # del(period[i], phase[i], e[i], arg_peri[i], cos_i[i], self.a[i])
         
@@ -361,7 +361,7 @@ class AO:
         # Get column names and recovery rates
         column_rates = [float(x.strip('%')) / 100.0 for x in list(contrast.columns)[1:]]
         column_names = contrast.colnames[1:]
-        recovery_rate = [0.] * num_generated
+        recovery_rate = np.zeros(num_generated)
 
         f = scipy.interpolate.interp2d(contrast['Sep (AU)'], column_rates, [contrast[x] for x in column_names])
 
@@ -392,7 +392,7 @@ class AO:
 
         # Make Reject list
         random = np.random.uniform(0, 1, num_generated)
-        self.reject_list = [True if random[i] < recovery_rate[i] else False for i in range(0, num_generated)]
+        self.reject_list = random < recovery_rate
 
         # Write out information for display or output files
         self.model_contrast = model_contrast
