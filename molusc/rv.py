@@ -319,14 +319,13 @@ class RV:
             chi_squared = np.sum(chi_squared0,axis=1)
 
             # Calculate prob
-            print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre prob')
             ndatesm1 = len(self.MJD)-1
             # TODO: can this be further streamlined?
             pr_params = [[chi2,ndatesm1] for chi2 in chi_squared]
             # prob = [stats.chi2.cdf(chi_squared[i], ndatesm1) for i in range(num_generated)]
             pr_results = pool.starmap(stats.chi2.cdf,pr_params,
                                       chunksize=divisor)
-            print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post prob')
+            prob = np.asarray(pr_results)
             pool.close()
 
 
@@ -344,10 +343,8 @@ class RV:
         self.b_type[contrast > 5] = "SB1"
         self.b_type[visible_sb2] = "Resolved SB2"
         self.b_type[invisible_sb2] = "Unresolved SB2"
-        print(f'Current time: {datetime.datetime.now()} -- Finished checking amplitude and resolution')
 
         self.rv_reject_list = (rv_fit_reject & above_amplitude) | visible_sb2
-        print(f'Current time: {datetime.datetime.now()} -- Rejected unlikely companions')
         
         return self.rv_reject_list
 
@@ -428,9 +425,13 @@ class RV:
 
     @ staticmethod
     def calculate_unscaled_RV(period, ecc, arg_peri, phase, MJD):
-        # Calculates the RVs for each item when passed arrays of orbital parameters
-        # Inputs: Arrays of Period, Mass Ratio, Semi-Major Axis, eccentricity, inclination, arg peri, phase, calculation times
-        # Outputs: Velocity Semi-Amplitude (km/s), RVs at each time in MJD
+        """
+        Calculate the *unscaled* radial velocity for a given period,
+        eccentricity, arg_periastron, and phase at the given MJD dates.
+        Arrays are NOT accepted for any argument except MJD. 
+
+        Returns only the unscaled RV. 
+        """
         
         ndates = len(MJD)
         # RV = np.zeros(ndates)
@@ -458,23 +459,17 @@ class RV:
         return RV
 
     def read_in_rv(self):
-        print(f'Current time: {datetime.datetime.now()} -- Reading in RVs...')
 
-        try:
-            rv_in = open(self.rv_filename, 'r')
-            print(f'Current time: {datetime.datetime.now()} -- Finished reading in RVs!')
-        except FileNotFoundError:
+        if os.path.exists(self.rv_filename)==False:
             return -31
 
         try:
             rv = Table.read(self.rv_filename, format='ascii', delimiter=' ', fast_reader=False)
             col_names = list(rv.columns)
             assert len(col_names) == 3
-            print(f'Current time: {datetime.datetime.now()} -- Finished reading in RVs!')
         except:
             try:
                 rv = Table.read(self.rv_filename, format='ascii', delimiter='\t', fast_reader=False)
-                print(f'Current time: {datetime.datetime.now()} -- Finished reading in RVs!')
             except Exception as e:
                 return -32
         
