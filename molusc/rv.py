@@ -169,7 +169,7 @@ class RV:
             prim_K, prim_rv = self.calculate_RV(period, mass_ratio, a, ecc, cos_i, arg_peri, phase, self.MJD)
             # cmp_K, cmp_rv = self.calculate_RV(period, np.divide(1, mass_ratio), a, ecc, cos_i, arg_peri, phase, self.MJD)
             cmp_K = prim_K / mass_ratio
-            cmp_rv = -1 * prim_rv / mass_ratio
+            cmp_rv = -1 * prim_rv / np.repeat(mass_ratio,nobs).reshape((-1,nobs))
             # cmp_rv = np.multiply(-1, cmp_rv)
 
             max_delta_rv = np.max(np.absolute(np.subtract(prim_rv, cmp_rv)), axis=1)
@@ -177,15 +177,15 @@ class RV:
             # Determine the overall predicted RV
             print(f'Current time: {datetime.datetime.now()} -- Determining overall predicted RV...')
 
-            # TODO: this has probably become wrong somewhere along the way
-            comb_rvs = np.hstack(prim_rv,cmp_rv)
-            prim_lum_arr = np.full_like(cmp_lum,fill_value=prim_lum)
-            comb_weights = np.hstack(prim_lum_arr, cmp_lum)
-            self.predicted_RV = np.average(comb_rvs,axis=1,weights=comb_weights)
-            # SB1s have high contrast
+            self.predicted_RV = np.zeros_like(prim_rv)
             sb1 = contrast > 5
-            self.predicted_RV[sb1] = prim_rv[sb1]
+            self.predicted_RV[sb1,:] = prim_rv[sb1,:]
+
             sb2 = np.where(contrast>=5)[0]
+            for i in sb2:
+                self.predicted_RV[i] = np.average([prim_rv[i],cmp_rv[i]],
+                                                  axis=0,
+                                                  weights=[prim_lum,cmp_lum[i]])
 
             
             print(f'Current time: {datetime.datetime.now()} -- Running zero point models...')
@@ -378,7 +378,7 @@ class RV:
             return -1
 
     @ staticmethod
-    def calculate_RV(period, mass_ratio, a, e, cos_i, arg_peri, phase, MJD):
+    def calculate_RV(period, mass_ratio, a, ecc, cos_i, arg_peri, phase, MJD):
         # Calculates the RVs for each item when passed arrays of orbital parameters
         # Inputs: Arrays of Period, Mass Ratio, Semi-Major Axis, eccentricity, inclination, arg peri, phase, calculation times
         # Outputs: Velocity Semi-Amplitude (km/s), RVs at each time in MJD
@@ -386,19 +386,15 @@ class RV:
         
         sin_i = np.sin(np.arccos(cos_i))
 
-
         n = len(period)
         ndates = len(MJD)
         # Create a blank array with one row for every input period
         # and each row contains RVs equivalent to the observation dates
         RV = np.zeros((n,ndates))
-        # RV = [[0.0 for i in range(len(MJD))] for j in range(n)]
         
         a_star = a * (mass_ratio / (mass_ratio + 1))
-        # a_star = np.multiply(a, np.divide(mass_ratio, np.add(mass_ratio, 1)))
 
-        K = (2*np.pi/period) * (a_star * sin_i) / np.sqrt(1-ecc**2)
-        # K = np.multiply(np.divide((2 * np.pi), period),np.divide(np.multiply(a_star, sin_i), np.sqrt((1 - np.square(ecc)))))  # AU/days
+        K = (2*np.pi/period) * (a_star * sin_i) / np.sqrt(1-ecc**2) # AU/days
         K = K * 1731.48  # km/s
 
         print(f'Current time: {datetime.datetime.now()} -- Iterating over companions {mp.current_process()}...')
@@ -411,12 +407,12 @@ class RV:
 
                 while abs(current_E - prev_E) > 0.00001:
                     prev_E = current_E
-                    current_E = M + e[i] * np.sin(prev_E)
+                    current_E = M + ecc[i] * np.sin(prev_E)
 
                 # Find true anomaly, f
-                f = 2 * np.arctan2(np.tan(current_E / 2), np.sqrt((1 - e[i]) / (1 + e[i])))
+                f = 2 * np.arctan2(np.tan(current_E / 2), np.sqrt((1 - ecc[i]) / (1 + ecc[i])))
                 # Find predicted RV
-                RV[i][j] = K[i] * (np.sin(arg_peri[i] + f) + e[i] * np.sin(arg_peri[i]))  # km/s
+                RV[i][j] = K[i] * (np.sin(arg_peri[i] + f) + ecc[i] * np.sin(arg_peri[i]))  # km/s
         print(f'Current time: {datetime.datetime.now()} -- Finished iterating over companions {mp.current_process()}...')
 
 
