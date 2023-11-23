@@ -297,7 +297,6 @@ class RV:
 
             zero_points = pool.starmap(zero_point_fit_parallel, zp_params,
                                        chunksize=divisor)
-            pool.close()
             print(f'Current time: {datetime.datetime.now()} -- Calculated zero point!')
 
             # Shift all by zero point
@@ -329,8 +328,12 @@ class RV:
             print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre prob')
             ndatesm1 = len(self.MJD)-1
             # TODO: can this be further streamlined?
-            prob = [stats.chi2.cdf(chi_squared[i], ndatesm1) for i in range(num_generated)]
+            pr_params = [[chi2,ndatesm1] for chi2 in chi_squared]
+            # prob = [stats.chi2.cdf(chi_squared[i], ndatesm1) for i in range(num_generated)]
+            pr_results = pool.starmap(stats.chi2.cdf,pr_params,
+                                      chunksize=divisor)
             print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post prob')
+            pool.close()
 
 
             print(f'Current time: {datetime.datetime.now()} -- Compared experimental and predicted RVs!')
