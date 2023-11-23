@@ -1,7 +1,7 @@
 from datetime import datetime as dt
 import datetime
 import warnings
-import os, pathlib
+import os, pathlib, sys
 import logging
 
 import numpy as np
@@ -385,22 +385,21 @@ class AO:
         for i in intermediate_contrast:
             column_names = contrast.colnames  # reset the list of column names
             # Interpolate
-            new_row = Table(rows=calc_contr(pro_sep[i], column_rates), names=column_names[1:])
+            rec_contr = calc_contr(pro_sep[i],column_rates)
 
-            # new_row = Table(rows=[[float(calc_contr(pro_sep[i], x)) for x in column_rates]], names=column_names[1:])
-            new_row['Sep (AU)'] = pro_sep[i]
             # Determine which recovery rates the magnitude falls between, and assign it the lower one
-            if model_contrast[i] < new_row[column_names[-1]]:  # Greater than largest recovery rate
+            if model_contrast[i] < rec_contr[-1]:  # Greater than largest recovery rate
                 recovery_rate[i] = column_rates[-1]
-            elif model_contrast[i] > new_row[column_names[1]]:  # Less than smallest recovery rate
+            elif model_contrast[i] > rec_contr[0]:  # Less than smallest recovery rate
                 recovery_rate[i] = 0.
             else:
-                for j in range(1, len(column_names)):
-                    if new_row[column_names[j]][0] < model_contrast[i]:
-                        recovery_rate[i] = column_rates[j - 2]
+                for j in range(len(column_names)-1):
+                    if rec_contr[j] < model_contrast[i]:
+                        recovery_rate[i] = column_rates[j]
                         break
 
         # Make Reject list
+        # TODO: why is this rejection selection different from rv?
         random = np.random.uniform(0, 1, num_generated)
         self.reject_list = random < recovery_rate
 
