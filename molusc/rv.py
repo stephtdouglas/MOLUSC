@@ -125,7 +125,7 @@ class RV:
         arg_peri = self.companions.arg_peri
         phase = self.companions.phase
         print(f'Current time: {datetime.datetime.now()} -- Finished unpacking parameters')
-
+        nobs = len(self.MJD)
 
         # Determine velocity limit
         print(f'Current time: {datetime.datetime.now()} -- Determining velocity limit...')
@@ -177,8 +177,10 @@ class RV:
             # Determine the overall predicted RV
             print(f'Current time: {datetime.datetime.now()} -- Determining overall predicted RV...')
 
+            # TODO: this has probably become wrong somewhere along the way
             comb_rvs = np.hstack(prim_rv,cmp_rv)
-            comb_weights = np.hstack(prim_lum, cmp_lum)
+            prim_lum_arr = np.full_like(cmp_lum,fill_value=prim_lum)
+            comb_weights = np.hstack(prim_lum_arr, cmp_lum)
             self.predicted_RV = np.average(comb_rvs,axis=1,weights=comb_weights)
             # SB1s have high contrast
             sb1 = contrast > 5
@@ -235,28 +237,19 @@ class RV:
             n_divisor = num_generated // divisor
 
             # Create an array with all necessary arguments for processing
-            # TODO: change calculate_rv to accept a parameter array of any length
-            # param_stack0 = np.column_stack(period,mass_ratio,a,ecc,cos_i,arg_peri,phase,contrast_check)
-            # dates_expand = np.tile(self.MJD,num_generated)
-            # param_stack = np.concatenate(param_stack0,dates_expand,axis=1)
-            param_stack = [[period[j],mass_ratio[j],a[j],ecc[j],cos_i[j],
+            param_stack = [[period[j],ecc[j],
                            arg_peri[j],phase[j],self.MJD]
-                           for j in range(num_generated)]
-            # And a set of arguments for the companion
-            inv_q = 1/mass_ratio
-            param_compa = [[period[j],inv_q[j],a[j],ecc[j],cos_i[j],
-                           arg_peri[j],phase[j],self.MJD,contrast_check[j]]
                            for j in range(num_generated)]
             # Move into parallel processing
             #  Create Processes
-            print(f'Current time: {datetime.datetime.now()} -- Creating parallel processes...')
             pool = mp.Pool(cpu_ct)
 
             # Use Pool to calculate RVs
             print(f'Current time: {datetime.datetime.now()} -- Parallel processes are now calculating RVs (passed to workers!)...')
 
-            unscaled_rv = pool.starmap(self.calculate_unscaled_RV, param_stack, chunksize=divisor)
+            result = pool.starmap(self.calculate_unscaled_RV, param_stack, chunksize=divisor)
             print(f'Current time: {datetime.datetime.now()} -- Parallel processes done calculating RVs!')
+            unscaled_rv = np.asarray(result)
 
             # The barycentric semimajor axes are related by the mass ratio
             a_prim = a * (mass_ratio / (mass_ratio + 1))
@@ -264,30 +257,38 @@ class RV:
             
             # Most of the terms in K are constants for a given orbit, 
             # then rescale by individual a values
+            sin_i = np.sin(np.arccos(cos_i))
             K_term = (2*np.pi/period) * sin_i / np.sqrt(1-ecc**2)
             prim_K = K_term * a_prim
             cmp_K = K_term * a_cmp
 
             # scaled rvs equal unscaled rv * K
             # and the companion moves opposite to the primary
-            prim_rv = prim_K * unscaled_rv
-            cmp_rv = -1 * cmp_K * unscaled_rv
+            urv_t = unscaled_rv.T
+            prim_rv = (prim_K * urv_t).T
+            cmp_rv = -1 * (cmp_K * urv_t).T
 
             max_delta_rv = np.max(np.absolute(np.subtract(prim_rv, cmp_rv)), axis=1)
             print(f'Current time: {datetime.datetime.now()} -- Finished concatenating RV results...')
 
 
             # Determine the overall predicted RV
-            comb_rvs = np.hstack(prim_rv,cmp_rv)
-            comb_weights = np.hstack(prim_lum, cmp_lum)
-            self.predicted_RV = np.average(comb_rvs,axis=1,weights=comb_weights)
-            print(f'Current time: {datetime.datetime.now()} -- Determined overall predicted RV')
-
+#            comb_rvs = np.hstack([prim_rv,cmp_rv])
+#            prim_lum_arr = np.full_like(prim_rv,fill_value=prim_lum)
+#            cmp_lum_arr = np.repeat(cmp_lum,nobs).reshape((-1,nobs))
+#            comb_weights = np.hstack([prim_lum_arr, cmp_lum_arr])
+#            self.predicted_RV = np.average(comb_rvs,axis=1,weights=comb_weights)
+            self.predicted_RV = np.zeros_like(prim_rv)
 
             # SB1s have high contrast
             sb1 = contrast > 5
-            self.predicted_RV[sb1] = prim_rv[sb1]
+            self.predicted_RV[sb1,:] = prim_rv[sb1,:]
+
             sb2 = np.where(contrast>=5)[0]
+            for i in sb2:
+                self.predicted_RV[i] = np.average([prim_rv[i],cmp_rv[i]],
+                                                axis=0,
+                                                weights=[prim_lum,cmp_lum[i]])
 
 
 
@@ -301,28 +302,21 @@ class RV:
 
             # Shift all by zero point
             print(f'Current time: {datetime.datetime.now()} -- Shifting all by zero point...')
-            self.predicted_RV = [np.add(self.predicted_RV[i], zero_points[i]) for i in range(num_generated)]
+            self.predicted_RV = self.predicted_RV + zero_points
             print(f'Current time: {datetime.datetime.now()} -- Shifted all by zero point!')
 
             # Compare experimental and predicted RVs
             print(f'Current time: {datetime.datetime.now()} -- Comparing experimental and predicted RVs...')
             
             # Calculate amp
-            print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre amp')
             amp = np.ptp(self.predicted_RV, axis=1)
-            print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post amp')
             
 
             # Calculate chi^2            
-            print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre chi sq1')
             chi_sq_numer = np.square(np.subtract(self.experimental_RV, self.predicted_RV))
             chi_sq_denom = self.measurement_error**2 + self.added_jitter**2
             chi_squared0 = chi_sq_numer / chi_sq_denom
             chi_squared = np.sum(chi_squared0,axis=1)
-
-            print(f'Current time: {datetime.datetime.now()} ----------------------------------- Post chi sq1')
-            # print(f'shape, type of chi_squared: {np.shape(chi_squared)}, {type(chi_squared)}')
-
 
             # Calculate prob
             print(f'Current time: {datetime.datetime.now()} ----------------------------------- Pre prob')
@@ -336,36 +330,22 @@ class RV:
             pool.close()
 
 
-            print(f'Current time: {datetime.datetime.now()} -- Compared experimental and predicted RVs!')
         # End Parallelized
 
         # Reject things with a rejection probability greater than 0.997, corresponding to 3 sigma
-        print(f'Current time: {datetime.datetime.now()} -- Rejecting unlikely companions...')
-#        rv_fit_reject = np.array([True if np.random.rand() < x else False for x in prob])
         rv_fit_reject = np.random.rand(num_generated) < prob
+
         # Check amplitude and resolution
-        print(f'Current time: {datetime.datetime.now()} -- Checking amplitude and resolution...')
-#        above_amplitude = np.array([True if abs(x) > self.rv_floor else False for x in amp])
         above_amplitude = np.abs(amp) > self.rv_floor
         self.amp = amp
-#        visible_sb2 = np.array([True if contrast[i] < 5 and max_delta_rv[i] > delta_v else False for i in range(num_generated)])
         visible_sb2 = (contrast <= 5) & (max_delta_rv > delta_v)
         invisible_sb2 = (contrast <= 5) & (max_delta_rv < delta_v)
-#        self.b_type = ['              ']*num_generated
         self.b_type = np.full(num_generated,"","U14")
         self.b_type[contrast > 5] = "SB1"
         self.b_type[visible_sb2] = "Resolved SB2"
         self.b_type[invisible_sb2] = "Unresolved SB2"
-#        for i in range(num_generated):
-#            if contrast[i] > 5:
-#                self.b_type[i] = 'SB1'
-#            elif contrast[i] <=5 and max_delta_rv[i] < delta_v:
-#                self.b_type[i] = 'Unresolved SB2'
-#            elif contrast[i] <=5 and max_delta_rv[i] > delta_v:
-#                self.b_type[i] = 'Resolved SB2'
         print(f'Current time: {datetime.datetime.now()} -- Finished checking amplitude and resolution')
 
-#        self.rv_reject_list = np.array([True if (rv_fit_reject[i] and above_amplitude[i]) or visible_sb2[i] else False for i in range(num_generated)])
         self.rv_reject_list = (rv_fit_reject & above_amplitude) | visible_sb2
         print(f'Current time: {datetime.datetime.now()} -- Rejected unlikely companions')
         
@@ -447,14 +427,11 @@ class RV:
         return K, RV
 
     @ staticmethod
-    def calculate_unscaled_RV(period, mass_ratio, a, ecc, cos_i, arg_peri, phase, MJD):
+    def calculate_unscaled_RV(period, ecc, arg_peri, phase, MJD):
         # Calculates the RVs for each item when passed arrays of orbital parameters
         # Inputs: Arrays of Period, Mass Ratio, Semi-Major Axis, eccentricity, inclination, arg peri, phase, calculation times
         # Outputs: Velocity Semi-Amplitude (km/s), RVs at each time in MJD
-        print(f'\n\nCurrent time: {datetime.datetime.now()} -- Calculating RVs {mp.current_process()}...')
         
-        sin_i = np.sin(np.arccos(cos_i))
-
         ndates = len(MJD)
         # RV = np.zeros(ndates)
         
@@ -476,9 +453,8 @@ class RV:
             # Find true anomaly, f
             true_anomaly[j] = 2 * np.arctan2(np.tan(current_E / 2), f_ecc_term)
             # Find predicted RV
-        RV = (np.sin(arg_peri + true_anomaly) + ecc * np.sin(arg_peri))  # km/s
+        RV = np.sin(arg_peri + true_anomaly) + ecc * np.sin(arg_peri)  # km/s
 
-        print(f'Current time: {datetime.datetime.now()} -- Finished calculating unscaled RVs! {mp.current_process()}')
         return RV
 
     def read_in_rv(self):
