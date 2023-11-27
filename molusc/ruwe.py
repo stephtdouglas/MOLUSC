@@ -73,7 +73,7 @@ class RUWE:
             cpu_ct = mp.cpu_count()-1
             print(f"Current time: {datetime.datetime.now()} -- RUWE cpu_count PC:", cpu_ct)
             
-        divisor = int(np.ceil(min(self.num_generated / cpu_ct, 200000)))
+        divisor = self.num_generated // cpu_ct
         
         with Pool(cpu_ct) as pool:
             pro_sep = pool.starmap(get_pro_sep, all_stars, chunksize=divisor)
@@ -83,7 +83,9 @@ class RUWE:
         # End parallelization
 
         # b. Calculate distance
-        star_distance = 1 / (self.parallax)  # kpc
+        #    convert from mas to AU
+        # TODO: use quantities or otherwise streamline this
+        star_distance = 2.063e+8 / (self.parallax)  # mas to kpc to AU
 
         # c. Get Barraffe models, and set up the  interpolation to get magnitude
         model = self.load_stellar_model(self.star_age)
@@ -91,35 +93,15 @@ class RUWE:
 
         # d. Calculate contrast
         primary_mag = f_mag(self.star_mass)
-        companion_mag = np.array([f_mag(self.star_mass*x) for x in self.mass_ratio])
+        companion_mag = f_mag(self.star_mass*self.mass_ratio)
         delta_g = np.subtract(companion_mag, primary_mag)
         self.delta_g = delta_g
 
         # e. Get ruwe
-        ruwe = np.exp(self.ln_ruwe)
-        log_ruwe = np.log10(ruwe)
+        log_ruwe = np.log10(np.exp(self.ln_ruwe))
 
         # f. Get predicted RUWE
-        #    convert from mas to AU
-        star_distance = star_distance * 2.063e+8 # AU
-        sep = 10**self.ruwe_dist['log(sep)']
-        self.ruwe_dist['Sep(AU)'] = star_distance * np.tan(np.radians(sep/(3.6e6)))
-
-        # TODO: interp2d is deprecated
-        #  2D interpolation functions for ruwe and sigma_ruwe
-        x_edges = np.unique(np.array(self.ruwe_dist['Sep(AU)']))
-        y_edges = np.unique(np.array(self.ruwe_dist['DeltaG']))
-        z = np.reshape(np.array(self.ruwe_dist['log(RUWE)']), [len(y_edges), len(x_edges)])
-        z_sigma = np.reshape(np.array(self.ruwe_dist['sigma_log(RUWE)']), [len(y_edges), len(x_edges)])
-
-        f_ruwe = scipy.interpolate.interp2d(x_edges, y_edges, z,
-                                            bounds_error=False,fill_value=np.nan)
-        f_sigma = scipy.interpolate.interp2d(x_edges, y_edges, z_sigma,
-                                             bounds_error=False,fill_value=np.nan)
-        
-        logging.info(f"projected seps round 2: {self.projected_sep}")
-        logging.info(f"delta g: {self.delta_g}")
-        logging.info(f"test: {[f_ruwe(self.projected_sep[i], delta_g[i]) for i in range(self.num_generated)]}")
+        f_ruwe, f_sigma = self.interp_ruwe(star_distance)
 
         # The problem here is that interp2d function by default produces a mesh
         # one value for every possible pair of values in the two input arrays
@@ -262,3 +244,30 @@ class RUWE:
 
         self.ruwe_dist = t
         return
+
+    def interp_ruwe(self, star_distance):
+
+        sep = 10**self.ruwe_dist['log(sep)']
+        self.ruwe_dist['Sep(AU)'] = star_distance * np.tan(np.radians(sep/(3.6e6)))
+
+        # TODO: we don't need to re-do this interpolation every time
+        # We could do it once in angular separation and then convert the 
+        # projected companion separations instead
+
+        #  2D interpolation functions for ruwe and sigma_ruwe
+        x_edges = np.unique(np.array(self.ruwe_dist['Sep(AU)']))
+        y_edges = np.unique(np.array(self.ruwe_dist['DeltaG']))
+        z = np.reshape(np.array(self.ruwe_dist['log(RUWE)']), [len(y_edges), len(x_edges)])
+        z_sigma = np.reshape(np.array(self.ruwe_dist['sigma_log(RUWE)']), [len(y_edges), len(x_edges)])
+
+        f_ruwe = scipy.interpolate.RectBivariateSpline(x_edges, y_edges, z,
+                                                       bounds_error=False,
+                                                       fill_value=np.nan)
+        f_sigma = scipy.interpolate.RectBivariateSpline(x_edges, y_edges,
+                                                        z_sigma,
+                                                        bounds_error=False,
+                                                        fill_value=np.nan)
+        
+        logging.info(f"projected seps round 2: {self.projected_sep}")
+        logging.info(f"delta g: {self.delta_g}")
+        logging.info(f"test: {[f_ruwe(self.projected_sep[i], delta_g[i]) for i in range(self.num_generated)]}")
