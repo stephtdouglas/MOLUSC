@@ -1,7 +1,7 @@
 from datetime import datetime as dt
 import datetime
 import warnings
-import os, pathlib
+import os, pathlib, sys
 import logging
 
 import numpy as np
@@ -102,48 +102,47 @@ class RUWE:
         # f. Get predicted RUWE
         #    convert from mas to AU
         star_distance = star_distance * 2.063e+8 # AU
-        self.ruwe_dist['Sep(AU)'] = [star_distance * np.tan(np.radians(x/(3.6e6))) for x in np.power(10, self.ruwe_dist['log(sep)']) ]
+        sep = 10**self.ruwe_dist['log(sep)']
+        self.ruwe_dist['Sep(AU)'] = star_distance * np.tan(np.radians(sep/(3.6e6)))
 
+        # TODO: interp2d is deprecated
         #  2D interpolation functions for ruwe and sigma_ruwe
         x_edges = np.unique(np.array(self.ruwe_dist['Sep(AU)']))
         y_edges = np.unique(np.array(self.ruwe_dist['DeltaG']))
         z = np.reshape(np.array(self.ruwe_dist['log(RUWE)']), [len(y_edges), len(x_edges)])
         z_sigma = np.reshape(np.array(self.ruwe_dist['sigma_log(RUWE)']), [len(y_edges), len(x_edges)])
 
-        f_ruwe = scipy.interpolate.interp2d(x_edges, y_edges, z)
-        f_sigma = scipy.interpolate.interp2d(x_edges, y_edges, z_sigma)
+        f_ruwe = scipy.interpolate.interp2d(x_edges, y_edges, z,
+                                            bounds_error=False,fill_value=np.nan)
+        f_sigma = scipy.interpolate.interp2d(x_edges, y_edges, z_sigma,
+                                             bounds_error=False,fill_value=np.nan)
         
         logging.info(f"projected seps round 2: {self.projected_sep}")
         logging.info(f"delta g: {self.delta_g}")
         logging.info(f"test: {[f_ruwe(self.projected_sep[i], delta_g[i]) for i in range(self.num_generated)]}")
 
-        # pred_log_ruwe = f_ruwe(self.projected_sep, delta_g)
-        # self.predicted_ruwe = 10**pred_log_ruwe
-        # pred_sigma = f_sigma(self.projected_sep, delta_g)
+        # The problem here is that interp2d function by default produces a mesh
+        # one value for every possible pair of values in the two input arrays
+        # Where instead we just want one output value for every element-wise
+        # pair
+        sep_g = np.vstack([self.projected_sep,delta_g]).T
+
+        with Pool(cpu_ct) as pool:
+            lr_result = pool.starmap(f_ruwe, sep_g, chunksize=divisor)
+            ps_result = pool.starmap(f_sigma, sep_g, chunksize=divisor)
+            
         
-        pred_log_ruwe = np.concatenate([f_ruwe(self.projected_sep[i], delta_g[i]) for i in range(self.num_generated)])
+        pred_log_ruwe = np.asarray(lr_result)[:,0]
         self.predicted_ruwe = 10**pred_log_ruwe
-        pred_sigma = np.concatenate([f_sigma(self.projected_sep[i], delta_g[i]) for i in range(self.num_generated)])
-
-        # print(f"pred_log_ruwe: {np.shape(pred_log_ruwe)}")
-        # print(f"pred_sigma: {np.shape(pred_sigma)}")
-        # print(f"log_ruwe: {np.shape(log_ruwe)}")
-
+        pred_sigma = np.asarray(ps_result)[:,0]
+        
         # g. Determine rejection probabilities
        
-        # TODO: Not sure if I should change this either
-        # rejection_prob = [stats.halfnorm.cdf(10**pred_log_ruwe[i], loc=10**log_ruwe, scale=10**pred_sigma[i]) for i in range(self.num_generated)]
         rejection_prob = stats.halfnorm.cdf(10**pred_log_ruwe, loc=10**log_ruwe, scale=10**pred_sigma)
 
 
         # never reject something where the observed ruwe is higher than the predicted (halfnorm)
-        # never reject something that is outside the RUWE Distribution grid
-       
-        # TODO: Can be made into an array using bitwise comparisons (like we've done before)
-        # rejection_prob = [0.0 if (not -.1 < delta_g[i] < 7.1) or
-        #                  (not np.min(self.ruwe_dist['Sep(AU)']) < self.projected_sep[i] < np.max(self.ruwe_dist['Sep(AU)']))
-        #                  else rejection_prob[i] for i in range(self.num_generated)]
-        
+        # never reject something that is outside the RUWE Distribution grid        
         rejection_prob[(delta_g < -0.1) | (delta_g > 7.1)] = 0        
         
         rejection_prob[(self.projected_sep < np.min(self.ruwe_dist['Sep(AU)'])) | (self.projected_sep > np.max(self.ruwe_dist['Sep(AU)']))] = 0
