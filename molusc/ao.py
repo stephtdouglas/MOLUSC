@@ -30,41 +30,7 @@ today = dt.today().isoformat().split("T")[0]
 
 import molusc
 repo_path = pathlib.Path(molusc.__file__).resolve().parent.parent
-
-
-def get_pro_sep(T_init, per, pha, eccentricity, a_peri, cos_inc, semi_maj_a):
-    # This function is outside of the main class because it must be for parallelization to work properly
-
-    # Calculate projected separation for each generated companion:
-    # 1. Calculate mean anomaly
-    M = 2 * np.pi * T_init / per - pha
-    # 2. Calculate eccentric anomaly iteratively
-    prev_E = 0.0
-    current_E = M
-    while abs(current_E - prev_E) > 0.00001:
-        prev_E = current_E
-        current_E = M + eccentricity * np.sin(prev_E)
-    
-    # 3. Calculate true anomaly
-    f = 2 * np.arctan2(np.tan(current_E / 2), np.sqrt((1 - eccentricity) / (1 + eccentricity)))
-    
-    # 4. Calculate projected separation in AU
-    alpha = f + a_peri
-    sqt = np.sqrt(np.sin(alpha)**2+np.cos(alpha)**2 * cos_inc**2)
-    pro_sep = semi_maj_a * (1-eccentricity**2)/(1+eccentricity*np.cos(f))*sqt
-    
-    return pro_sep
-
-# def hard_lim_interp(contrast):
-#     # This function is outside of the main class because it must be for parallelization to work properly
-    
-#     # Interpolate linearly between given points to get the estimated contrast limit
-
-#     contrast_limit = f_con(pro_sep)
-
-    
-#     return f_con
-    
+from molusc.utils import get_pro_sep, calc_anomaly_gaia
 
 class AO:
     # class variables
@@ -102,9 +68,9 @@ class AO:
         phase = self.companions.phase
         cos_i = self.companions.cos_i
         if self.obs_date:
-            T_0 = self.obs_date
+            T_0 = np.full(num_generated,fill_value=self.obs_date)
         else:
-            T_0 = 2457388.5  # epoch 2016.0 in JD
+            T_0 = np.full(num_generated,fill_value=2457388.5)  # epoch 2016.0 in JD
 
         # Read in the contrast
         contrast = self.contrast
@@ -129,30 +95,36 @@ class AO:
         print(f'Current time: {datetime.datetime.now()} -- Star Model Mag {self.star_model_mag}')
 
         # Get masses of companion stars
-        cmp_mass = self.star_mass * self.mass_ratio  # companion mass in solar masses
-        cmp_mass = [round(i, 3) for i in cmp_mass]
-        del(self.mass_ratio)
+        # TODO: why are we rounding this?
+        cmp_mass = np.round(self.star_mass * self.mass_ratio , 3) # companion mass in solar masses
+        # del(self.mass_ratio)
 
         # Get companion star magnitudes, assign infinite magnitude if below lowest modeled mass
-        f_mag = scipy.interpolate.interp1d(self.age_model['M/Ms'], self.age_model['Mag'], kind='cubic', fill_value='extrapolate')
-        cmp_model_mag = [f_mag(x) if x >= low_mass_limit else float('Inf') for x in cmp_mass]
+        f_mag = scipy.interpolate.interp1d(self.age_model['M/Ms'], self.age_model['Mag'], kind='cubic', 
+                                           fill_value=np.nan, bounds_error=False)
+        cmp_model_mag = f_mag(cmp_mass)
 
         t2 = time()
 
         # Find Delta Mag
-        model_contrast = [x - star_model_mag for x in cmp_model_mag]
-        del(cmp_mass)
-
+        model_contrast = cmp_model_mag - star_model_mag
 
         # hp.setrelheap()
         # Parallelization
         # Get projected separation
         # tracemalloc.start()
-        star_params = []
-        all_stars = []
-        for i in range(num_generated):            
-            star_params = [T_0, period[i], phase[i], e[i], arg_peri[i], cos_i[i], self.a[i]]
-            all_stars.append(star_params)
+
+        star_params = np.hstack([T_0,period,phase,e,arg_peri,cos_i,self.a])
+        print(np.shape(star_params))
+        all_stars = star_params.reshape((-1,7))
+
+        # star_params = []
+        # all_stars = []
+        # for i in range(num_generated):            
+        #     star_params = [T_0, period[i], phase[i], e[i], arg_peri[i], cos_i[i], self.a[i]]
+        #     all_stars.append(star_params)
+
+
         
         try:
             cpu_ct = len(os.sched_getaffinity(0))
@@ -161,7 +133,7 @@ class AO:
             cpu_ct = mp.cpu_count()-1
             print(f"Current time: {datetime.datetime.now()} -- AO cpu_count PC:", cpu_ct)
             
-        divisor = int(np.ceil(min(num_generated / cpu_ct, 200000)))
+        divisor = num_generated // cpu_ct
         
         with Pool(cpu_ct) as pool:
             pro_sep = pool.starmap(get_pro_sep, all_stars, chunksize=divisor)
@@ -184,9 +156,11 @@ class AO:
 
             f_con = scipy.interpolate.interp1d(contrast['Sep (AU)'], contrast['Contrast'], kind='linear', bounds_error=False, fill_value=0)
                     
-            # Parallelziation
-            with Pool(cpu_ct) as pool:
-                contrast_limit = pool.map(f_con, pro_sep, chunksize=divisor)
+            # # Parallelziation
+            # with Pool(cpu_ct) as pool:
+            #     contrast_limit = pool.map(f_con, pro_sep, chunksize=divisor)
+
+            contrast_limit = f_con(pro_sep)
                 
                 
             # End parallelization
@@ -263,8 +237,6 @@ class AO:
         contrast = self.contrast
         a_type = self.a_type
 
-        #todo add error handling for cases of too young and too old
-
         # Determine low and high mass limits
         low_mass_limit = self.age_model['M/Ms'][0]
         high_mass_limit = self.age_model['M/Ms'][-1]
@@ -275,53 +247,35 @@ class AO:
             return -24
 
         # Find model mag of primary star
-        star_model_mag = self.find_mag(self.star_mass, self.age_model)
-        self.star_model_mag = star_model_mag
+        self.star_model_mag = self.find_mag(self.star_mass, self.age_model)
         print(f'Current time: {datetime.datetime.now()} -- Star Model Mag {self.star_model_mag}')  # TESTING
 
         # Get masses of companion stars
         cmp_mass = self.star_mass * self.mass_ratio  # companion mass in solar masses
         cmp_mass = np.round(cmp_mass, 3)
 
-        del(self.mass_ratio)
-
         # Get companion star magnitudes, assign infinite magnitude if below lowest modeled mass
-        f_mag = scipy.interpolate.interp1d(self.age_model['M/Ms'], self.age_model['Mag'], kind='cubic', fill_value=np.inf, bounds_error=False)
+        f_mag = scipy.interpolate.interp1d(self.age_model['M/Ms'], self.age_model['Mag'], 
+                                           kind='cubic', fill_value=np.inf, bounds_error=False)
         cmp_model_mag = f_mag(cmp_mass)
 
         # Find Delta Mag
         model_contrast = cmp_model_mag - star_model_mag
 
         # Calculate projected separation for each generated companion
-        pro_sep = np.zeros(num_generated)
-        for i in range(num_generated):
-            # 1. Calculate mean anomaly
-            M = 2 * np.pi * T_0 / period[i] - phase[i]
-            # 2. Calculate eccentric anomaly iteratively
-            prev_E = 0.0
-            current_E = M
-            while abs(current_E - prev_E) > 0.00001:
-                prev_E = current_E
-                current_E = M + ecc[i] * np.sin(prev_E)
-            # 3. Calculate true anomaly
-            f = 2 * np.arctan2(np.tan(current_E / 2), np.sqrt((1 - ecc[i]) / (1 + ecc[i])))
-            # 4. Calculate projected separation in AU
-            alpha = f + arg_peri[i]
-            sqt = np.sqrt(np.sin(alpha)**2+np.cos(alpha)**2 * cos_i[i]**2)
-            pro_sep[i] = self.a[i] * (1-ecc[i]**2)/(1+ecc[i]*np.cos(f))*sqt
-        del(self.a)
-        # del(period[i], phase[i], e[i], arg_peri[i], cos_i[i], self.a[i])
+
+        pro_sep = calc_anomaly_gaia(num_generated,T_0,period,phase,arg_peri,cos_i,self.a)
         
         #  Determine Gaia completeness detection limits
         four_arc = round(self.star_distance * 0.0000193906, 1)  # 4" in AU at distance of primary
         completness_absolute = gaia_limit - 5 * np.log10(self.star_distance / 2062650)  # apparent converted to absolute
-        completeness_mag = round(completness_absolute - self.star_model_mag, 2)  # delta mag between the primary and gaia's detection limit
+        completeness_mag = np.round(completness_absolute - self.star_model_mag, 2)  # delta mag between the primary and gaia's detection limit
 
-        for i in range(len(contrast)):
-            for j in range(1, len(contrast.colnames)):
-                # Adjusting to the gaia completeness mag
-                if contrast[i][j] > completeness_mag:
-                    contrast[i][j] = completeness_mag
+        # Adjusting to the gaia completeness mag
+        # This seems to make just one value for completeness_mag, 
+        # so no need to do a loop
+        too_faint = contrast > completeness_mag
+        contrast[too_faint] = completeness_mag
 
         # Comment this section if you want nearest neighbor limits
         contrast['100%'] = [0. if x < four_arc else completeness_mag for x in contrast['Sep (AU)']]
@@ -367,8 +321,9 @@ class AO:
         # TODO: interp2d is deprecated
         # 2D interpolation for contrast rate as a function of
         # separation and recovery rate
-        calc_contr = scipy.interpolate.interp2d(contrast['Sep (AU)'],
-            column_rates, [contrast[x] for x in column_names],
+        contr_map = np.asarray(contrast[column_names])
+        calc_contr = scipy.interpolate.RegularGridInterpolator(
+            (contrast['Sep (AU)'],column_rates), contr_map,
             bounds_error=False,fill_value=np.inf)
 
         # closer than lowest limit, recovery rate = 0
