@@ -98,10 +98,12 @@ class RUWE:
         self.delta_g = delta_g
 
         # e. Get ruwe
-        log_ruwe = np.log10(np.exp(self.ln_ruwe))
+        ruwe = np.exp(self.ln_ruwe)
 
         # f. Get predicted RUWE
         f_ruwe, f_sigma = self.interp_ruwe(star_distance)
+        logging.info(f"delta g: {self.delta_g}")
+#        logging.info(f"test: {[f_ruwe(self.projected_sep[i], delta_g[i]) for i in range(self.num_generated)]}")
 
         # The problem here is that interp2d function by default produces a mesh
         # one value for every possible pair of values in the two input arrays
@@ -109,18 +111,13 @@ class RUWE:
         # pair
         sep_g = np.vstack([self.projected_sep,delta_g]).T
 
-        with Pool(cpu_ct) as pool:
-            lr_result = pool.starmap(f_ruwe, sep_g, chunksize=divisor)
-            ps_result = pool.starmap(f_sigma, sep_g, chunksize=divisor)
-            
+        self.predicted_ruwe = 10**f_ruwe(sep_g)
+        pred_sigma = f_sigma(sep_g)
         
-        pred_log_ruwe = np.asarray(lr_result)[:,0]
-        self.predicted_ruwe = 10**pred_log_ruwe
-        pred_sigma = np.asarray(ps_result)[:,0]
         
         # g. Determine rejection probabilities
        
-        rejection_prob = stats.halfnorm.cdf(10**pred_log_ruwe, loc=10**log_ruwe, scale=10**pred_sigma)
+        rejection_prob = stats.halfnorm.cdf(self.predicted_ruwe, loc=ruwe, scale=10**pred_sigma)
 
 
         # never reject something where the observed ruwe is higher than the predicted (halfnorm)
@@ -260,14 +257,14 @@ class RUWE:
         z = np.reshape(np.array(self.ruwe_dist['log(RUWE)']), [len(y_edges), len(x_edges)])
         z_sigma = np.reshape(np.array(self.ruwe_dist['sigma_log(RUWE)']), [len(y_edges), len(x_edges)])
 
-        f_ruwe = scipy.interpolate.RectBivariateSpline(x_edges, y_edges, z,
-                                                       bounds_error=False,
-                                                       fill_value=np.nan)
-        f_sigma = scipy.interpolate.RectBivariateSpline(x_edges, y_edges,
-                                                        z_sigma,
-                                                        bounds_error=False,
-                                                        fill_value=np.nan)
+        f_ruwe = scipy.interpolate.RegularGridInterpolator(points=(x_edges, y_edges), values=z.T,
+                                                           bounds_error=False,
+                                                           fill_value=np.nan)
+        f_sigma = scipy.interpolate.RegularGridInterpolator(points=(x_edges, y_edges),
+                                                           values=z_sigma.T,
+                                                           bounds_error=False,
+                                                           fill_value=np.nan)
         
         logging.info(f"projected seps round 2: {self.projected_sep}")
-        logging.info(f"delta g: {self.delta_g}")
-        logging.info(f"test: {[f_ruwe(self.projected_sep[i], delta_g[i]) for i in range(self.num_generated)]}")
+
+        return f_ruwe, f_sigma

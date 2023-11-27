@@ -116,7 +116,7 @@ class RV:
         #     the predicted RV at that time, which I can then compare to the experimental values using least squares
         num_generated = self.companions.num_generated
         # Unpack parameters
-        print(f'Current time: {datetime.datetime.now()} -- Unpacking parameters...')
+        
         period = self.companions.P
         mass_ratio = self.companions.mass_ratio
         a = self.companions.a
@@ -124,11 +124,11 @@ class RV:
         cos_i = self.companions.cos_i
         arg_peri = self.companions.arg_peri
         phase = self.companions.phase
-        print(f'Current time: {datetime.datetime.now()} -- Finished unpacking parameters')
+        
         nobs = len(self.MJD)
 
         # Determine velocity limit
-        print(f'Current time: {datetime.datetime.now()} -- Determining velocity limit...')
+        
         delta_v = 2.998e5 / self.resolution  # m/s
 
         t = time()
@@ -146,23 +146,18 @@ class RV:
         apply_mag = cmp_mass>=self.model["M/Ms"][0]
         cmp_model_mag[apply_mag] = f_mag(cmp_mass[apply_mag])
         contrast = np.subtract(cmp_model_mag, prim_model_mag)
-        print(f'Current time: {datetime.datetime.now()} -- Finished determining velocity limit')
-
+        
 
         # Determine luminosity
-        print(f'Current time: {datetime.datetime.now()} -- Determining luminosity...')
         f_lum = scipy.interpolate.interp1d(self.model['M/Ms'], self.model['L/Ls'], kind='cubic', fill_value='extrapolate')
         prim_lum = np.power(10, f_lum(self.star_mass))  # primary luminosity
         # companion luminosity, 0 if below limit
         # (same limit as for mag)
         cmp_lum = np.zeros(num_generated)
         cmp_lum[apply_mag] = np.power(10, f_lum(cmp_mass[apply_mag]))
-        print(f'Current time: {datetime.datetime.now()} -- Determined luminosity')
-
+        
         # Choose to run either parallelized or non-parallelized based on the number of generated companions
-        print(f'Current time: {datetime.datetime.now()} -- Determining whether or not to run parallelized...')
         if num_generated < 50000:  # Serial
-            print(f'Current time: {datetime.datetime.now()} -- Decided to run non-parallelzied')
             self.predicted_RV = [np.zeros(len(self.MJD)) for x in range(num_generated)] # pre-allocate
 
             # calculate RV curves
@@ -197,8 +192,6 @@ class RV:
                 self.predicted_RV[i] += zero_point
             print(f'Current time: {datetime.datetime.now()} -- Finished running zero point models')
             
-            print(f'Current time: {datetime.datetime.now()} -- Determined overall predicted RV')
-
             print(f'Current time: {datetime.datetime.now()} -- Comparing experimental RV to predicted RV...')
             # Compare experimental and predicted RVs
             amp = np.ptp(self.predicted_RV, axis=1)
@@ -217,7 +210,6 @@ class RV:
 
         else:  
             # Parallel
-            print(f'Current time: {datetime.datetime.now()} -- Decided to run parallelzied')
             # Determine cpu count
             try:
                 cpu_ct = len(os.sched_getaffinity(0))
@@ -227,12 +219,9 @@ class RV:
                 print(f"Current time: {datetime.datetime.now()} -- RV cpu_count PC:", cpu_ct)
 
 
-            print(f'Current time: {datetime.datetime.now()} -- Running contrast check...')
-            contrast_check = [True if x <= 5 else False for x in contrast]
-            print(f'Current time: {datetime.datetime.now()} -- Finished contrast check')
+            contrast_check = contrast <= 5
 
             # Split the parameters into chunks to pass to workers
-            print(f'Current time: {datetime.datetime.now()} -- Splitting parameters into chunks to pass to workers...')
             divisor = num_generated // cpu_ct
             n_divisor = num_generated // divisor
 
@@ -269,15 +258,7 @@ class RV:
             cmp_rv = -1 * (cmp_K * urv_t).T
 
             max_delta_rv = np.max(np.absolute(np.subtract(prim_rv, cmp_rv)), axis=1)
-            print(f'Current time: {datetime.datetime.now()} -- Finished concatenating RV results...')
 
-
-            # Determine the overall predicted RV
-#            comb_rvs = np.hstack([prim_rv,cmp_rv])
-#            prim_lum_arr = np.full_like(prim_rv,fill_value=prim_lum)
-#            cmp_lum_arr = np.repeat(cmp_lum,nobs).reshape((-1,nobs))
-#            comb_weights = np.hstack([prim_lum_arr, cmp_lum_arr])
-#            self.predicted_RV = np.average(comb_rvs,axis=1,weights=comb_weights)
             self.predicted_RV = np.zeros_like(prim_rv)
 
             # SB1s have high contrast
@@ -289,8 +270,6 @@ class RV:
                 self.predicted_RV[i] = np.average([prim_rv[i],cmp_rv[i]],
                                                 axis=0,
                                                 weights=[prim_lum,cmp_lum[i]])
-
-
 
             # Use Pool to calculate zero point
             print(f'Current time: {datetime.datetime.now()} -- Calculating zero point...')
