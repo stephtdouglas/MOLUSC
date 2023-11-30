@@ -66,7 +66,7 @@ def calc_anomaly_gaia(num_generated,T_0,period,phase,ecc,arg_peri,cos_i,semi_maj
             prev_E = current_E
             current_E = M + ecc[i] * np.sin(prev_E)
         # 3. Calculate true anomaly
-        f[i] = 2 * np.arctan2(np.tan(current_E / 2), f_ecc_term)
+        f[i] = 2 * np.arctan2(np.tan(current_E / 2), f_ecc_term[i])
     # 4. Calculate projected separation in AU
     alpha = f + arg_peri
     sqt = np.sqrt(np.sin(alpha)**2+np.cos(alpha)**2 * cos_i**2)

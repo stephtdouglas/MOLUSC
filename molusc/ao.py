@@ -90,8 +90,8 @@ class AO:
         t1 = time()
 
         # Find model mag of primary star
-        star_model_mag = self.find_mag(self.star_mass, self.age_model)
-        self.star_model_mag = star_model_mag
+        self.star_model_mag = self.find_mag(self.star_mass, self.age_model)
+        #self.star_model_mag = star_model_mag
         print(f'Current time: {datetime.datetime.now()} -- Star Model Mag {self.star_model_mag}')
 
         # Get masses of companion stars
@@ -107,16 +107,16 @@ class AO:
         t2 = time()
 
         # Find Delta Mag
-        model_contrast = cmp_model_mag - star_model_mag
+        model_contrast = cmp_model_mag - self.star_model_mag
 
         # hp.setrelheap()
         # Parallelization
         # Get projected separation
         # tracemalloc.start()
 
-        star_params = np.hstack([T_0,period,phase,e,arg_peri,cos_i,self.a])
-        print(np.shape(star_params))
-        all_stars = star_params.reshape((-1,7))
+        all_stars = np.stack([T_0,period,phase,e,arg_peri,cos_i,self.a],axis=1)
+#        print(np.shape(star_params))
+#        all_stars = star_params.reshape((-1,7))
 
         # star_params = []
         # all_stars = []
@@ -139,8 +139,6 @@ class AO:
             pro_sep = pool.starmap(get_pro_sep, all_stars, chunksize=divisor)
        
         # End parallelization
-        del(star_params)
-        del(self.a)
 
 
         four_arc = round(self.star_distance * 0.0000193906, 1)  # 4" in AU at distance of primary
@@ -260,11 +258,11 @@ class AO:
         cmp_model_mag = f_mag(cmp_mass)
 
         # Find Delta Mag
-        model_contrast = cmp_model_mag - star_model_mag
+        model_contrast = cmp_model_mag - self.star_model_mag
 
         # Calculate projected separation for each generated companion
 
-        pro_sep = calc_anomaly_gaia(num_generated,T_0,period,phase,arg_peri,cos_i,self.a)
+        pro_sep = calc_anomaly_gaia(num_generated,T_0,period,phase,ecc,arg_peri,cos_i,self.a)
         
         #  Determine Gaia completeness detection limits
         four_arc = round(self.star_distance * 0.0000193906, 1)  # 4" in AU at distance of primary
@@ -274,13 +272,18 @@ class AO:
         # Adjusting to the gaia completeness mag
         # This seems to make just one value for completeness_mag, 
         # so no need to do a loop
-        too_faint = contrast > completeness_mag
-        contrast[too_faint] = completeness_mag
+        for colname in contrast.dtype.names[1:]:
+            too_faint = contrast[colname] > completeness_mag
+            contrast[colname][too_faint] = completeness_mag
 
         # Comment this section if you want nearest neighbor limits
-        contrast['100%'] = [0. if x < four_arc else completeness_mag for x in contrast['Sep (AU)']]
-        contrast.add_row(([four_arc] + [completeness_mag] * (len(contrast.colnames) - 1)))
-        contrast.add_row(([self.star_distance] + [completeness_mag] * (len(contrast.colnames) - 1)))
+        contrast['100%'] = np.zeros(len(contrast))
+        contrast['100%'][contrast['Sep (AU)']>=four_arc] = completeness_mag
+        new_row = np.full(len(contrast.colnames),fill_value=completeness_mag)
+        new_row[0] = four_arc
+        contrast.add_row(new_row)
+        new_row[0] = self.star_distance
+        contrast.add_row(new_row)
         contrast.sort('Sep (AU)')
 
         #  end neighbor-less segment
@@ -321,9 +324,15 @@ class AO:
         # TODO: interp2d is deprecated
         # 2D interpolation for contrast rate as a function of
         # separation and recovery rate
+        #print(np.shape(contrast),len(contrast.columns))
         contr_map = np.asarray(contrast[column_names])
+        contr_map = np.full((len(contrast),len(column_names)),fill_value=99.9)
+        for i,colname in enumerate(column_names):
+            contr_map[:,i] = contrast[colname]
+        #contr_map = np.vstack([np.asarray(row) for row in contrast[column_names]])
         calc_contr = scipy.interpolate.RegularGridInterpolator(
-            (contrast['Sep (AU)'],column_rates), contr_map,
+            (np.asarray(contrast['Sep (AU)']),column_rates),
+            contr_map,
             bounds_error=False,fill_value=np.inf)
 
         # closer than lowest limit, recovery rate = 0
@@ -337,21 +346,21 @@ class AO:
 
         # Within the appropriate limits, interpolate to find
         # the recovery rate
+        nrates = len(column_rates)
         for i in intermediate_contrast:
-            column_names = contrast.colnames  # reset the list of column names
+#            column_names = contrast.colnames  # reset the list of column names
             # Interpolate
-            rec_contr = calc_contr(pro_sep[i],column_rates)
+            pair_contr = np.full((nrates,2),pro_sep[i])
+            pair_contr[:,1] = column_rates
+            rec_contr = calc_contr(pair_contr)
 
             # Determine which recovery rates the magnitude falls between, and assign it the lower one
-            if model_contrast[i] < rec_contr[-1]:  # Greater than largest recovery rate
-                recovery_rate[i] = column_rates[-1]
-            elif model_contrast[i] > rec_contr[0]:  # Less than smallest recovery rate
-                recovery_rate[i] = 0.
+            j = np.where(rec_contr<=model_contrast[i])[0]
+            if len(j)==0:
+                # the model contrast is fainter than any recovery rate limit
+                recovery_rate[i] = 0
             else:
-                for j in range(len(column_names)-1):
-                    if rec_contr[j] < model_contrast[i]:
-                        recovery_rate[i] = column_rates[j]
-                        break
+                recovery_rate[i] = column_rates[j[0]]
 
         # Make Reject list
         # TODO: why is this rejection selection different from rv?
