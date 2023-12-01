@@ -745,7 +745,10 @@ class Application:
             self.gaia_check = data["gaia_params"]["fit"]
 
             # Gaia data
-            if np.isfinite(data["gaia_params"]["gmag"]):
+            gmag_check = (("gmag" in data["gaia_params"].keys()) and
+                          (data["gaia_params"]["gmag"] is not None) and
+                          (np.isfinite(data["gaia_params"]["gmag"])))
+            if gmag_check:
                 self.gmag = data["gaia_params"]["gmag"]
                 self.color = data["gaia_params"]["color"]
                 self.n_good_obs = data["gaia_params"]["n_good_obs"]
