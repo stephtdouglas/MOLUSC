@@ -22,6 +22,20 @@ def test_generation():
     comps = Companions(100, limits, star_mass, pd_mu, pd_sig, q_exp)
     comps.generate()
 
+def test_fixed_paq():
+    """ make sure the error raises properly if we give it too many fixed values
+    """
+
+    bad_limits = [None]*21
+    bad_limits[0] = 10 # P
+    bad_limits[12] = 0.8 # q
+    bad_limits[15] = 100 # a
+
+    comps = Companions(100, bad_limits, star_mass, pd_mu, pd_sig, q_exp)
+
+    with pytest.raises(ValueError):
+        comps.generate()
+
 def test_write():
     """ Ensure the write function executes cleanly. """
 

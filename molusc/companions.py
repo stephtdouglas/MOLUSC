@@ -36,7 +36,23 @@ class Companions:
     def generate(self):
 
         np.random.seed(999)
-        # Period (days), Mass Ratio and Semi-Major Axis (AU)
+
+        # If the user has fixed P, a, AND mass_ratio, then we can't continue
+        if ((self.limits[0] is not None) and (self.limits[15] is not None) and
+            (self.limits[12] is not None)):
+            raise ValueError("You can't fix P, a, and q at the same time")
+
+        self.generate_paq()
+        self.generate_inclination()
+        self.generate_phase()
+        self.generate_eccentricity()
+        self.generate_arg_peri()
+
+    def generate_paq(self):
+        """
+        generate Period (days), Mass Ratio and Semi-Major Axis (AU)
+
+        """
         G = 39.478  # Gravitational constant in AU^3/years^2*M_solar
         P_fixed = self.limits[0]
         P_lower = self.limits[1]
@@ -55,21 +71,52 @@ class Companions:
         if P_lower is None or P_lower < 0.1:
             P_lower = 0.1
 
-        if a_fixed is None and a_lower is None and a_upper is None:
-            # Generate Period independently of mass ratio and separation
-            if P_fixed is not None:
-                self.P = np.array([P_fixed] * self.num_generated)
+        if mass_fixed is not None:
+            self.mass_ratio = np.full(self.num_generated,fill_value=mass_fixed)
+
+        if a_fixed is not None:
+            self.a = np.full(self.num_generated,fill_value=a_fixed)
+
+        # We will always generate P. Either it's fixed, OR the
+        # other two values are fixed, OR we generate it independently
+        if P_fixed is not None:
+            self.P = np.full(self.num_generated,fill_value=P_fixed)
+        # with a and q, calculate P directly
+        elif a_fixed is not None and mass_fixed is not None:
+            self.P = np.sqrt( (4 * np.pi ** 2 * self.a ** 3) / (G * self.star_mass * (1 + self.mass_ratio))) * 365
+        else:
+            tn_low = (P_lower-self.mu_log_P)/self.sig_log_P
+            if P_upper is None:
+                tn_up = np.inf
             else:
-                if P_upper is None:
-                    P_upper = float('inf')
-                self.P = np.array([-1.0] * self.num_generated)  # Initializing
-                for i in range(0, self.num_generated):
-                    while self.P[i] < P_lower or self.P[i] > P_upper:
-                        log_P = np.random.normal(self.mu_log_P, self.sig_log_P)
-                        self.P[i] = 10 ** log_P
-            # Now Generate mass ratio
+                tn_up = (P_upper-self.mu_log_P)/self.sig_log_P
+            P_tn = stats.truncnorm(tn_low,tn_up,
+                                   loc=self.mu_log_P,scale=self.sig_log_P)
+            log_P = P_tn.rvs(self.num_generated)
+            self.P = 10**log_P
+
+        # Now we handle all other cases, either with two fixed parameters
+        # including P, or with only one fixed parameter (or none)
+
+        # With a and P, calculate q directly
+        # If a is fixed, then P and q cannot be generated independently
+        # Either way, we already generate P above
+        # and now we will calculate the mass ratio accordingly
+        if a_fixed is not None and mass_fixed is None:
+            self.mass_ratio = np.array(4*np.pi**2 * self.a**3 / (G * self.star_mass * (self.P / 365)** 2) - 1)
+            if np.any(self.mass_ratio > 1):
+                # The fixed values of period and semi-major axis require a mass ratio greater than one
+                return -12
+
+        # We've handled all cases where values can be fixed. 
+        # Now we generate the mass ratio randomly if needed, 
+        # and calculate a if it wasn't fixed
+        else:
+            # We already handled this case above
             if mass_fixed is not None:
-                self.mass_ratio = np.array([mass_fixed] * self.num_generated)
+                pass
+
+            # Flat IMF
             elif self.q_exp == 0.0:
                 # This generates all the  way to q=0 for a uniform distribution
                 if mass_lower is None:
@@ -77,6 +124,8 @@ class Companions:
                 if mass_upper is None:
                     mass_upper = 1.
                 self.mass_ratio = np.random.uniform(mass_lower, mass_upper, self.num_generated)
+
+            # IMF with an input slope
             else:
                 # This applies a lower mass limit for the power law distribution
                 if mass_lower is None:
@@ -85,141 +134,13 @@ class Companions:
                     mass_upper = 1.
                 q_range = np.arange(mass_lower, mass_upper + dq, dq)  # range of possible q
                 p = np.power(q_range, self.q_exp)    # probabilities
-                p = [x / np.sum(p) for x in p]  # normalized probabilities
+                p = p/np.sum(p) # normalized probabilities
                 self.mass_ratio = np.random.choice(q_range, p=p, size=self.num_generated)
             # Now calculate Semi-Major Axis using P and m
-            self.a = ((self.P / 365)**2 * G * self.star_mass*(1 + self.mass_ratio)/(4 * np.pi ** 2))**(1/3)  # AU
-            # Simple Cases Done
-        elif a_fixed is not None and mass_fixed is not None and P_fixed is not None:
-            # Ideally the GUI will not allow you to try to fix all three of them, but for now I will put it here
-            return -11
-        elif a_fixed is not None:
-            if mass_fixed is not None:
-                # Set values of a and mass to the given values, calculate P
-                self.a = np.array([a_fixed] * self.num_generated)
-                self.mass_ratio = np.array([mass_fixed] * self.num_generated)
-                self.P = np.sqrt( (4 * np.pi ** 2 * self.a ** 3) / (G * self.star_mass * (1 + self.mass_ratio))) * 365
-            elif P_fixed is not None:
-                # Set values of a and P to the given values, calculate mass
-                self.a = np.array([a_fixed] * self.num_generated)
-                self.P = np.array([P_fixed] * self.num_generated)
-                self.mass_ratio = np.array(4*np.pi**2 * self.a**3 / (G * self.star_mass * (self.P / 365)** 2) - 1)
-                if self.mass_ratio[0] > 1:
-                    # The fixed values of period and semi-major axis require a mass ratio greater than one
-                    return -12
-            else:
-                # Only a is fixed.
-                self.a = np.array([a_fixed] * self.num_generated)
-                if P_lower is None and P_upper is None:
-                    # Generate mass ratio as normal and then calculate P
-                    # Choose to generate mass ratio instead of P, to ensure that it stays within limits
-                    if mass_lower is None:
-                        mass_lower = 0.01
-                    if mass_upper is None:
-                        mass_upper = 1.
-                    q_range = np.arange(mass_lower, mass_upper + dq, dq)  # range of possible q
-                    p = np.power(q_range, self.q_exp)  # probabilities
-                    p = [x / np.sum(p) for x in p]  # normalized probabilities
-                    self.mass_ratio = np.random.choice(q_range, p=p, size=self.num_generated)
-                    self.P = np.sqrt(
-                        (4 * np.pi ** 2 * self.a ** 3) / (G * self.star_mass * (1 + self.mass_ratio))) * 365
-                else:
-                    # Generate P within limits, and then calculate mass ratio
-                    if P_lower is None:
-                        P_lower = 0
-                    if P_upper is None:
-                        P_upper = float('inf')
-                    self.P = np.array([-1.0] * self.num_generated)  # Initializing
-                    for i in range(0, self.num_generated):
-                        while self.P[i] < P_lower or self.P[i] > P_upper:
-                            log_P = np.random.normal(self.mu_log_P, self.sig_log_P)
-                            self.P[i] = 10 ** log_P
-                    self.mass_ratio = np.array(4 * np.pi ** 2 * self.a ** 3 / (G * self.star_mass * (self.P / 365) ** 2) - 1)
-        elif a_lower is not None or a_upper is not None:
-            if P_fixed is not None:
-                self.P = np.array([P_fixed] * self.num_generated)
-                # Generate limits on mass based on limits on a
-                if mass_lower is None:
-                    mass_lower = 0.
-                if mass_upper is None:
-                    mass_upper = 1.
-                # The limits will now need to be a list because the mass ratio for a given separation depends on the P
-                mass_lower_list = np.array([0.] * self.num_generated)  # Initialization
-                mass_upper_list = np.array([float('inf')] * self.num_generated)  # Initialization
+            self.a = ((self.P / 365)**2 * G * self.star_mass*(1 + self.mass_ratio)/(4 * np.pi ** 2))**(1/3)  # AU         
+            
 
-                if a_lower is not None:
-                    mass_lower_list = np.array( 4 * np.pi ** 2 * a_lower ** 3 / (G * self.star_mass * (self.P / 365) ** 2) - 1)
-                if a_upper is not None:
-                    mass_upper_list = np.array(
-                        4 * np.pi ** 2 * a_upper ** 3 / (G * self.star_mass * (self.P / 365) ** 2) - 1)
-
-                mass_lower_list = [max(x, mass_lower) for x in mass_lower_list]
-                mass_upper_list = [min(x, mass_upper) for x in mass_upper_list]
-
-                self.mass_ratio = np.array([0.] * self.num_generated)
-                for i in range(0, self.num_generated):
-                    q_range = np.arange(mass_lower, 1 + dq, dq)  # range of possible q
-                    p = np.power(q_range, self.q_exp)  # probabilities
-                    p = [x / np.sum(p) for x in p]  # normalized probabilities
-                    self.mass_ratio[i] = np.random.choice(q_range, p=p, size=1)
-                # Calculate a
-                self.a = ((self.P / 365) ** 2 * G * self.star_mass * (1 + self.mass_ratio) / (
-                            4 * np.pi ** 2)) ** (1 / 3)  # AU
-            else:
-                # Generate Mass
-                if mass_fixed is not None:
-                    self.mass_ratio = np.array([mass_fixed] * self.num_generated)
-                elif self.q_exp == 0.0:
-                    # This generates all the  way to q=0 for a uniform distribution
-                    if mass_lower is None:
-                        mass_lower = 0.
-                    if mass_upper is None:
-                        mass_upper = 1.
-                    self.mass_ratio = np.random.uniform(mass_lower, mass_upper, self.num_generated)
-                else:
-                    # This applies a lower mass limit for the power law distribution
-                    if mass_lower is None:
-                        mass_lower = 0.01
-                    if mass_upper is None:
-                        mass_upper = 1.
-                    q_range = np.arange(mass_lower, mass_upper + dq, dq)  # range of possible q
-                    p = np.power(q_range, self.q_exp)  # probabilities
-                    p = [x / np.sum(p) for x in p]  # normalized probabilities
-                    self.mass_ratio = np.random.choice(q_range, p=p, size=self.num_generated)
-                # Generate limits on period, based on limits on a
-                if P_lower is None:
-                    P_lower = 0.
-                if P_upper is None:
-                    P_upper = float('inf')
-
-                # The limits will now need to be a list because the period for a given separation depends on the mass
-                P_lower_list = np.array([0.] * self.num_generated)  # Initialization
-                P_upper_list = np.array([float('inf')] * self.num_generated)  # Initialization
-
-                if a_lower is not None:
-                    P_lower_list = np.sqrt(
-                        (4 * np.pi ** 2 * a_lower ** 3) / (G * self.star_mass * (1 + self.mass_ratio))) * 365
-                if a_upper is not None:
-                    P_upper_list = np.sqrt(
-                        (4 * np.pi ** 2 * a_upper ** 3) / (G * self.star_mass * (1 + self.mass_ratio))) * 365
-
-                P_lower_list = [max(x, P_lower) for x in P_lower_list]
-                P_upper_list = [min(x, P_upper) for x in P_upper_list]
-
-                # Generate period between limits
-                self.P = np.array([-1.0] * self.num_generated)  # Initializing
-                for i in range(0, self.num_generated):
-                    if P_lower_list[i] > P_upper_list[i]:
-                        return -11
-                    while self.P[i] < P_lower_list[i] or self.P[i] > P_upper_list[i]:
-                        log_P = np.random.normal(self.mu_log_P, self.sig_log_P)
-                        self.P[i] = 10 ** log_P
-                # Calculate a
-                self.a = ((self.P / 365)**2 * G * self.star_mass * (1 + self.mass_ratio) / (
-                            4 * np.pi ** 2))**(1/3)  # AU
-        else:
-            print("I really don't think you should be able to get here ever...")
-
+    def generate_inclination(self):
         # Inclination
         cos_i_fixed = self.limits[3]
         cos_i_lower = self.limits[4]
@@ -245,6 +166,7 @@ class Companions:
                 cos_i_upper = 1.
             self.cos_i = np.random.uniform(cos_i_lower, cos_i_upper, self.num_generated)  # uniform distribution between 0 and 1
 
+    def generate_phase(self):
         # Pericenter Phase (radians)
         phase_fixed = self.limits[18]
         phase_lower = self.limits[19]
@@ -261,6 +183,7 @@ class Companions:
                 phase_upper = 2. * np.pi
             self.phase = np.random.uniform(phase_lower, phase_upper, self.num_generated)
 
+    def generate_eccentricity(self):
         # Eccentricity
         e_fixed = self.limits[6]
         e_lower = self.limits[7]
@@ -296,6 +219,8 @@ class Companions:
                     ecc[i] = np.random.uniform(e_lower, e_upper)
             self.ecc = ecc
 
+    def generate_arg_peri(self):
+
         # Argument of Periapsis (radians)
         arg_fixed = self.limits[9]
         arg_lower = self.limits[10]
@@ -309,8 +234,6 @@ class Companions:
             if arg_upper is None:
                 arg_upper = np.pi
             self.arg_peri = np.random.uniform(arg_lower, arg_upper, self.num_generated)
-
-        return
 
     # Distribution functions
     def gauss(self, x, *p):
@@ -341,6 +264,8 @@ class Companions:
 
             # Populate the limits dataset
             dlims[:] = self.limits[:]
+
+            # Create a dataset with 
 
             # Create a prior dataset with the existing all_prior values
             all_prior = self.get_all()
