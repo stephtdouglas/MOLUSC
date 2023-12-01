@@ -13,6 +13,8 @@ warnings.simplefilter('ignore', category=scipy.linalg.misc.LinAlgWarning)
 
 today = datetime.today().isoformat().split("T")[0]
 
+G = 39.478  # Gravitational constant in AU^3/years^2*M_solar
+
 class Companions:
     # class variables
     __P = []  # days
@@ -34,6 +36,10 @@ class Companions:
         self.q_exp = q_exp
 
     def generate(self):
+        """
+        generate orbital parameters
+
+        """
 
         np.random.seed(999)
 
@@ -42,7 +48,16 @@ class Companions:
             (self.limits[12] is not None)):
             raise ValueError("You can't fix P, a, and q at the same time")
 
-        self.generate_paq()
+        # If user has not fixed a, then we can generate P and q independently
+        elif self.limits[15] is None:
+            self.generate_pq()
+            self.a = ((self.P / 365)**2 * G * self.star_mass*(1 + self.mass_ratio)/(4 * np.pi ** 2))**(1/3)  # AU
+
+        # If user has fixed a, then P or q becomes a dependent variable
+        else:
+            self.generate_paq()
+
+        # Then generate all the other orbital parameters
         self.generate_inclination()
         self.generate_phase()
         self.generate_eccentricity()
@@ -53,7 +68,6 @@ class Companions:
         generate Period (days), Mass Ratio and Semi-Major Axis (AU)
 
         """
-        G = 39.478  # Gravitational constant in AU^3/years^2*M_solar
         P_fixed = self.limits[0]
         P_lower = self.limits[1]
         P_upper = self.limits[2]
@@ -138,6 +152,76 @@ class Companions:
                 self.mass_ratio = np.random.choice(q_range, p=p, size=self.num_generated)
             # Now calculate Semi-Major Axis using P and m
             self.a = ((self.P / 365)**2 * G * self.star_mass*(1 + self.mass_ratio)/(4 * np.pi ** 2))**(1/3)  # AU         
+
+
+    def generate_pq(self):
+        """
+        Generate Period (days) and Mass Ratio but NOT semimajor axis
+
+        This function should only be run if 
+
+        """
+        a_fixed = self.limits[15]
+        if a_fixed is not None:
+            raise ValueError("Attempting to run generate_pq with fixed a")
+
+        P_fixed = self.limits[0]
+        P_lower = self.limits[1]
+        P_upper = self.limits[2]
+        mass_fixed = self.limits[12]
+        mass_lower = self.limits[13]
+        mass_upper = self.limits[14]
+
+        print('Generation Mass Ratio Exponent: ', self.q_exp)
+        dq = 1e-4  # coarseness
+
+        # Default lower limit on P
+        if P_lower is None or P_lower < 0.1:
+            P_lower = 0.1
+
+        # We will always generate P. Either it's fixed, OR the
+        # other two values are fixed, OR we generate it independently
+        if P_fixed is not None:
+            self.P = np.full(self.num_generated,fill_value=P_fixed)
+
+        else:
+            tn_low = (P_lower-self.mu_log_P)/self.sig_log_P
+            if P_upper is None:
+                tn_up = np.inf
+            else:
+                tn_up = (P_upper-self.mu_log_P)/self.sig_log_P
+            P_tn = stats.truncnorm(tn_low,tn_up,
+                                   loc=self.mu_log_P,scale=self.sig_log_P)
+            log_P = P_tn.rvs(self.num_generated)
+            self.P = 10**log_P
+
+        # We've handled all cases where values can be fixed. 
+        # Now we generate the mass ratio randomly if needed, 
+        # and calculate a if it wasn't fixed
+        if mass_fixed is not None:
+            self.mass_ratio = np.full(self.num_generated,fill_value=mass_fixed)
+
+        # Flat IMF
+        elif self.q_exp == 0.0:
+            # This generates all the  way to q=0 for a uniform distribution
+            if mass_lower is None:
+                mass_lower = 0.
+            if mass_upper is None:
+                mass_upper = 1.
+            self.mass_ratio = np.random.uniform(mass_lower, mass_upper, self.num_generated)
+
+        # IMF with an input slope
+        else:
+            # This applies a lower mass limit for the power law distribution
+            if mass_lower is None:
+                mass_lower = 0.01
+            if mass_upper is None:
+                mass_upper = 1.
+            q_range = np.arange(mass_lower, mass_upper + dq, dq)  # range of possible q
+            p = np.power(q_range, self.q_exp)    # probabilities
+            p = p/np.sum(p) # normalized probabilities
+            self.mass_ratio = np.random.choice(q_range, p=p, size=self.num_generated)
+      
             
 
     def generate_inclination(self):
