@@ -1,7 +1,7 @@
 from datetime import datetime as dt
 import datetime
 import warnings
-import os, pathlib
+import os, pathlib, sys
 import logging
 
 import numpy as np
@@ -273,10 +273,16 @@ class RV:
 
             # Use Pool to calculate zero point
             print(f'Current time: {datetime.datetime.now()} -- Calculating zero point...')
-            zp_params = [[self.experimental_RV, self.measurement_error, self.predicted_RV[j]] for j in range(num_generated)]
+            # curve_fit takes arguments f, xdata, ydata, p0=NOone, sigma=None
+            # zero_point_model takes arguments prediction, a
+            # (we want to end up with predicted + a = experimental
+            # so predicted is xdata and experimental is ydata
+            zp_params = [[zero_point_model, self.predicted_RV[j], self.experimental_RV, None, self.measurement_error] for j in range(num_generated)]
 
-            zero_points = pool.starmap(zero_point_fit_parallel, zp_params,
+            zp_results = pool.starmap(scipy.optimize.curve_fit, zp_params,
                                        chunksize=divisor)
+            # We only care about the zero-point, not its uncertainty (for now)
+            zero_points = [zr[0] for zr in zp_results]
             print(f'Current time: {datetime.datetime.now()} -- Calculated zero point!')
 
             # Shift all by zero point
