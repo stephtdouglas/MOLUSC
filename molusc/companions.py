@@ -2,6 +2,7 @@ from datetime import datetime
 import warnings
 import logging
 
+import h5py
 import numpy as np
 import scipy as scipy
 import scipy.stats as stats
@@ -319,3 +320,37 @@ class Companions:
     # Accessor function
     def get_all(self):
         return np.vstack([self.P,self.mass_ratio,self.cos_i,self.a,self.ecc,self.arg_peri,self.phase])
+
+
+    def write(self, filename):
+        """ Write companions to an output file
+        """
+        if (filename.endswith(".hdf5") or filename.endswith(".h5")) == False:
+            raise ValueError("This function only supports HDF5 files (.hdf5 or .h5)")
+
+        # By default, want to write to an h5py file. 
+        # Applications.py already writes to a .csv (move here eventually)
+
+        nlims = len(self.limits)
+        nparams = nlims // 3
+
+        # Open a h5py file ("with")
+        with h5py.File(filename,"w") as f:
+            # Create a dataset "limits" containing all the prior parameters
+            dlims = f.create_dataset("limits",(nlims,),dtype="float32")
+
+            # Populate the limits dataset
+            dlims[:] = self.limits[:]
+
+            # Create a prior dataset with the existing all_prior values
+            all_prior = self.get_all()
+            dprior = f.create_dataset("companions",
+                                      data=all_prior)
+
+
+
+    @classmethod
+    def read(cls, filename):
+        """ Read in companions from an existing file
+        """
+        pass
