@@ -161,7 +161,8 @@ class Application:
             if failure: return
             self.print_out(f'Current time: {datetime.datetime.now()} -- Companions Generated')
         else:
-            comps = Companions.read(self.companions_filename,self.num_generated)
+            comps = Companions.read(self.companions_filename,star_mass=self.star_mass,
+                                    num_max=self.num_generated)
             self.print_out(f'Current time: {datetime.datetime.now()} -- Companions read in')
 
         self.print_out(('Number of companions: ' + str(self.num_generated)))

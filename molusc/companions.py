@@ -15,6 +15,14 @@ today = datetime.today().isoformat().split("T")[0]
 
 G = 39.478  # Gravitational constant in AU^3/years^2*M_solar
 
+def check_none(x):
+    """
+    Check if elements of an list or array are None
+    Returns an array of booleans
+    """
+
+    return np.fromiter((elem is None for elem in x),bool)
+
 class Companions:
 
     # class functions
@@ -424,10 +432,34 @@ class Companions:
             grp = f.create_group("companions")
 
             # Write out the parameters by name
-            grp.create_dataset("P",data=self.P)
-            grp.create_dataset("q",data=self.mass_ratio)
+            P_lims = self.limits[:2]
+            mass_lims = self.limits[12:15]
+            a_lims = self.limits[15:18]
+            P_check = np.any(check_none(P_lims)==False)
+            mass_check = np.any(check_none(mass_lims)==False)
+            a_check = np.any(check_none(a_lims)==False)
+            # If 2 values were fixed, that determines the other by default
+            # Just ignore the unfixed one and it will be re-calculated
+            # The only case where P was separately calculated was when a and q were fixed
+            if a_check and mass_check:
+                grp.create_dataset("q",data=self.mass_ratio)
+                grp.create_dataset("a",data=self.a)
+
+            # If only a was fixed, then P was drawn randomly and the 
+            # stellar mass informs the mass ratio
+            elif a_check:
+                grp.create_dataset("P",data=self.P)
+                grp.create_dataset("a",data=self.a)
+
+
+            # In any other cases, we calculate P and q randomly or one
+            # of them is fixed, but either way they're the only two we need
+            else:
+                grp.create_dataset("P",data=self.P)
+                grp.create_dataset("q",data=self.mass_ratio)
+
+
             grp.create_dataset("cos_i",data=self.cos_i)
-            grp.create_dataset("a",data=self.a)
             grp.create_dataset("ecc",data=self.ecc)
             grp.create_dataset("arg_peri",data=self.arg_peri)
             grp.create_dataset("phase",data=self.phase)
@@ -435,9 +467,16 @@ class Companions:
 
 
     @classmethod
-    def read(cls, filename, num_max=None, warn_over=True):
+    def read(cls, filename, star_mass=None, num_max=None, warn_over=True):
         """ Read in companions from an existing file and initialize
         the companions object.
+
+        Things that can change: target mass, max number of companions
+
+        Things that definitely can't change: mu/sigma for the logP distribution
+            slope of the IMF, mass_ratio, cos_i, ecc, arg_peri, phase
+
+        ???????: P, a
         """
 
         if (filename.endswith(".hdf5") or filename.endswith(".h5")) == False:
@@ -457,8 +496,14 @@ class Companions:
                 else:
                     nread = ngen
 
+            # If a new mass is not provided, assume we're using the one
+            # from the hdf5 file
+            if star_mass is None:
+                star_mass = f["meta"]["star_mass"][()]
+
+
             return cls(nread,f["meta"]["limits"][:],
-                       f["meta"]["star_mass"][()],f["meta"]["mu_log_P"][()],
+                       star_mass,f["meta"]["mu_log_P"][()],
                        f["meta"]["sig_log_P"][()],f["meta"]["q_exp"][()],
                        **f["companions"])
 

@@ -44,6 +44,19 @@ def test_write():
 
     comps.write(test_fname)
 
+def test_write_values1():
+    """ Ensure that with the default test parameters, P and q are
+    written to the dataset, but not a """
+
+    comps = Companions(100, limits, star_mass, pd_mu, pd_sig, q_exp)
+    comps.generate()
+
+    comps.write(test_fname)
+    with h5py.File(test_fname,"r") as f:
+
+        keys = f["companions"].keys()
+        assert ("P" in keys) and ("q" in keys) and (("a" in keys)==False)
+
 def test_write_values():
     """ Ensure the write function executes cleanly. """
 
