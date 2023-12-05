@@ -54,7 +54,7 @@ def test_write_values():
     with h5py.File(test_fname,"r") as f:
 
         # If all the period values are still zeros, that's a problem
-        are_periods_zero = f["companions"][0] == 0
+        are_periods_zero = f["companions"]["P"] == 0
         assert np.all(are_periods_zero)==False
 
 def test_bad_extension():
@@ -71,6 +71,20 @@ def test_bad_extension():
         comps.write(test_fname2)
 
 def test_read():
-    """ Ensure the write function executes cleanly. """
+    """ 
+    Ensure the read function executes cleanly and passes values through.
+    """
 
     comps = Companions.read(test_fname)
+
+    assert comps.P is not None
+
+
+def test_pinit():
+    """ 
+    Ensure the init function raises an error with random extra parameters. 
+    """
+
+    with pytest.raises(ValueError):
+        comps = Companions(100, limits, star_mass, pd_mu, pd_sig, q_exp,
+                           l=np.inf)

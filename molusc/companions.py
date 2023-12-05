@@ -16,24 +16,83 @@ today = datetime.today().isoformat().split("T")[0]
 G = 39.478  # Gravitational constant in AU^3/years^2*M_solar
 
 class Companions:
-    # class variables
-    __P = []  # days
-    __mass_ratio = []  # fraction
-    __cos_i = []  # unitless
-    __a = []  # AU
-    __ecc = []  # unitless
-    __arg_peri = []  # radians
-    __phase = []  # radians
-    num_generated = 0
 
     # class functions
-    def __init__(self, num_generated, limits, star_mass, pd_mu, pd_sig, q_exp):
+    def __init__(self, num_generated, limits, star_mass, pd_mu, pd_sig, q_exp,
+                 **params):
+        """
+        Initialize the Companions class. 
+
+        Required inputs
+        ---------------
+        num_generated: integer
+        limits: list-like, limits/fixed values for parameters. 
+            Any of them can be None (note m is q and phi is phase)
+            [P_fixed, P_min, P_max, 
+            i_fixed, i_min, i_max, e_fixed, e_min, e_max, 
+            arg_peri_fixed, arg_peri_min, arg_peri_max,
+            m_fixed, m_min, m_max, a_fixed, a_min, a_max, 
+            phi_fixed,phi_min, phi_max]
+        star_mass: float, primary star mass in solar masses
+        pd_mu: median orbital period in log-days
+        pd_sig: width of the log-period distribution
+        q_exp: power-law slope, if any, for the IMF
+
+        Optional params - these are the orbital parameters read in from a file
+        If creating a new Companions object from scratch, do not provide params
+        Two of P, q, and a must be provided - the third will then be calculated
+        P: array-like, orbital period in days
+        q: array-like, mass-ratio
+        a: array-like, semi-major axis in AU
+        cos_i: array-like, cosine of inclination
+        ecc: array-like, eccentricity
+        arg_peri: array-like, argument of periastron (small omega)
+        phase: array-like, orbital phase (phi)
+
+        """
         self.num_generated = num_generated
         self.limits = limits
         self.star_mass = star_mass
         self.mu_log_P = pd_mu
         self.sig_log_P = pd_sig
         self.q_exp = q_exp
+
+        if params:
+            pkeys = params.keys()
+            # TODO: this should also take into account fixed values in limits
+            if ("P" in pkeys) and ("q" in pkeys):
+                self.P = params["P"]
+                self.mass_ratio = params["q"]
+                if "a" in pkeys:
+                    self.a = params["a"]
+                else:
+                    self.a = ((self.P / 365)**2 * G * self.star_mass*(1 + self.mass_ratio)/(4 * np.pi ** 2))**(1/3)  # AU
+            elif ("P" in pkeys) and ("a" in pkeys):
+                self.P = params["P"]
+                self.a = params["a"]
+                if "q" in pkeys:
+                    self.mass_ratio = params["q"]
+                else:
+                    self.mass_ratio = np.array(4*np.pi**2 * self.a**3 / (G * self.star_mass * (self.P / 365)** 2) - 1)
+            elif ("a" in pkeys) and ("q" in pkeys):
+                self.a = params["a"]
+                self.mass_ratio = params["q"]
+                if "P" in pkeys:
+                    self.P = params["P"]
+                else:
+                    self.P = np.sqrt( (4 * np.pi ** 2 * self.a ** 3) / (G * self.star_mass * (1 + self.mass_ratio))) * 365
+            else:
+                raise ValueError("At least two of P, q, and a must be provided")
+
+            # Read in the other parameters
+            self.cos_i = params["cos_i"]
+            self.ecc = params["ecc"]
+            self.arg_peri = params["arg_peri"]
+            self.phase = params["phase"]
+        else:
+            self.P, self.a, self.q = None, None, None
+            self.cos_i, self.ecc = None, None 
+            self.arg_peri, self.phase = None, None
 
     def generate(self):
         """
@@ -332,6 +391,7 @@ class Companions:
     def write(self, filename):
         """ Write companions to an output file
         """
+
         if (filename.endswith(".hdf5") or filename.endswith(".h5")) == False:
             raise ValueError("This function only supports HDF5 files (.hdf5 or .h5)")
 
@@ -343,23 +403,50 @@ class Companions:
 
         # Open a h5py file ("with")
         with h5py.File(filename,"w") as f:
+            # Create a group to contain metadata and misc parameters
+            drp = f.create_group("meta")
+
             # Create a dataset "limits" containing all the prior parameters
-            dlims = f.create_dataset("limits",(nlims,),dtype="float32")
+            dlims = drp.create_dataset("limits",(nlims,),dtype="float32")
 
             # Populate the limits dataset
             dlims[:] = self.limits[:]
 
-            # Create a dataset with 
+            # Add the other misc parameters
+            drp.create_dataset("star_mass",data=self.star_mass)
+            drp.create_dataset("mu_log_P",data=self.mu_log_P)
+            drp.create_dataset("sig_log_P",data=self.sig_log_P)
+            drp.create_dataset("q_exp",data=self.q_exp)
+            drp.create_dataset("num_generated",data=self.num_generated)
 
-            # Create a prior dataset with the existing all_prior values
-            all_prior = self.get_all()
-            dprior = f.create_dataset("companions",
-                                      data=all_prior)
+            # Create a group to contain the existing prior values
+
+            grp = f.create_group("companions")
+
+            # Write out the parameters by name
+            grp.create_dataset("P",data=self.P)
+            grp.create_dataset("q",data=self.mass_ratio)
+            grp.create_dataset("cos_i",data=self.cos_i)
+            grp.create_dataset("a",data=self.a)
+            grp.create_dataset("ecc",data=self.ecc)
+            grp.create_dataset("arg_peri",data=self.arg_peri)
+            grp.create_dataset("phase",data=self.phase)
 
 
 
     @classmethod
     def read(cls, filename):
-        """ Read in companions from an existing file
+        """ Read in companions from an existing file and initialize
+        the companions object.
         """
-        pass
+
+        if (filename.endswith(".hdf5") or filename.endswith(".h5")) == False:
+            raise ValueError("This function only supports HDF5 files (.hdf5 or .h5)")
+
+        with h5py.File(filename,"r") as f:
+
+            return cls(f["meta"]["num_generated"],f["meta"]["limits"],
+                       f["meta"]["star_mass"],f["meta"]["mu_log_P"],
+                       f["meta"]["sig_log_P"],f["meta"]["q_exp"],
+                       **f["companions"])
+
