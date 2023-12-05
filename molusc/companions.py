@@ -61,34 +61,34 @@ class Companions:
             pkeys = params.keys()
             # TODO: this should also take into account fixed values in limits
             if ("P" in pkeys) and ("q" in pkeys):
-                self.P = params["P"][:]
-                self.mass_ratio = params["q"][:]
+                self.P = params["P"][:num_generated]
+                self.mass_ratio = params["q"][:num_generated]
                 if "a" in pkeys:
-                    self.a = params["a"][:]
+                    self.a = params["a"][:num_generated]
                 else:
                     self.a = ((self.P / 365)**2 * G * self.star_mass*(1 + self.mass_ratio)/(4 * np.pi ** 2))**(1/3)  # AU
             elif ("P" in pkeys) and ("a" in pkeys):
-                self.P = params["P"][:]
-                self.a = params["a"][:]
+                self.P = params["P"][:num_generated]
+                self.a = params["a"][:num_generated]
                 if "q" in pkeys:
-                    self.mass_ratio = params["q"][:]
+                    self.mass_ratio = params["q"][:num_generated]
                 else:
                     self.mass_ratio = np.array(4*np.pi**2 * self.a**3 / (G * self.star_mass * (self.P / 365)** 2) - 1)
             elif ("a" in pkeys) and ("q" in pkeys):
-                self.a = params["a"][:]
-                self.mass_ratio = params["q"][:]
+                self.a = params["a"][:num_generated]
+                self.mass_ratio = params["q"][:num_generated]
                 if "P" in pkeys:
-                    self.P = params["P"][:]
+                    self.P = params["P"][:num_generated]
                 else:
                     self.P = np.sqrt( (4 * np.pi ** 2 * self.a ** 3) / (G * self.star_mass * (1 + self.mass_ratio))) * 365
             else:
                 raise ValueError("At least two of P, q, and a must be provided")
 
             # Read in the other parameters
-            self.cos_i = params["cos_i"][:]
-            self.ecc = params["ecc"][:]
-            self.arg_peri = params["arg_peri"][:]
-            self.phase = params["phase"][:]
+            self.cos_i = params["cos_i"][:num_generated]
+            self.ecc = params["ecc"][:num_generated]
+            self.arg_peri = params["arg_peri"][:num_generated]
+            self.phase = params["phase"][:num_generated]
         else:
             self.P, self.a, self.q = None, None, None
             self.cos_i, self.ecc = None, None 
@@ -435,7 +435,7 @@ class Companions:
 
 
     @classmethod
-    def read(cls, filename):
+    def read(cls, filename, num_max=None, warn_over=True):
         """ Read in companions from an existing file and initialize
         the companions object.
         """
@@ -445,8 +445,20 @@ class Companions:
 
         with h5py.File(filename,"r") as f:
 
-            return cls(f["meta"]["num_generated"],f["meta"]["limits"],
-                       f["meta"]["star_mass"],f["meta"]["mu_log_P"],
-                       f["meta"]["sig_log_P"],f["meta"]["q_exp"],
+            ngen = np.int(f["meta"]["num_generated"][()])
+
+            if num_max is None:
+                nread = ngen
+            else:
+                if num_max <= ngen:
+                    nread = num_max
+                elif warn_over and (num_max>ngen):
+                    raise ValueError("Requested more companions than are provided in the file")
+                else:
+                    nread = ngen
+
+            return cls(nread,f["meta"]["limits"][:],
+                       f["meta"]["star_mass"][()],f["meta"]["mu_log_P"][()],
+                       f["meta"]["sig_log_P"][()],f["meta"]["q_exp"][()],
                        **f["companions"])
 

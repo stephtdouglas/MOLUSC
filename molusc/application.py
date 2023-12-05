@@ -68,6 +68,7 @@ class Application:
     jitter_reject_list = []
     ruwe_reject_list = []
     gaia_reject_list = []
+    companions_filename = ''
 
     # Class functions
     def __init__(self, input_args):
@@ -152,12 +153,17 @@ class Application:
         self.print_out(('Star Mass: ' + str(self.star_mass)))
 
         # Generate Companions
-        t1 = datetime.datetime.now()
-        self.print_out(f'Current time: {t1} -- Generating Companions..')
-        comps = Companions(self.num_generated, self.limits, self.star_mass, self.pd_mu, self.pd_sig, self.q_exp)
-        failure = self.error_check(comps.generate())
-        if failure: return
-        self.print_out(f'Current time: {datetime.datetime.now()} -- Companions Generated')
+        if self.companions_filename=="":
+            t1 = datetime.datetime.now()
+            self.print_out(f'Current time: {t1} -- Generating Companions..')
+            comps = Companions(self.num_generated, self.limits, self.star_mass, self.pd_mu, self.pd_sig, self.q_exp)
+            failure = self.error_check(comps.generate())
+            if failure: return
+            self.print_out(f'Current time: {datetime.datetime.now()} -- Companions Generated')
+        else:
+            comps = Companions.read(self.companions_filename,self.num_generated)
+            self.print_out(f'Current time: {datetime.datetime.now()} -- Companions read in')
+
         self.print_out(('Number of companions: ' + str(self.num_generated)))
 
         # Decide which parts to run, and run them
@@ -646,6 +652,9 @@ class Application:
                                required=False, default=20, metavar='JITTER[m/s]')
         my_parser.add_argument('--rv_floor', help='The lowest RV semi-amplitude which can be rejected in m/s',
                                required=False, default=20, metavar='RV FLOOR[m/s]')
+        my_parser.add_argument('--comps', type=str, help='The path to the file(s) containing pre-generated companions', 
+                               required=False,
+                               metavar='COMP_PATH', default='')
         # Analysis Options
         my_parser.add_argument('--rv', help='The path to the file containing the RV data', required=False,
                                metavar='RV_PATH', default='')
@@ -686,6 +695,7 @@ class Application:
             # logging.info(f"First item in args.filter: {args.filter[0]}")
             self.ruwe_check = args.ruwe
             self.gaia_check = args.gaia
+            self.companions_filename = args.comps
             # Output Options
             self.prefix = args.prefix
             self.extra_output = args.verbose
@@ -743,6 +753,11 @@ class Application:
 
             self.ruwe_check = data["ruwe_params"]["fit"]
             self.gaia_check = data["gaia_params"]["fit"]
+
+            if "companions_file" in data.keys():
+                self.companions_filename = data["companions_file"]
+            else:
+                self.companions_filename = ""
 
             # Gaia data
             gmag_check = (("gmag" in data["gaia_params"].keys()) and
@@ -864,4 +879,5 @@ class Application:
         self.jitter_reject_list = []
         self.ruwe_reject_list = []
         self.gaia_reject_list = []
+        self.companions_filename = ''
         return

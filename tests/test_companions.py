@@ -80,6 +80,16 @@ def test_read():
     assert comps.P is not None
 
 
+def test_read2():
+    """ 
+    Ensure the read function executes cleanly and passes values through.
+    """
+
+    comps = Companions.read(test_fname)
+
+    assert comps.num_generated > 0
+
+
 def test_pinit():
     """ 
     Ensure the init function raises an error with random extra parameters. 
