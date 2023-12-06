@@ -22,7 +22,7 @@ import multiprocessing as mp
 # from pkgcore.config import load_config
 warnings.simplefilter('error', category=RuntimeWarning)
 warnings.simplefilter('ignore', category=AstropyWarning)
-warnings.simplefilter('ignore', category=scipy.linalg.misc.LinAlgWarning)
+warnings.simplefilter('ignore', category=scipy.linalg.LinAlgWarning)
 
 # c = load_config()
 # hp = hpy()

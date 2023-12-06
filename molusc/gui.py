@@ -11,7 +11,7 @@ from textwrap import wrap
 from astropy.utils.exceptions import AstropyWarning
 warnings.simplefilter('error', category=RuntimeWarning)
 warnings.simplefilter('ignore', category=AstropyWarning)
-warnings.simplefilter('ignore', category=scipy.linalg.misc.LinAlgWarning)
+warnings.simplefilter('ignore', category=scipy.linalg.LinAlgWarning)
 
 today = datetime.today().isoformat().split("T")[0]
 

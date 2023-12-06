@@ -15,7 +15,7 @@ from astropy.utils.exceptions import AstropyWarning
 from timeit import timeit
 warnings.simplefilter('error', category=RuntimeWarning)
 warnings.simplefilter('ignore', category=AstropyWarning)
-warnings.simplefilter('ignore', category=scipy.linalg.misc.LinAlgWarning)
+warnings.simplefilter('ignore', category=scipy.linalg.LinAlgWarning)
 
 today = dt.today().isoformat().split("T")[0]
 import molusc
