@@ -11,17 +11,13 @@ import scipy.stats as stats
 from astropy.io import ascii
 import gc
 import yaml
-from ao import AO
-from companions import Companions
-from gui import GUI
-from ruwe import RUWE
-from rv import RV
+from molusc.ao import AO
+from molusc.companions import Companions
+from molusc.gui import GUI
+from molusc.ruwe import RUWE
+from molusc.rv import RV
 from astropy.utils.exceptions import AstropyWarning
-# from guppy import hpy
-# import tracemalloc
 
-# tracemalloc.start()
-# hp = hpy()
 arrayid = int(os.getenv("SLURM_ARRAY_TASK_ID",9999))
 jobid = int(os.getenv("SLURM_JOB_ID",9999))
 jobname = os.getenv("SLURM_JOB_NAME", 'MOLUSC_999')
@@ -35,6 +31,7 @@ import molusc
 repo_path = pathlib.Path(molusc.__file__).resolve().parent.parent
 
 class Application:
+    pass
     # Input
     input_args = []
     using_gui = True
@@ -85,7 +82,7 @@ class Application:
         else:
             # run from the arguments only
             self.using_gui = False
-            if self.parse_input():
+            if self.parse_input(self.input_args[1:]):
                 self.run()
     
     def get_inputs(self):
@@ -390,11 +387,11 @@ class Application:
                 
             ascii.write(all_table, (self.prefix + "_all.csv"), format='csv', names=cols, overwrite=True)
             
-            del(self.ao_reject_list)
-            del(self.rv_reject_list)
-            del(self.jitter_reject_list)
-            del(self.ruwe_reject_list)
-            del(self.gaia_reject_list)
+            # del(self.ao_reject_list)
+            # del(self.rv_reject_list)
+            # del(self.jitter_reject_list)
+            # del(self.ruwe_reject_list)
+            # del(self.gaia_reject_list)
 
             self.print_out((f'Current time: {datetime.datetime.now()} -- Generated binary parameters saved to: ' + self.prefix + '_all.csv'))
 
@@ -475,14 +472,7 @@ class Application:
             yaml.dump(yaml_data,f)
         t2 = datetime.datetime.now()
         self.print_out((f'Current time: {t2} -- Run parameters saved to: ' + self.prefix + '_params_output.yml'))
-        
-        # h = hp.heap()
-        # print(f"THIS IS h for the whole application: \n\n\n{h}")
-        
-        # print(f"\n{tracemalloc.get_traced_memory()}\n")
-        # tracemalloc.stop()
-
-        
+                
         self.print_out(f'\nTime started: {t1}\nTime ended: {t2}')        
         if self.using_gui: self.gui.update_status('Finished - Successful')
         self.restore_defaults()
@@ -629,7 +619,7 @@ class Application:
     
         return
 
-    def parse_input(self):
+    def parse_input(self,in_args):
         # Read in command line inputs
         # Create Parser
         parser = argparse.ArgumentParser(description='Find limits on the orbital parameters of unseen companions')
@@ -679,7 +669,7 @@ class Application:
         yaml_parser.add_argument('-a', '--all', action='store_true', help='Write out all generated companions')
         
         # Run parser
-        args = parser.parse_args()
+        args = parser.parse_args(in_args)
         
         if args.command == "cl":
             # Input the inputs

@@ -14,8 +14,6 @@ from astropy.utils.exceptions import AstropyWarning
 from multiprocessing import Process
 from multiprocessing.pool import Pool
 import multiprocessing as mp
-# from guppy import hpy
-# import tracemalloc
 
 # from pkgcore.config import load_config
 warnings.simplefilter('error', category=RuntimeWarning)

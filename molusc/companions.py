@@ -9,7 +9,6 @@ import scipy.stats as stats
 from astropy.utils.exceptions import AstropyWarning
 warnings.simplefilter('error', category=RuntimeWarning)
 warnings.simplefilter('ignore', category=AstropyWarning)
-warnings.simplefilter('ignore', category=scipy.linalg.misc.LinAlgWarning)
 
 today = datetime.today().isoformat().split("T")[0]
 
@@ -484,7 +483,7 @@ class Companions:
 
         with h5py.File(filename,"r") as f:
 
-            ngen = np.int(f["meta"]["num_generated"][()])
+            ngen = np.int64(f["meta"]["num_generated"][()])
 
             if num_max is None:
                 nread = ngen

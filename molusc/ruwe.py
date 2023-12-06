@@ -15,7 +15,6 @@ from astropy.utils.exceptions import AstropyWarning
 from multiprocessing import Process
 from multiprocessing.pool import Pool
 import multiprocessing as mp
-from ao import get_pro_sep
 warnings.simplefilter('error', category=RuntimeWarning)
 warnings.simplefilter('ignore', category=AstropyWarning)
 warnings.simplefilter('ignore', category=scipy.linalg.misc.LinAlgWarning)
@@ -24,7 +23,7 @@ today = dt.today().isoformat().split("T")[0]
 
 import molusc
 repo_path = pathlib.Path(molusc.__file__).resolve().parent.parent
-
+from molusc.utils import get_pro_sep
 
 class RUWE:
     # class variables
