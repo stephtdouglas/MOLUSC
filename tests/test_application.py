@@ -29,7 +29,7 @@ def test_write():
 
     comps.write(test_fname)
 
-def test_init(monkeypatch):
+def test_positional(monkeypatch):
     # assert 0 == 0
 
     with monkeypatch.context() as m:
@@ -42,14 +42,29 @@ def test_init(monkeypatch):
         # assert False
 
 
+def test_optional(monkeypatch):
+    # assert 0 == 0
+
+    with monkeypatch.context() as m:
+        m.setattr(sys, 'argv', [sys.argv[0], "cl", "--ao", cfile,  
+                  "--filter", "K", "--comps", test_fname, 
+                  "--",  "mp_test", 
+                  "13h50m06.28s",  "-40d50m08.9s", "100", 
+                  "1.3"])
+        app = Application(sys.argv)
+        acheck = app.parse_input(app.input_args[1:])
+        assert acheck
+
 def test_infile(monkeypatch):
     # assert 0 == 0
 
     with monkeypatch.context() as m:
         m.setattr(sys, 'argv', [sys.argv[0], "cl", "--ao", cfile,  
-                  "--filter", "K", "--",  "mp_test", 
+                  "--filter", "K", "--comps", test_fname, 
+                  "--",  "mp_test", 
                   "13h50m06.28s",  "-40d50m08.9s", "100", 
-                  "1.3"])#, "--comps", test_fname])
+                  "1.3"])
         app = Application(sys.argv)
         acheck = app.parse_input(app.input_args[1:])
-        assert acheck
+        assert app.companions_filename!=""
+
