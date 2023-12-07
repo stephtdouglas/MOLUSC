@@ -18,6 +18,17 @@ import molusc
 repo_path = pathlib.Path(molusc.__file__).resolve().parent.parent
 bfile = os.path.join(repo_path,"molusc/BinaryStarGUI_laptop.py")
 cfile = os.path.join(repo_path,"example_contrast.txt")
+rfile = os.path.join(repo_path,"example_rv.txt")
+
+def cleanup(prefix):
+    if os.path.exists(prefix+"_all.csv"):
+        os.remove(prefix+"_all.csv")
+    if os.path.exists(prefix+"_kept.csv"):
+        os.remove(prefix+"_kept.csv")
+    if os.path.exists(prefix+"_RVs.csv"):
+        os.remove(prefix+"_RVs.csv")
+    if os.path.exists(prefix+"_params_output.yml"):
+        os.remove(prefix+"_params_output.yml")
 
 test_fname = os.path.join(repo_path,"tests/test_write.hdf5")
 # TODO: make a test companions file to use for read tests, 
@@ -31,16 +42,14 @@ def test_write():
     comps.write(test_fname)
 
 def test_positional(monkeypatch):
-    # assert 0 == 0
 
     with monkeypatch.context() as m:
-        m.setattr(sys, 'argv', [sys.argv[0], "cl", "mp_test", 
-                  "13h50m06.28s", "--",  "-40d50m08.9s", "100", "1.3"])
+        m.setattr(sys, 'argv', [sys.argv[0], "cl", "mp_tst", 
+                  "13h50m06.28s", "--",  "-40d50m08.9s", "100", "1.1"])
         print(sys.argv)
         app = Application(sys.argv)
         acheck = app.parse_input(app.input_args[1:])
         assert acheck
-        # assert False
 
 
 def test_optional(monkeypatch):
@@ -49,9 +58,9 @@ def test_optional(monkeypatch):
     with monkeypatch.context() as m:
         m.setattr(sys, 'argv', [sys.argv[0], "cl", "--ao", cfile,  
                   "--filter", "K", "--comps", test_fname, 
-                  "--",  "mp_test", 
+                  "--",  "mp_tst", 
                   "13h50m06.28s",  "-40d50m08.9s", "100", 
-                  "1.3"])
+                  "1.1"])
         app = Application(sys.argv)
         acheck = app.parse_input(app.input_args[1:])
         assert acheck
@@ -62,10 +71,36 @@ def test_infile(monkeypatch):
     with monkeypatch.context() as m:
         m.setattr(sys, 'argv', [sys.argv[0], "cl", "--ao", cfile,  
                   "--filter", "K", "--comps", test_fname, 
-                  "--",  "mp_test", 
+                  "--",  "tests/mp_tst", 
                   "13h50m06.28s",  "-40d50m08.9s", "100", 
-                  "1.3"])
+                  "1.1"])
         app = Application(sys.argv)
         acheck = app.parse_input(app.input_args[1:])
-        assert app.companions_filename!=""
+        assert app.companions_filename==test_fname
+
+aprefix = "tests/ao_tst"
+def test_ao(monkeypatch):
+    with monkeypatch.context() as m:
+        m.setattr(sys, 'argv', [sys.argv[0],"cl", "-a", "--ao", cfile,  
+                  "--filter", "K", 
+                  "--", aprefix, 
+                  "13h50m06.28s", "-40d50m08.9s", "100", "1.1"])
+        print(sys.argv)
+        app = Application(sys.argv)
+        app.start()
+        assert os.path.exists("tests/ao_tst_all.csv")
+cleanup(aprefix)
+
+rprefix = "tests/rv_tst"
+def test_rv(monkeypatch):
+    with monkeypatch.context() as m:
+        m.setattr(sys, 'argv', [sys.argv[0],"cl", "-a", "--rv", rfile,  
+                  "--resolution","50000", 
+                  "--", rprefix, 
+                  "13h50m06.28s", "-40d50m08.9s", "100", "1.1"])
+        print(sys.argv)
+        app = Application(sys.argv)
+        app.start()
+        assert os.path.exists("tests/rv_tst_RVs.csv")
+cleanup(rprefix)
 

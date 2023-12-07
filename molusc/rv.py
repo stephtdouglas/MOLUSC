@@ -109,7 +109,7 @@ class RV:
         self.model = self.load_stellar_model('G', age)
         print(f'Current time: {datetime.datetime.now()} -- Finished loading stellar model')
 
-    def analyze_rv(self):
+    def analyze_rv(self,rv_output_file=None):
         # Calculate predicted RV
         #     Using orbital mechanics equations from Perryman 2011, and solving for E(anomaly) numerically
         #     For time comparison I want to generate times with the same range as the times in MJD, and then calculate
@@ -181,16 +181,30 @@ class RV:
                 self.predicted_RV[i] = np.average([prim_rv[i],cmp_rv[i]],
                                                   axis=0,
                                                   weights=[prim_lum,cmp_lum[i]])
+            if rv_output_file is not None:
+                cols = [str(mjd) for mjd in self.MJD]
+                cols.append("ZP")
+                dtype = np.full(len(cols),fill_value="float32")
+                tab = Table(names=cols, dtype=dtype)
+                for i, colname in enumerate(cols):
+                    # tab[colname] = self.predicted_RV[:,i]
+                    tab[colname].info.format = ".6f"
+                tab["ZP"].info.format = ".6f"
 
-            
             print(f'Current time: {datetime.datetime.now()} -- Running zero point models...')
             # TODO: can this be further streamlined?
             for i in range(0, num_generated):
                 # Fit the zero point
                 [zero_point], pcov = scipy.optimize.curve_fit(self.zero_point_model, self.predicted_RV[i], self.experimental_RV, sigma=self.measurement_error)
                 # Shift all predicted values by the zero_point
+                if rv_output_file is not None:
+                    tab.add_row(np.append(self.predicted_RV[i],zero_point))
+                    tab["ZP"][i] = zero_point
                 self.predicted_RV[i] += zero_point
             print(f'Current time: {datetime.datetime.now()} -- Finished running zero point models')
+
+            if rv_output_file is not None:
+                tab.write(rv_output_file,overwrite=False,delimiter=",")
             
             print(f'Current time: {datetime.datetime.now()} -- Comparing experimental RV to predicted RV...')
             # Compare experimental and predicted RVs
@@ -284,6 +298,18 @@ class RV:
             # We only care about the zero-point, not its uncertainty (for now)
             zero_points = [zr[0] for zr in zp_results]
             print(f'Current time: {datetime.datetime.now()} -- Calculated zero point!')
+
+            if rv_output_file is not None:
+                cols = [str(mjd) for mjd in self.MJD]
+                cols.append("ZP")
+                dtype = np.full(len(cols),fill_value="float32")
+                tab = Table(names=cols, dtype=dtype)
+                for i, colname in enumerate(cols):
+                    tab[colname] = self.predicted_RV[:,i]
+                    tab[colname].info.format = ".6f"
+                tab["ZP"] = zero_points
+                tab["ZP"].info.format = ".6f"
+                tab.write(rv_output_file,overwrite=False,delimiter=",")
 
             # Shift all by zero point
             print(f'Current time: {datetime.datetime.now()} -- Shifting all by zero point...')

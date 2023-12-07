@@ -16,6 +16,7 @@ from molusc.companions import Companions
 from molusc.gui import GUI
 from molusc.ruwe import RUWE
 from molusc.rv import RV
+from molusc.utils import set_null_limits
 from astropy.utils.exceptions import AstropyWarning
 
 arrayid = int(os.getenv("SLURM_ARRAY_TASK_ID",9999))
@@ -205,7 +206,7 @@ class Application:
             if failure: return
             if self.extra_output: self.print_out(f'Current time: {datetime.datetime.now()} -- RV Measurements Loaded.')
             # Run analysis
-            self.rv_reject_list = rv.analyze_rv() # TODO!
+            self.rv_reject_list = rv.analyze_rv(rv_output_file=self.prefix+"_RVs.csv")
             self.jitter_reject_list = np.array([False]*self.num_generated)
             self.print_out(f'Current time: {datetime.datetime.now()} -- Finished analyzing RV')
         else:
@@ -397,7 +398,7 @@ class Application:
 
         # Write out run inputs to a yaml file
         self.print_out(f'Current time: {datetime.datetime.now()} -- Writing out run inputs to yaml file...')
-        if self.limits[3] == "transit":
+        if str(self.limits["cos_i"]["fixed"]) == "transit":
             is_transit = True
         else:
             is_transit = False
@@ -672,6 +673,7 @@ class Application:
         args = parser.parse_args(in_args)
         
         if args.command == "cl":
+            print("Use commandline arguments",type(args.n))
             # Input the inputs
             self.input_yml = None
             #  Analysis Options
@@ -700,7 +702,7 @@ class Application:
             self.added_jitter = float(args.jitter)
             self.rv_floor = int(args.rv_floor)
             # Limits
-            self.limits = [None]*21
+            self.limits = set_null_limits()
             if args.transit:
                 self.limits[3] = 'transit'
             
@@ -716,6 +718,7 @@ class Application:
             logging.info(f"\nln_ruwe v2: {self.ln_ruwe}\n")
 
         elif args.command == "yml":
+            print("Use yaml input file")
             self.input_yml = args.yml_file
             print(args.yml_file)
             with open(self.input_yml, "r") as f:
@@ -789,7 +792,7 @@ class Application:
             self.star_age = data["star"]["age"]
             self.added_jitter = data["star"]["jitter"]
             # Limits
-            self.limits = [None]*21
+            self.limits = set_null_limits()
             if data["transit"]==True:
                 self.limits[3] = 'transit'
         else:
@@ -861,7 +864,7 @@ class Application:
         self.rv_floor = 20
         # Code Parameters
         self.num_generated = 0
-        self.limits = []
+        self.limits = {}
         self.extra_output = False
         self.all_output = False
         # Reject lists
