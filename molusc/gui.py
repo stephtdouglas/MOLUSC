@@ -776,11 +776,10 @@ class GUI(tk.Frame):
             return False
 
     def validate_i(self, new_text, box_name):
-        # TODO: the GUI box says *cos*i, not sin(i), and the paper 
-        # refers to cosi running from 0 to 1. This may need to be fixed.
-        # For now I am assuming the parameter is cosi
-        # sin(i) must be greater than -1 and less than 1, if accepted, the other boxes should be grayed out
+        # cos(i) must be greater than 0 and less than 1, 
+        # if accepted, the other boxes should be grayed out
         # a limit value of 'transit' can also be accepted
+        # NOTE: the parameter here is named "i" but refers to cos(i)
         if not new_text:
             # box cleared
             if box_name.endswith('entry4'):
@@ -801,7 +800,7 @@ class GUI(tk.Frame):
             return True
         try:
             i = float(new_text)
-            if -1 <= i <= 1:
+            if 0 <= i <= 1:
                 if box_name.endswith('entry4'):
                     self.__i_fixed = i
                     self.i1_box.config(bg='white')
@@ -1356,7 +1355,7 @@ class GUI(tk.Frame):
         limits["cos_i"]["fixed"] = self.__i_fixed
         limits["cos_i"]["min"] = self.__i_min
         limits["cos_i"]["max"] = self.__i_max
-        
+
         limits["ecc"] = OrderedDict()
         limits["ecc"]["fixed"] = self.__e_fixed
         limits["ecc"]["min"] = self.__e_min
