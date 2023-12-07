@@ -1,4 +1,6 @@
 from datetime import datetime as dt
+from collections import OrderedDict
+from time import time
 import datetime
 import warnings
 import os, pathlib, sys
@@ -8,8 +10,6 @@ import numpy as np
 import scipy as scipy
 import scipy.stats as stats
 import astropy.units as u
-from astropy.table import Table
-from time import time
 from astropy.utils.exceptions import AstropyWarning
 from multiprocessing import Process
 from multiprocessing.pool import Pool
@@ -140,3 +140,12 @@ def calculate_unscaled_RV(period, ecc, arg_peri, phase, MJD):
     RV = np.sin(arg_peri + true_anomaly) + ecc * np.sin(arg_peri)  # km/s
 
     return RV
+
+
+def set_null_limits():
+    limits = {}
+    for key in ["P","cos_i","ecc","arg_peri","q","a","phase"]:
+        limits[key] = OrderedDict()
+        for sub_key in ["fixed","min","max"]:
+            limits[key][sub_key] = None
+    return limits

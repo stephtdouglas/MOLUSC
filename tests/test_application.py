@@ -6,8 +6,9 @@ import argparse
 
 from molusc.application import Application
 from molusc.companions import Companions
+from molusc.utils import set_null_limits
 
-limits = [None]*21
+limits = set_null_limits()
 star_mass = 1.0
 pd_mu = 5.03
 pd_sig = 2.28

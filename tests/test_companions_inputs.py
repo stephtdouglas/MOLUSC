@@ -7,6 +7,7 @@ import numpy as np
 import molusc
 repo_path = pathlib.Path(molusc.__file__).resolve().parent.parent
 from molusc.companions import Companions
+from molusc.utils import set_null_limits
 
 pytestmark = pytest.mark.parametrize('P_fixed,a_fixed,q_fixed',
                                       [(36.525,None,None),
@@ -23,10 +24,10 @@ def test_fixed_paq2(P_fixed, q_fixed, a_fixed):
     """ make sure the code runs cleanly with various pairs of fixed params
     """
 
-    bad_limits = [None]*21
-    bad_limits[0] = P_fixed
-    bad_limits[12] = q_fixed
-    bad_limits[15] = a_fixed
+    bad_limits = set_null_limits()
+    bad_limits["P"]["fixed"] = P_fixed
+    bad_limits["q"]["fixed"] = q_fixed
+    bad_limits["a"]["fixed"] = a_fixed
     star_mass = 1.0
     pd_mu = 5.03
     pd_sig = 2.28
@@ -36,23 +37,36 @@ def test_fixed_paq2(P_fixed, q_fixed, a_fixed):
 
     comps.generate()
 
+    check_vals = True
+
     if P_fixed is not None:
-        assert comps.P == pytest.approx(P_fixed)
+        this_check = np.all(comps.P == pytest.approx(P_fixed))
+        if this_check==False:
+            print("P fixed failed")
+        check_vals = check_vals & this_check
 
     if a_fixed is not None:
-        assert comps.a == pytest.approx(a_fixed)
+        this_check = np.all(comps.a == pytest.approx(a_fixed))
+        if this_check==False:
+            print("a fixed failed")
+        check_vals = check_vals & this_check
 
     if q_fixed is not None:
-        assert comps.mass_ratio == pytest.approx(q_fixed)
+        this_check = np.all(comps.mass_ratio == pytest.approx(q_fixed))
+        if this_check==False:
+            print("q fixed failed")
+        check_vals = check_vals & this_check
+
+    assert check_vals
 
 def test_fixed_pairs_again(P_fixed, q_fixed, a_fixed):
     """ make sure the code runs cleanly with various pairs of fixed params
     """
 
-    bad_limits = [None]*21
-    bad_limits[0] = P_fixed
-    bad_limits[12] = q_fixed
-    bad_limits[15] = a_fixed
+    bad_limits = set_null_limits()
+    bad_limits["P"]["fixed"] = P_fixed
+    bad_limits["q"]["fixed"] = q_fixed
+    bad_limits["a"]["fixed"] = a_fixed
     star_mass = 1.0
     pd_mu = 5.03
     pd_sig = 2.28

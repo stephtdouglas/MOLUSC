@@ -52,7 +52,7 @@ class Application:
     rv_floor = 20
     # Code Parameters
     num_generated = 0
-    limits = []
+    limits = {}
     pd_mu = 5.03
     pd_sig = 2.28
     q_exp = 0.0

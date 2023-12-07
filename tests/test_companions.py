@@ -7,14 +7,18 @@ import numpy as np
 import molusc
 repo_path = pathlib.Path(molusc.__file__).resolve().parent.parent
 from molusc.companions import Companions
+from molusc.utils import set_null_limits
 
-limits = [None]*21
+limits = set_null_limits()
 star_mass = 1.0
 pd_mu = 5.03
 pd_sig = 2.28
 q_exp = 0.0
 
 test_fname = os.path.join(repo_path,"tests/test_write.hdf5")
+
+def test_basic():
+    assert True
 
 def test_generation():
     """Ensure companion generation executes cleanly."""
@@ -26,10 +30,10 @@ def test_fixed_paq():
     """ make sure the error raises properly if we give it too many fixed values
     """
 
-    bad_limits = [None]*21
-    bad_limits[0] = 10 # P
-    bad_limits[12] = 0.8 # q
-    bad_limits[15] = 100 # a
+    bad_limits = set_null_limits()
+    bad_limits["P"]["fixed"] = 10 # P
+    bad_limits["q"]["fixed"] = 0.8 # q
+    bad_limits["a"]["fixed"] = 100 # a
 
     comps = Companions(100, bad_limits, star_mass, pd_mu, pd_sig, q_exp)
 
@@ -101,6 +105,17 @@ def test_read2():
     comps = Companions.read(test_fname)
 
     assert comps.num_generated > 0
+
+def test_null_limits():
+    """ 
+    Ensure null values are properly defined when read from a file
+    """
+
+    comps = Companions.read(test_fname)
+
+    assert ((comps.limits["P"]["fixed"] is None) and 
+            (comps.limits["a"]["fixed"] is None) and 
+            (comps.limits["q"]["fixed"] is None))
 
 
 def test_pinit():

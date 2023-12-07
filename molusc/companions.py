@@ -1,4 +1,5 @@
 from datetime import datetime
+from collections import OrderedDict
 import warnings
 import logging
 
@@ -30,17 +31,14 @@ class Companions:
                  **params):
         """
         Initialize the Companions class. 
+        This is the prior for rejection sampling.
 
         Required inputs
         ---------------
         num_generated: integer
-        limits: list-like, limits/fixed values for parameters. 
-            Any of them can be None (note m is q and phi is phase)
-            [P_fixed, P_min, P_max, 
-            i_fixed, i_min, i_max, e_fixed, e_min, e_max, 
-            arg_peri_fixed, arg_peri_min, arg_peri_max,
-            m_fixed, m_min, m_max, a_fixed, a_min, a_max, 
-            phi_fixed,phi_min, phi_max]
+        limits: dictionary, limits/fixed values for parameters. 
+            dictionary keys are parameters, 
+            values are OrderedDict of "fixed","min","max"
         star_mass: float, primary star mass in solar masses
         pd_mu: median orbital period in log-days
         pd_sig: width of the log-period distribution
@@ -111,12 +109,19 @@ class Companions:
         np.random.seed(999)
 
         # If the user has fixed P, a, AND mass_ratio, then we can't continue
-        if ((self.limits[0] is not None) and (self.limits[15] is not None) and
-            (self.limits[12] is not None)):
+        P_lims = np.fromiter(self.limits["P"].values(),"float")
+        a_lims = np.fromiter(self.limits["a"].values(),"float")
+        q_lims = np.fromiter(self.limits["q"].values(),"float")
+        # These check params will be True if there are any non-null values
+        # If no limits/fixed values are set, then the check params are False
+        P_check = np.any(np.isfinite(P_lims))
+        a_check = np.any(np.isfinite(a_lims))
+        q_check = np.any(np.isfinite(q_lims))
+        if (P_check and a_check and q_check):
             raise ValueError("You can't fix P, a, and q at the same time")
 
         # If user has not fixed a, then we can generate P and q independently
-        elif self.limits[15] is None:
+        elif a_check==False:
             self.generate_pq()
             self.a = ((self.P / 365)**2 * G * self.star_mass*(1 + self.mass_ratio)/(4 * np.pi ** 2))**(1/3)  # AU
 
@@ -135,42 +140,37 @@ class Companions:
         generate Period (days), Mass Ratio and Semi-Major Axis (AU)
 
         """
-        P_fixed = self.limits[0]
-        P_lower = self.limits[1]
-        P_upper = self.limits[2]
-        mass_fixed = self.limits[12]
-        mass_lower = self.limits[13]
-        mass_upper = self.limits[14]
-        a_fixed = self.limits[15]
-        a_lower = self.limits[16]
-        a_upper = self.limits[17]
 
         print('Generation Mass Ratio Exponent: ', self.q_exp)
         dq = 1e-4  # coarseness
 
         # Default lower limit on P
-        if P_lower is None or P_lower < 0.1:
+        if self.limits["P"]["min"] is None or self.limits["P"]["min"] < 0.1:
             P_lower = 0.1
+        else:
+            P_lower = self.limits["P"]["min"]
 
-        if mass_fixed is not None:
-            self.mass_ratio = np.full(self.num_generated,fill_value=mass_fixed)
+        if self.limits["q"]["fixed"] is not None:
+            self.mass_ratio = np.full(self.num_generated,fill_value=self.limits["q"]["fixed"])
 
-        if a_fixed is not None:
-            self.a = np.full(self.num_generated,fill_value=a_fixed)
+        if self.limits["a"]["fixed"] is not None:
+            self.a = np.full(self.num_generated,fill_value=self.limits["a"]["fixed"])
 
         # We will always generate P. Either it's fixed, OR the
         # other two values are fixed, OR we generate it independently
-        if P_fixed is not None:
-            self.P = np.full(self.num_generated,fill_value=P_fixed)
+        if self.limits["P"]["fixed"] is not None:
+            self.P = np.full(self.num_generated,
+                             fill_value=self.limits["P"]["fixed"])
         # with a and q, calculate P directly
-        elif a_fixed is not None and mass_fixed is not None:
+        elif ((self.limits["a"]["fixed"] is not None) and 
+              (self.limits["q"]["fixed"] is not None)):
             self.P = np.sqrt( (4 * np.pi ** 2 * self.a ** 3) / (G * self.star_mass * (1 + self.mass_ratio))) * 365
         else:
             tn_low = (P_lower-self.mu_log_P)/self.sig_log_P
-            if P_upper is None:
+            if self.limits["P"]["max"] is None:
                 tn_up = np.inf
             else:
-                tn_up = (P_upper-self.mu_log_P)/self.sig_log_P
+                tn_up = (self.limits["P"]["max"]-self.mu_log_P)/self.sig_log_P
             P_tn = stats.truncnorm(tn_low,tn_up,
                                    loc=self.mu_log_P,scale=self.sig_log_P)
             log_P = P_tn.rvs(self.num_generated)
@@ -183,7 +183,7 @@ class Companions:
         # If a is fixed, then P and q cannot be generated independently
         # Either way, we already generate P above
         # and now we will calculate the mass ratio accordingly
-        if a_fixed is not None and mass_fixed is None:
+        if (self.limits["a"]["fixed"] is not None):
             self.mass_ratio = np.array(4*np.pi**2 * self.a**3 / (G * self.star_mass * (self.P / 365)** 2) - 1)
             if np.any(self.mass_ratio > 1):
                 # The fixed values of period and semi-major axis require a mass ratio greater than one
@@ -194,30 +194,38 @@ class Companions:
         # and calculate a if it wasn't fixed
         else:
             # We already handled this case above
-            if mass_fixed is not None:
+            if self.limits["q"]["fixed"] is not None:
                 pass
 
             # Flat IMF
             elif self.q_exp == 0.0:
                 # This generates all the  way to q=0 for a uniform distribution
-                if mass_lower is None:
+                if self.limits["q"]["min"] is None:
                     mass_lower = 0.
-                if mass_upper is None:
+                else:
+                    mass_lower = self.limits["q"]["min"]
+                if self.limits["q"]["max"] is None:
                     mass_upper = 1.
+                else:
+                    mass_upper = self.limits["q"]["max"]
                 self.mass_ratio = np.random.uniform(mass_lower, mass_upper, self.num_generated)
 
             # IMF with an input slope
             else:
                 # This applies a lower mass limit for the power law distribution
-                if mass_lower is None:
+                if self.limits["q"]["min"] is None:
                     mass_lower = 0.01
-                if mass_upper is None:
+                else:
+                    mass_lower = self.limits["q"]["min"]
+                if self.limits["q"]["max"] is None:
                     mass_upper = 1.
+                else:
+                    mass_upper = self.limits["q"]["max"]
                 q_range = np.arange(mass_lower, mass_upper + dq, dq)  # range of possible q
                 p = np.power(q_range, self.q_exp)    # probabilities
                 p = p/np.sum(p) # normalized probabilities
                 self.mass_ratio = np.random.choice(q_range, p=p, size=self.num_generated)
-            # Now calculate Semi-Major Axis using P and m
+            # Now calculate Semi-Major Axis using P and q
             self.a = ((self.P / 365)**2 * G * self.star_mass*(1 + self.mass_ratio)/(4 * np.pi ** 2))**(1/3)  # AU         
 
 
@@ -225,38 +233,34 @@ class Companions:
         """
         Generate Period (days) and Mass Ratio but NOT semimajor axis
 
-        This function should only be run if 
+        This function should only be run if a is not fixed in any way
 
         """
-        a_fixed = self.limits[15]
+        a_fixed = self.limits["a"]["fixed"]
         if a_fixed is not None:
             raise ValueError("Attempting to run generate_pq with fixed a")
-
-        P_fixed = self.limits[0]
-        P_lower = self.limits[1]
-        P_upper = self.limits[2]
-        mass_fixed = self.limits[12]
-        mass_lower = self.limits[13]
-        mass_upper = self.limits[14]
 
         print('Generation Mass Ratio Exponent: ', self.q_exp)
         dq = 1e-4  # coarseness
 
         # Default lower limit on P
-        if P_lower is None or P_lower < 0.1:
+        if self.limits["P"]["min"] is None or self.limits["P"]["min"] < 0.1:
             P_lower = 0.1
+        else:
+            P_lower = self.limits["P"]["min"]
 
         # We will always generate P. Either it's fixed, OR the
         # other two values are fixed, OR we generate it independently
-        if P_fixed is not None:
-            self.P = np.full(self.num_generated,fill_value=P_fixed)
+        if self.limits["P"]["fixed"] is not None:
+            self.P = np.full(self.num_generated,
+                             fill_value=self.limits["P"]["fixed"])
 
         else:
             tn_low = (P_lower-self.mu_log_P)/self.sig_log_P
-            if P_upper is None:
+            if self.limits["P"]["max"] is None:
                 tn_up = np.inf
             else:
-                tn_up = (P_upper-self.mu_log_P)/self.sig_log_P
+                tn_up = (elf.limits["P"]["max"]-self.mu_log_P)/self.sig_log_P
             P_tn = stats.truncnorm(tn_low,tn_up,
                                    loc=self.mu_log_P,scale=self.sig_log_P)
             log_P = P_tn.rvs(self.num_generated)
@@ -265,25 +269,34 @@ class Companions:
         # We've handled all cases where values can be fixed. 
         # Now we generate the mass ratio randomly if needed, 
         # and calculate a if it wasn't fixed
-        if mass_fixed is not None:
-            self.mass_ratio = np.full(self.num_generated,fill_value=mass_fixed)
+        if self.limits["q"]["fixed"] is not None:
+            self.mass_ratio = np.full(self.num_generated,
+                                      fill_value=self.limits["q"]["fixed"])
 
         # Flat IMF
         elif self.q_exp == 0.0:
             # This generates all the  way to q=0 for a uniform distribution
-            if mass_lower is None:
+            if self.limits["q"]["min"] is None:
                 mass_lower = 0.
-            if mass_upper is None:
+            else:
+                mass_lower = self.limits["q"]["min"]
+            if self.limits["q"]["max"] is None:
                 mass_upper = 1.
+            else:
+                mass_upper = self.limits["q"]["max"]
             self.mass_ratio = np.random.uniform(mass_lower, mass_upper, self.num_generated)
 
         # IMF with an input slope
         else:
             # This applies a lower mass limit for the power law distribution
-            if mass_lower is None:
+            if self.limits["q"]["min"] is None:
                 mass_lower = 0.01
-            if mass_upper is None:
+            else:
+                mass_lower = self.limits["q"]["min"]
+            if self.limits["q"]["max"] is None:
                 mass_upper = 1.
+            else:
+                mass_upper = self.limits["q"]["max"]
             q_range = np.arange(mass_lower, mass_upper + dq, dq)  # range of possible q
             p = np.power(q_range, self.q_exp)    # probabilities
             p = p/np.sum(p) # normalized probabilities
@@ -293,9 +306,9 @@ class Companions:
 
     def generate_inclination(self):
         # Inclination
-        cos_i_fixed = self.limits[3]
-        cos_i_lower = self.limits[4]
-        cos_i_upper = self.limits[5]
+        cos_i_fixed = self.limits["cos_i"]["fixed"]
+        cos_i_lower = self.limits["cos_i"]["min"]
+        cos_i_upper = self.limits["cos_i"]["max"]
 
         # todo figure out what to do about stellar radius in this calculation
         if cos_i_lower == 'transit' or cos_i_upper == 'transit' or cos_i_fixed == 'transit':
@@ -319,9 +332,9 @@ class Companions:
 
     def generate_phase(self):
         # Pericenter Phase (radians)
-        phase_fixed = self.limits[18]
-        phase_lower = self.limits[19]
-        phase_upper = self.limits[20]
+        phase_fixed = self.limits["phase"]["fixed"]
+        phase_lower = self.limits["phase"]["min"]
+        phase_upper = self.limits["phase"]["max"]
 
         # if phase_lower is None and phase_upper is None and phase_fixed is None:
         #     self.phase = np.random.uniform(0, 2*np.pi, self.num_generated)
@@ -336,9 +349,9 @@ class Companions:
 
     def generate_eccentricity(self):
         # Eccentricity
-        e_fixed = self.limits[6]
-        e_lower = self.limits[7]
-        e_upper = self.limits[8]
+        e_fixed = self.limits["ecc"]["fixed"]
+        e_lower = self.limits["ecc"]["min"]
+        e_upper = self.limits["ecc"]["max"]
 
         log_P = np.log10(self.P)
 
@@ -373,9 +386,9 @@ class Companions:
     def generate_arg_peri(self):
 
         # Argument of Periapsis (radians)
-        arg_fixed = self.limits[9]
-        arg_lower = self.limits[10]
-        arg_upper = self.limits[11]
+        arg_fixed = self.limits["arg_peri"]["fixed"]
+        arg_lower = self.limits["arg_peri"]["min"]
+        arg_upper = self.limits["arg_peri"]["max"]
 
         if arg_fixed is not None:
             self.arg_peri = np.array([arg_fixed] * self.num_generated)
@@ -406,21 +419,21 @@ class Companions:
         # By default, want to write to an h5py file. 
         # Applications.py already writes to a .csv (move here eventually)
 
-        nlims = len(self.limits)
-        nparams = nlims // 3
-
         # Open a h5py file ("with")
         with h5py.File(filename,"w") as f:
-            # Create a group to contain metadata and misc parameters
-            drp = f.create_group("meta")
 
             # Create a dataset "limits" containing all the prior parameters
-            dlims = drp.create_dataset("limits",(nlims,),dtype="float32")
+            dlims = f.create_group("limits")
 
-            # Populate the limits dataset
-            dlims[:] = self.limits[:]
+            # Populate the limits group
+            for key, val in self.limits.items():
+                limlist = np.fromiter(val.values(),"float")
+                dlims.create_dataset(key,data=limlist)
 
-            # Add the other misc parameters
+
+
+            # Create a group to contain metadata and misc parameters
+            drp = f.create_group("meta")
             drp.create_dataset("star_mass",data=self.star_mass)
             drp.create_dataset("mu_log_P",data=self.mu_log_P)
             drp.create_dataset("sig_log_P",data=self.sig_log_P)
@@ -432,16 +445,16 @@ class Companions:
             grp = f.create_group("companions")
 
             # Write out the parameters by name
-            P_lims = self.limits[:2]
-            mass_lims = self.limits[12:15]
-            a_lims = self.limits[15:18]
-            P_check = np.any(check_none(P_lims)==False)
-            mass_check = np.any(check_none(mass_lims)==False)
-            a_check = np.any(check_none(a_lims)==False)
+            P_lims = np.fromiter(self.limits["P"].values(),"float")
+            a_lims = np.fromiter(self.limits["a"].values(),"float")
+            q_lims = np.fromiter(self.limits["q"].values(),"float")
+            P_check = np.any(np.isfinite(P_lims))
+            a_check = np.any(np.isfinite(a_lims))
+            q_check = np.any(np.isfinite(q_lims))
             # If 2 values were fixed, that determines the other by default
             # Just ignore the unfixed one and it will be re-calculated
             # The only case where P was separately calculated was when a and q were fixed
-            if a_check and mass_check:
+            if a_check and q_check:
                 grp.create_dataset("q",data=self.mass_ratio)
                 grp.create_dataset("a",data=self.a)
 
@@ -502,7 +515,19 @@ class Companions:
                 star_mass = f["meta"]["star_mass"][()]
 
 
-            return cls(nread,f["meta"]["limits"][:],
+            # Read limits back into a dictionary
+            limits = {}
+            sub_keys = ["fixed","min","max"]
+            dict_group_keys = f["limits"].keys()
+            for key in dict_group_keys:
+                limits[key] = OrderedDict()
+                for i, sub_key in enumerate(sub_keys):
+                    if np.isnan(f["limits"][key][i]):
+                        limits[key][sub_key] = None
+                    else:
+                        limits[key][sub_key] = f["limits"][key][i]
+
+            return cls(nread,limits,
                        star_mass,f["meta"]["mu_log_P"][()],
                        f["meta"]["sig_log_P"][()],f["meta"]["q_exp"][()],
                        **f["companions"])

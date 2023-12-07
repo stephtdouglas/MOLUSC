@@ -1,4 +1,5 @@
 from datetime import datetime
+from collections import OrderedDict
 import warnings
 import logging
 
@@ -775,6 +776,9 @@ class GUI(tk.Frame):
             return False
 
     def validate_i(self, new_text, box_name):
+        # TODO: the GUI box says *cos*i, not sin(i), and the paper 
+        # refers to cosi running from 0 to 1. This may need to be fixed.
+        # For now I am assuming the parameter is cosi
         # sin(i) must be greater than -1 and less than 1, if accepted, the other boxes should be grayed out
         # a limit value of 'transit' can also be accepted
         if not new_text:
@@ -990,7 +994,8 @@ class GUI(tk.Frame):
             return False
 
     def validate_m(self, new_text, box_name):
-        # m must be greater than 0 and less than 1, if accepted, the other boxes should be grayed out
+        # *mass ratio q* must be greater than 0 and less than 1, 
+        # if accepted, the other boxes should be grayed out
         if not new_text:
             # box cleared
             if box_name.endswith('entry13'):
@@ -1340,11 +1345,43 @@ class GUI(tk.Frame):
             return False
 
     def get_limits(self):
-        # puts all the limit information together in a list
-        limits = [self.__P_fixed, self.__P_min, self.__P_max, self.__i_fixed, self.__i_min, self.__i_max, self.__e_fixed,
-                  self.__e_min, self.__e_max, self.__arg_peri_fixed, self.__arg_peri_min, self.__arg_peri_max,
-                  self.__m_fixed, self.__m_min, self.__m_max, self.__a_fixed, self.__a_min, self.__a_max, self.__phi_fixed,
-                  self.__phi_min, self.__phi_max]
+        # puts all the limit information together in a dictionary
+        limits = {}
+        limits["P"] = OrderedDict()
+        limits["P"]["fixed"] = self.__P_fixed
+        limits["P"]["min"] = self.__P_min
+        limits["P"]["max"] = self.__P_max
+
+        limits["cos_i"] = OrderedDict()
+        limits["cos_i"]["fixed"] = self.__i_fixed
+        limits["cos_i"]["min"] = self.__i_min
+        limits["cos_i"]["max"] = self.__i_max
+        
+        limits["ecc"] = OrderedDict()
+        limits["ecc"]["fixed"] = self.__e_fixed
+        limits["ecc"]["min"] = self.__e_min
+        limits["ecc"]["max"] = self.__e_max
+
+        limits["arg_peri"] = OrderedDict()
+        limits["arg_peri"]["fixed"] = self.__arg_peri_fixed
+        limits["arg_peri"]["min"] = self.__arg_peri_min
+        limits["arg_peri"]["max"] = self.__arg_peri_max
+
+        limits["q"] = OrderedDict()
+        limits["q"]["fixed"] = self.__m_fixed
+        limits["q"]["min"] = self.__m_min
+        limits["q"]["max"] = self.__m_max
+
+        limits["a"] = OrderedDict()
+        limits["a"]["fixed"] = self.__a_fixed
+        limits["a"]["min"] = self.__a_min
+        limits["a"]["max"] = self.__a_max
+
+        limits["phase"] = OrderedDict()
+        limits["phase"]["fixed"] = self.__phi_fixed
+        limits["phase"]["min"] = self.__phi_min
+        limits["phase"]["max"] = self.__phi_max
+
         return limits
 
     def get_p_dist(self):
