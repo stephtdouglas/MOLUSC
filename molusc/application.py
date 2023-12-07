@@ -150,8 +150,8 @@ class Application:
         self.print_out(('Star Mass: ' + str(self.star_mass)))
 
         # Generate Companions
+        t1 = datetime.datetime.now()
         if self.companions_filename=="":
-            t1 = datetime.datetime.now()
             self.print_out(f'Current time: {t1} -- Generating Companions..')
             comps = Companions(self.num_generated, self.limits, self.star_mass, self.pd_mu, self.pd_sig, self.q_exp)
             failure = self.error_check(comps.generate())
