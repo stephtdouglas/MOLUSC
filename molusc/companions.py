@@ -72,21 +72,21 @@ class Companions:
                 if "a" in pkeys:
                     self.a = params["a"][:num_generated]
                 else:
-                    self.a = ((self.P / 365)**2 * G * self.star_mass*(1 + self.mass_ratio)/(4 * np.pi ** 2))**(1/3)  # AU
+                    self._calc_a_from_Pq()
             elif ("P" in pkeys) and ("a" in pkeys):
                 self.P = params["P"][:num_generated]
                 self.a = params["a"][:num_generated]
                 if "q" in pkeys:
                     self.mass_ratio = params["q"][:num_generated]
                 else:
-                    self.mass_ratio = np.array(4*np.pi**2 * self.a**3 / (G * self.star_mass * (self.P / 365)** 2) - 1)
+                    self._calc_q_from_aP()
             elif ("a" in pkeys) and ("q" in pkeys):
                 self.a = params["a"][:num_generated]
                 self.mass_ratio = params["q"][:num_generated]
                 if "P" in pkeys:
                     self.P = params["P"][:num_generated]
                 else:
-                    self.P = np.sqrt( (4 * np.pi ** 2 * self.a ** 3) / (G * self.star_mass * (1 + self.mass_ratio))) * 365
+                    self._calc_P_from_aq()
             else:
                 raise ValueError("At least two of P, q, and a must be provided")
 
@@ -123,7 +123,7 @@ class Companions:
         # If user has not fixed a, then we can generate P and q independently
         elif a_check==False:
             self.generate_pq()
-            self.a = ((self.P / 365)**2 * G * self.star_mass*(1 + self.mass_ratio)/(4 * np.pi ** 2))**(1/3)  # AU
+            self._calc_a_from_Pq()
 
         # If user has fixed a, then P or q becomes a dependent variable
         else:
@@ -164,7 +164,8 @@ class Companions:
         # with a and q, calculate P directly
         elif ((self.limits["a"]["fixed"] is not None) and 
               (self.limits["q"]["fixed"] is not None)):
-            self.P = np.sqrt( (4 * np.pi ** 2 * self.a ** 3) / (G * self.star_mass * (1 + self.mass_ratio))) * 365
+            self._calc_P_from_aq()
+            
         else:
             tn_low = (P_lower-self.mu_log_P)/self.sig_log_P
             if self.limits["P"]["max"] is None:
@@ -184,7 +185,7 @@ class Companions:
         # Either way, we already generate P above
         # and now we will calculate the mass ratio accordingly
         if (self.limits["a"]["fixed"] is not None):
-            self.mass_ratio = np.array(4*np.pi**2 * self.a**3 / (G * self.star_mass * (self.P / 365)** 2) - 1)
+            self._calc_q_from_aP()
             if np.any(self.mass_ratio > 1):
                 # The fixed values of period and semi-major axis require a mass ratio greater than one
                 return -12
@@ -226,7 +227,7 @@ class Companions:
                 p = p/np.sum(p) # normalized probabilities
                 self.mass_ratio = np.random.choice(q_range, p=p, size=self.num_generated)
             # Now calculate Semi-Major Axis using P and q
-            self.a = ((self.P / 365)**2 * G * self.star_mass*(1 + self.mass_ratio)/(4 * np.pi ** 2))**(1/3)  # AU         
+            self._calc_a_from_Pq()       
 
 
     def generate_pq(self):
@@ -531,4 +532,22 @@ class Companions:
                        star_mass,f["meta"]["mu_log_P"][()],
                        f["meta"]["sig_log_P"][()],f["meta"]["q_exp"][()],
                        **f["companions"])
+
+    def _calc_P_from_aq(self):
+        """
+        Calculate P when a and q are already set
+        """
+        self.P = np.sqrt( (4 * np.pi ** 2 * self.a ** 3) / (G * self.star_mass * (1 + self.mass_ratio))) * 365
+
+    def _calc_a_from_Pq(self):
+        """
+        Calculate a when a and P are already set
+        """
+        self.a = ((self.P / 365)**2 * G * self.star_mass*(1 + self.mass_ratio)/(4 * np.pi ** 2))**(1/3)  # AU
+
+    def _calc_q_from_aP(self):
+        """
+        Calculate q when a and P are already set
+        """
+        self.mass_ratio = np.array(4*np.pi**2 * self.a**3 / (G * self.star_mass * (self.P / 365)** 2) - 1)
 
