@@ -368,8 +368,8 @@ class Companions:
                 e_upper = 0.9999
 
             ecc = np.zeros(self.num_generated)
+            x = np.arange(e_lower, e_upper + dx, dx)  # range of eccentricities
             for i in range(self.num_generated):
-                x = np.arange(e_lower, e_upper + dx, dx)  # range of eccentricities
                 if log_P[i] < 3:
                     # Calculate the mean and std deviation at this period
                     e_mu = a * log_P[i] + b
