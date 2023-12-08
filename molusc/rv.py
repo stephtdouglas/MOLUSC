@@ -279,7 +279,7 @@ class RV:
             sb1 = contrast > 5
             self.predicted_RV[sb1,:] = prim_rv[sb1,:]
 
-            sb2 = np.where(contrast>=5)[0]
+            sb2 = np.where(contrast<=5)[0]
             for i in sb2:
                 self.predicted_RV[i] = np.average([prim_rv[i],cmp_rv[i]],
                                                 axis=0,
@@ -296,24 +296,26 @@ class RV:
             zp_results = pool.starmap(scipy.optimize.curve_fit, zp_params,
                                        chunksize=divisor)
             # We only care about the zero-point, not its uncertainty (for now)
-            zero_points = [zr[0] for zr in zp_results]
+            zero_points = [zr[0][0] for zr in zp_results]
             print(f'Current time: {datetime.datetime.now()} -- Calculated zero point!')
 
             if rv_output_file is not None:
                 cols = [str(mjd) for mjd in self.MJD]
                 cols.append("ZP")
                 dtype = np.full(len(cols),fill_value="float32")
-                tab = Table(names=cols, dtype=dtype)
-                for i, colname in enumerate(cols):
+                tab = Table(names=cols, 
+                            rows=np.zeros((num_generated,len(cols))))
+                for i, colname in enumerate(cols[:-1]):
                     tab[colname] = self.predicted_RV[:,i]
-                    tab[colname].info.format = ".6f"
+                    tab[colname].info.format = ".10f"
                 tab["ZP"] = zero_points
-                tab["ZP"].info.format = ".6f"
+                tab["ZP"].info.format = ".10f"
                 tab.write(rv_output_file,overwrite=False,delimiter=",")
 
             # Shift all by zero point
             print(f'Current time: {datetime.datetime.now()} -- Shifting all by zero point...')
-            self.predicted_RV = self.predicted_RV + zero_points
+            self.predicted_RV = np.add(self.predicted_RV, 
+                np.stack([zero_points for i in range(nobs)],axis=1))
             print(f'Current time: {datetime.datetime.now()} -- Shifted all by zero point!')
 
             # Compare experimental and predicted RVs
