@@ -1,4 +1,5 @@
 import os, sys, pathlib
+import numpy as np
 
 from molusc.companions import Companions
 from molusc.utils import set_null_limits
@@ -15,6 +16,7 @@ if __name__=="__main__":
     pd_sig = 2.28
     q_exp = 0.0
 
+    np.random.seed(424242)
     comps = Companions(num_generated, limits, star_mass, pd_mu, pd_sig, q_exp)
     comps.generate()
 

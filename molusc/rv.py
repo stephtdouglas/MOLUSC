@@ -261,7 +261,7 @@ class RV:
             # Most of the terms in K are constants for a given orbit, 
             # then rescale by individual a values
             sin_i = np.sin(np.arccos(cos_i))
-            K_term = (2*np.pi/period) * sin_i / np.sqrt(1-ecc**2)
+            K_term = (2*np.pi/period) * sin_i / np.sqrt(1-ecc**2) * 1731.48 #km/s
             prim_K = K_term * a_prim
             cmp_K = K_term * a_cmp
 
