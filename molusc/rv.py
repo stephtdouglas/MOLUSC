@@ -291,18 +291,22 @@ class RV:
                                                 weights=[prim_lum,cmp_lum[i]])
 
             # Use Pool to calculate zero point
-            print(f'Current time: {datetime.datetime.now()} -- Calculating zero point...')
-            # curve_fit takes arguments f, xdata, ydata, p0=NOone, sigma=None
-            # zero_point_model takes arguments prediction, a
-            # (we want to end up with predicted + a = experimental
-            # so predicted is xdata and experimental is ydata
-            zp_params = [[zero_point_model, self.predicted_RV[j], self.experimental_RV, None, self.measurement_error] for j in range(num_generated)]
+            if v0 is None:
+                print(f'Current time: {datetime.datetime.now()} -- Calculating zero point...')
+                # curve_fit takes arguments f, xdata, ydata, p0=NOone, sigma=None
+                # zero_point_model takes arguments prediction, a
+                # (we want to end up with predicted + a = experimental
+                # so predicted is xdata and experimental is ydata
+                zp_params = [[zero_point_model, self.predicted_RV[j], self.experimental_RV, None, self.measurement_error] for j in range(num_generated)]
 
-            zp_results = pool.starmap(scipy.optimize.curve_fit, zp_params,
-                                       chunksize=divisor)
-            # We only care about the zero-point, not its uncertainty (for now)
-            zero_points = [zr[0][0] for zr in zp_results]
-            print(f'Current time: {datetime.datetime.now()} -- Calculated zero point!')
+                zp_results = pool.starmap(scipy.optimize.curve_fit, zp_params,
+                                           chunksize=divisor)
+                # We only care about the zero-point, not its uncertainty (for now)
+                zero_points = [zr[0][0] for zr in zp_results]
+                print(f'Current time: {datetime.datetime.now()} -- Calculated zero point!')
+            else:
+                zero_points = v0
+                print(f'Current time: {datetime.datetime.now()} -- Read in v0...')
 
             if rv_output_file is not None:
                 cols = [str(mjd) for mjd in self.MJD]

@@ -140,6 +140,7 @@ class Companions:
         self.generate_phase()
         self.generate_eccentricity()
         self.generate_arg_peri()
+        self.generate_v0()
 
     def generate_paq(self):
         """
@@ -502,6 +503,10 @@ class Companions:
             grp.create_dataset("ecc",data=self.ecc)
             grp.create_dataset("arg_peri",data=self.arg_peri)
             grp.create_dataset("phase",data=self.phase)
+
+            if self.v0 is not None:
+                grp.create_dataset("v0",data=self.v0)
+
 
 
 
