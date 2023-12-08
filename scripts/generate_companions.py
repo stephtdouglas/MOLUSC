@@ -15,7 +15,10 @@ if __name__=="__main__":
     pd_sig = 2.28
     q_exp = 0.0
 
+    limits["v0"]["mu"] = 35. #km/s
+    limits["v0"]["sigma"] = 10. #km/s
+
     comps = Companions(num_generated, limits, star_mass, pd_mu, pd_sig, q_exp)
     comps.generate()
 
-    comps.write(os.path.join(MOLUSC_CACHE_PATH,"MOLUSC_prior_100k.hdf5"))
+    comps.write(os.path.join(MOLUSC_CACHE_PATH,"MOLUSC_prior_v0_100k.hdf5"))

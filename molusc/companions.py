@@ -95,10 +95,16 @@ class Companions:
             self.ecc = params["ecc"][:num_generated]
             self.arg_peri = params["arg_peri"][:num_generated]
             self.phase = params["phase"][:num_generated]
+
+            if "v0" in pkeys:
+                self.v0 = params["v0"][:num_generated]
+            else:
+                self.v0 = None
         else:
             self.P, self.a, self.q = None, None, None
             self.cos_i, self.ecc = None, None 
             self.arg_peri, self.phase = None, None
+            self.v0 = None
 
     def generate(self):
         """
@@ -323,7 +329,7 @@ class Companions:
                 #  Generate
                 self.cos_i[i] = np.random.uniform(0., cos_i_upper)
         elif cos_i_fixed is not None:
-            self.cos_i = np.array([cos_i_fixed] * self.num_generated)
+            self.cos_i = np.full(self.num_generated,fill_value=cos_i_fixed)
         else:
             if cos_i_lower is None:
                 cos_i_lower = 0.
@@ -340,7 +346,7 @@ class Companions:
         # if phase_lower is None and phase_upper is None and phase_fixed is None:
         #     self.phase = np.random.uniform(0, 2*np.pi, self.num_generated)
         if phase_fixed is not None:
-            self.phase = np.array([phase_fixed] * self.num_generated)
+            self.phase = np.full(self.num_generated,fill_value=phase_fixed)
         else:
             if phase_lower is None:
                 phase_lower = 0.
@@ -357,7 +363,7 @@ class Companions:
         log_P = np.log10(self.P)
 
         if e_fixed is not None:
-            self.ecc = np.array([e_fixed] * self.num_generated)
+            self.ecc = np.full(self.num_generated,fill_value=e_fixed)
         else:
             # Choose e from within given limits
             a, b, c, d = [0.148, 0.001, 0.042, 0.128]  # parameters from fitting
@@ -392,13 +398,32 @@ class Companions:
         arg_upper = self.limits["arg_peri"]["max"]
 
         if arg_fixed is not None:
-            self.arg_peri = np.array([arg_fixed] * self.num_generated)
+            self.arg_peri = np.full(self.num_generated,fill_value=arg_fixed)
         else:
             if arg_lower is None:
                 arg_lower = 0.
             if arg_upper is None:
                 arg_upper = np.pi
             self.arg_peri = np.random.uniform(arg_lower, arg_upper, self.num_generated)
+
+    def generate_v0(self):
+
+        # system velocity in km/s
+        v0_fixed = self.limits["v0"]["fixed"]
+        # v0_lower = self.limits["v0"]["min"]
+        # v0_upper = self.limits["v0"]["max"]
+        v0_mu = self.limits["v0"]["mu"]
+        v0_sigma = self.limits["v0"]["sigma"]
+
+        if v0_fixed is not None:
+            self.v0 = np.full(self.num_generated,fill_value=v0_fixed)
+        elif (v0_mu is not None) and (v0_sigma is not None):
+            self.v0 = np.random.normal(loc=v0_mu,scale=v0_sigma,
+                                       size=self.num_generated)
+        else:
+            # For now, anything else means we do a fit as before
+            self.v0 = None
+            
 
     # Distribution functions
     def gauss(self, x, *p):
