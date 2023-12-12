@@ -1,5 +1,7 @@
 */__pycache__/
 molusc.egg-info/
+.ipynb_checkpoints/
+*.ipynb
 .DS_Store
 .gitignore
 *pdf
@@ -10,3 +12,6 @@ molusc.egg-info/
 outputs/*
 *log
 *.bak
+cluster_scripts/test*.sh
+*.hdf5
+molusc/BinaryStarGUI_laptop.py
