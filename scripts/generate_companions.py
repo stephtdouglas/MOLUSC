@@ -23,10 +23,9 @@ if __name__=="__main__":
     # limits["v0"]["sigma"] = None
     print(limits["v0"])
 
+    limits["P"]["shape"] = "logflat"
     np.random.seed(424242)
     comps = Companions(num_generated, limits, star_mass, pd_mu, pd_sig, q_exp)
     comps.generate()
 
-    print(comps.v0)
-
-    comps.write(os.path.join(MOLUSC_CACHE_PATH,"MOLUSC_prior_v0_100k.hdf5"))
+    comps.write(os.path.join(MOLUSC_CACHE_PATH,"MOLUSC_prior_v0_Pflat_100k.hdf5"))
