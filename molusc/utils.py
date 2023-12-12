@@ -144,7 +144,7 @@ def calculate_unscaled_RV(period, ecc, arg_peri, phase, MJD):
 
 def set_null_limits():
     limits = {}
-    for key in ["P","cos_i","ecc","arg_peri","q","a","phase"]:
+    for key in ["P","cos_i","ecc","arg_peri","q","a","phase","v0"]:
         limits[key] = OrderedDict()
         for sub_key in ["fixed","min","max"]:
             limits[key][sub_key] = None

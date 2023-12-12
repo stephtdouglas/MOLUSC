@@ -124,6 +124,7 @@ class RV:
         cos_i = self.companions.cos_i
         arg_peri = self.companions.arg_peri
         phase = self.companions.phase
+        v0 = self.companions.v0
         
         nobs = len(self.MJD)
 
@@ -193,14 +194,18 @@ class RV:
 
             print(f'Current time: {datetime.datetime.now()} -- Running zero point models...')
             # TODO: can this be further streamlined?
-            for i in range(0, num_generated):
-                # Fit the zero point
-                [zero_point], pcov = scipy.optimize.curve_fit(self.zero_point_model, self.predicted_RV[i], self.experimental_RV, sigma=self.measurement_error)
-                # Shift all predicted values by the zero_point
-                if rv_output_file is not None:
-                    tab.add_row(np.append(self.predicted_RV[i],zero_point))
-                    tab["ZP"][i] = zero_point
-                self.predicted_RV[i] += zero_point
+            if v0 is None:
+                for i in range(0, num_generated):
+                    # Fit the zero point
+                    [zero_point], pcov = scipy.optimize.curve_fit(self.zero_point_model, self.predicted_RV[i], self.experimental_RV, sigma=self.measurement_error)
+                    # Shift all predicted values by the zero_point
+                    if rv_output_file is not None:
+                        tab.add_row(np.append(self.predicted_RV[i],zero_point))
+                        tab["ZP"][i] = zero_point
+                    self.predicted_RV[i] += zero_point
+            else:
+                self.predicted_RV = np.add(self.predicted_RV, 
+                np.stack([v0 for i in range(nobs)],axis=1))
             print(f'Current time: {datetime.datetime.now()} -- Finished running zero point models')
 
             if rv_output_file is not None:
@@ -286,18 +291,22 @@ class RV:
                                                 weights=[prim_lum,cmp_lum[i]])
 
             # Use Pool to calculate zero point
-            print(f'Current time: {datetime.datetime.now()} -- Calculating zero point...')
-            # curve_fit takes arguments f, xdata, ydata, p0=NOone, sigma=None
-            # zero_point_model takes arguments prediction, a
-            # (we want to end up with predicted + a = experimental
-            # so predicted is xdata and experimental is ydata
-            zp_params = [[zero_point_model, self.predicted_RV[j], self.experimental_RV, None, self.measurement_error] for j in range(num_generated)]
+            if v0 is None:
+                print(f'Current time: {datetime.datetime.now()} -- Calculating zero point...')
+                # curve_fit takes arguments f, xdata, ydata, p0=NOone, sigma=None
+                # zero_point_model takes arguments prediction, a
+                # (we want to end up with predicted + a = experimental
+                # so predicted is xdata and experimental is ydata
+                zp_params = [[zero_point_model, self.predicted_RV[j], self.experimental_RV, None, self.measurement_error] for j in range(num_generated)]
 
-            zp_results = pool.starmap(scipy.optimize.curve_fit, zp_params,
-                                       chunksize=divisor)
-            # We only care about the zero-point, not its uncertainty (for now)
-            zero_points = [zr[0][0] for zr in zp_results]
-            print(f'Current time: {datetime.datetime.now()} -- Calculated zero point!')
+                zp_results = pool.starmap(scipy.optimize.curve_fit, zp_params,
+                                           chunksize=divisor)
+                # We only care about the zero-point, not its uncertainty (for now)
+                zero_points = [zr[0][0] for zr in zp_results]
+                print(f'Current time: {datetime.datetime.now()} -- Calculated zero point!')
+            else:
+                zero_points = v0
+                print(f'Current time: {datetime.datetime.now()} -- Read in v0...')
 
             if rv_output_file is not None:
                 cols = [str(mjd) for mjd in self.MJD]
