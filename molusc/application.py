@@ -285,34 +285,40 @@ class Application:
             self.gaia_reject_list = np.array([False]*self.num_generated)
 
         # Check successes
-        w = [True if x == -1 else False for x in self.ao_reject_list]
-        x = [True if x == -1 else False for x in self.rv_reject_list]
-        y = [True if x == -1 else False for x in self.jitter_reject_list]
-        z = [True if x == -1 else False for x in self.ruwe_reject_list]
-        if all(w) or all(x) or all(y) or all(z):
+        w = self.ao_reject_list==-1
+        x = self.rv_reject_list==-1
+        y = self.jitter_reject_list==-1
+        z = self.ruwe_reject_list==-1
+        if np.all(w) or np.all(x) or np.all(y) or np.all(z):
             self.gui.update_status('Finished - Unsuccessful')
-            if all(w):
+            if np.all(w):
                 self.gui.gui_print('AO Problem')
-            if all(x):
+            if np.all(x):
                 self.gui.gui_print('RV Problem')
-            if all(y):
+            if np.all(y):
                 self.gui.gui_print('Jitter problem')
-            if all(z):
+            if np.all(z):
                 self.gui.gui_print('RUWE problem')
             return
 
         # Put together reject lists and output
-        keep = np.invert(self.ao_reject_list)*np.invert(self.rv_reject_list)*np.invert(self.jitter_reject_list)*np.invert(self.ruwe_reject_list)*np.invert(self.gaia_reject_list)
-        num_kept = sum([1 for x in keep if x])
+        keep = ((self.ao_reject_list==False) & (self.rv_reject_list==False) & 
+                (self.jitter_reject_list==False) & (self.ruwe_reject_list) & (self.gaia_reject_list==False))
+        num_kept = len(np.where(keep)[0])
         self.print_out((f'Current time: {datetime.datetime.now()} -- Total number of surviving binaries: ' + str(num_kept)))
 
         # Write out files
         #   Write out the survivors file
         self.print_out(f'Current time: {datetime.datetime.now()} -- Writing out survivors file...')
-        cols = ['mass ratio', 'period(days)', 'semi-major axis(AU)', 'cos_i', 'eccentricity', 'arg periastron', 'phase']
+        cols = ['mass ratio', 'period(days)', 'semi-major axis(AU)', 'cos_i', 
+                'eccentricity', 'arg periastron', 'phase']
         keep_table = np.vstack((comps.mass_ratio[keep], comps.P[keep], comps.a[keep],
                                 comps.cos_i[keep], comps.ecc[keep], comps.arg_peri[keep],
                                 comps.phase[keep]))
+
+        if comps.v0 is not None:
+            cols = cols + ["v0"]
+            keep_table = np.vstack((keep_table,comps.v0[keep]))
         if self.ao_filename[0]:
             cols = cols + ['Projected Separation(AU)','Model Contrast']
             keep_table = np.vstack((keep_table, np.array(ao.pro_sep)[keep], np.array(ao.model_contrast)[keep]))

@@ -276,12 +276,21 @@ class Companions:
             self.P = np.full(self.num_generated,
                              fill_value=self.limits["P"]["fixed"])
 
+        elif (self.limits["P"]["shape"]=="logflat"):
+            if self.limits["P"]["max"] is None:
+                log_P_upper = 12
+            else:
+                log_P_upper = np.log10(self.limits["P"]["max"])
+            log_P = np.random.uniform(np.log10(P_lower),log_P_upper,
+                                      size=self.num_generated)
+            self.P = 10**log_P
         else:
             tn_low = (P_lower-self.mu_log_P)/self.sig_log_P
             if self.limits["P"]["max"] is None:
-                tn_up = np.inf
+                log_P_upper = 12
             else:
-                tn_up = (elf.limits["P"]["max"]-self.mu_log_P)/self.sig_log_P
+                log_P_upper = np.log10(self.limits["P"]["max"])
+            tn_up = (log_P_upper-self.mu_log_P)/self.sig_log_P
             P_tn = stats.truncnorm(tn_low,tn_up,
                                    loc=self.mu_log_P,scale=self.sig_log_P)
             log_P = P_tn.rvs(self.num_generated)
