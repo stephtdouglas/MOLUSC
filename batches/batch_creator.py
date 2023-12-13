@@ -14,6 +14,7 @@ repo_path = pathlib.Path(molusc.__file__).resolve().parent.parent
 csv_path_hpc = os.path.join(repo_path, 'csvs')
 contrast_path_hpc = os.path.join(repo_path, 'prae_keck')
 rv_table_path_hpc = os.path.join(repo_path, 'prae_rvs')
+slurm_path_hpc = os.path.join(repo_path, 'cluster_scripts')
 
 
 # repo_path = os.path.expanduser(r'C:/Users/Jared/Documents/GitHub/MOLUSC')
@@ -44,6 +45,10 @@ def run_batch_stars(stars=["JS355", "JS364"], yml=True, analysis_options=["ao"],
                     write_all=True, extra_output=True, filt=None, res=None, 
                     rv_floor=None, companions=10, opsys="linux",
                     comp_file=None):
+    """
+    Creates a single script to run all stars in serial
+    """
+
     if opsys=="win":
         #%% Create .bat file, write line necessary to run the script for Windows
         with open(os.path.join(batch_path, r"batch_runner.bat"), 'w') as f:
@@ -129,7 +134,7 @@ def run_batch_stars(stars=["JS355", "JS364"], yml=True, analysis_options=["ao"],
                     
         # You want to create the fml file for the star(s) you intend to run through MOLUSC        
         else:
-            with open(os.path.join(batch_path_hpc, r"batch_runner_cl.bash"), 'w') as f:
+            with open(os.path.join(slurm_path_hpc, f"batch_runner_cl.bash"), 'w') as f:
                 f.write('#!/bin/bash\n\n')
                 
                 # Write the line for each star
@@ -160,7 +165,7 @@ def run_batch_stars(stars=["JS355", "JS364"], yml=True, analysis_options=["ao"],
                     if "RUWE" in analysis_options: # RUWE
                         f.write('--ruwe ')
 
-                    if (comp_file is not None) and (os.path.exists(comp_file):
+                    if (comp_file is not None) and (os.path.exists(comp_file)):
                         f.write('--comps {comp_file} ')
                     
                     # Star info (age, output path, ra, dec, # companions, mass)
@@ -172,8 +177,80 @@ def run_batch_stars(stars=["JS355", "JS364"], yml=True, analysis_options=["ao"],
                     
                     out_path_hpc = os.path.join(output_path_hpc, star.replace(" ", "_"))
                     f.write(f'--age {age} -- {out_path_hpc} {ra} +{dec} {companions} {mass}\n\n')
-                        
-if __name__ == "__main__": # hehe
+
+
+def create_slurm_script(star, yml=True, analysis_options=["ao"], 
+                        write_all=True, extra_output=True, filt=None, res=None, 
+                        rv_floor=None, companions=10, opsys="linux",
+                        comp_file=None):
+    """
+    Create slurm scripts to run a single star individually
+    """
+    star_name = star.replace(" ","_")
+    with open(os.path.join(batch_path_hpc, r"run_{star_name}.sh"), 'w') as f:
+        f.write('#!/bin/bash\n#\n')
+
+        f.write(r"#SBATCH --job-name={star_name}\n")
+        f.write("#SBATCH --output=/data/douglaslab/douglste/script_logs/slurm-%A.out\n")
+        f.write("#SBATCH --account=douglaslab\n")
+        f.write("#SBATCH --partition=douglaslab,node\n")
+        f.write("#\n")
+        f.write("#SBATCH --ntasks=1\n")
+        f.write("#SBATCH --cpus-per-task=11\n")
+        f.write("#SBATCH --time=3:00:00\n")
+        f.write("#SBATCH --mail-type=END,FAIL\n")
+        f.write("#SBATCH \n")
+        f.write("#SBATCH --mail-user=douglste@lafayette.edu\n\n")
+
+        f.write("srun hostname\n\n")
+        f.write("source ~/.bashrc\n\n")
+        f.write("source activate molusc\n\n")
+        f.write("cd ~/projects/MOLUSC/\n\n")
+
+
+        
+        # Write the line for this star
+        f.write(f'srun python {gui_path_hpc} ') # Label for readability :)
+        f.write('cl ')
+    
+        # Write all
+        if write_all == True:
+            f.write('-v ')
+        # Extra output
+        if extra_output == True:
+            f.write('-a ')
+        
+        # Analysis options
+        if "ao" in analysis_options: # HRI
+            ao_path = os.path.join(contrast_path_hpc, star_name)+".txt"
+            # print(ao_path)
+            if os.path.exists(ao_path):
+                f.write(f'--ao {ao_path} --filter {filt} ')
+        if "rv" in analysis_options: # RV
+            rv_path = os.path.join(rv_table_path_hpc, star_name)+".txt"
+            # print(rv_path)
+            if os.path.exists(rv_path):
+                f.write(f'--rv {rv_path} --resolution {res} --rv_floor {rv_floor} ')
+        if "gaia" in analysis_options: # Gaia
+            f.write('--gaia ')
+        if "RUWE" in analysis_options: # RUWE
+            f.write('--ruwe ')
+
+        if (comp_file is not None) and (os.path.exists(comp_file)):
+            f.write('--comps {comp_file} ')
+        
+        # Star info (age, output path, ra, dec, # companions, mass)
+        # Get ra, dec, and mass
+        ra = targets["ra"][np.where(targets["name"] == star)[0][0]]
+        dec = targets["de"][np.where(targets["name"] == star)[0][0]]
+        mass = np.round(targets["M/Ms"][np.where(targets["name"] == star)[0][0]], 3)
+        age = targets["age"][np.where(targets["name"] == star)[0][0]]
+        
+        out_path_hpc = os.path.join(output_path_hpc, star_name)
+        f.write(f'--age {age} -- {out_path_hpc} {ra} +{dec} {companions} {mass}\n\n')
+
+
+if __name__ == "__main__": 
     all_targets = targets["name"]
     # rv_targets = 1
     # no_rv_targets = 2
@@ -186,4 +263,8 @@ if __name__ == "__main__": # hehe
     # analysis_options=["ao", "gaia", "ruwe", "rv"], write_all=True, 
     # extra_output=True, filt="K", rv_floor=1000, res=20000, companions=10, opsys="linux")
 
-
+    for name in all_targets:
+        create_slurm_script(name, yml=False, write_all=True, extra_output=True, 
+                    analysis_options=["ao", "rv", "gaia", "ruwe"], 
+                    filt="K", companions=50_000_000, rv_floor=1000, res=20_000, opsys='linux',
+                    comp_file="/data2/douglaslab/douglste/molusc_cache/MOLUSC_prior_v0_Pflat_50M.hdf5")
