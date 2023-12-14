@@ -17,9 +17,6 @@ q_exp = 0.0
 
 test_fname = os.path.join(repo_path,"tests/test_write.hdf5")
 
-def test_basic():
-    assert True
-
 def test_generation():
     """Ensure companion generation executes cleanly."""
 

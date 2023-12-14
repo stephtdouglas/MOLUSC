@@ -16,16 +16,11 @@ from astropy.utils.exceptions import AstropyWarning
 from multiprocessing import Process
 from multiprocessing.pool import Pool
 import multiprocessing as mp
-# from guppy import hpy
-# import tracemalloc
 
-# from pkgcore.config import load_config
 warnings.simplefilter('error', category=RuntimeWarning)
 warnings.simplefilter('ignore', category=AstropyWarning)
 warnings.simplefilter('ignore', category=scipy.linalg.LinAlgWarning)
 
-# c = load_config()
-# hp = hpy()
 today = dt.today().isoformat().split("T")[0]
 
 import molusc
@@ -33,20 +28,10 @@ repo_path = pathlib.Path(molusc.__file__).resolve().parent.parent
 from molusc.utils import get_pro_sep, calc_anomaly_gaia
 
 class AO:
-    # class variables
-    ao_filename = ''
-    reject_list = []
-    age_model = {}  # Table containing stellar model for stars of this age
-    star_distance = 0
-    star_mass = 0
-    mass_ratio = []
-    a = []
-    a_type = ''
-    obs_date = None
 
     # Input file must be in mas and mags
-
-    def __init__(self, filename, companions, star_mass, star_age, star_ra, star_dec, filter, gaia=False):
+    def __init__(self, filename, companions, star_mass, star_age, 
+                 filter, obs_date=None, gaia=False):
         self.ao_filename = filename
         self.mass_ratio = companions.mass_ratio
         self.a = companions.a
@@ -54,6 +39,7 @@ class AO:
         self.star_mass = star_mass
         # Get the appropriate model and year
         self.age_model = self.load_stellar_model(filter, star_age)
+        self.obs_date = obs_date
         if gaia:
             self.a_type = 'gaia'
 
@@ -109,22 +95,8 @@ class AO:
         # Find Delta Mag
         model_contrast = cmp_model_mag - self.star_model_mag
 
-        # hp.setrelheap()
-        # Parallelization
-        # Get projected separation
-        # tracemalloc.start()
 
         all_stars = np.stack([T_0,period,phase,e,arg_peri,cos_i,self.a],axis=1)
-#        print(np.shape(star_params))
-#        all_stars = star_params.reshape((-1,7))
-
-        # star_params = []
-        # all_stars = []
-        # for i in range(num_generated):            
-        #     star_params = [T_0, period[i], phase[i], e[i], arg_peri[i], cos_i[i], self.a[i]]
-        #     all_stars.append(star_params)
-
-
         
         try:
             cpu_ct = len(os.sched_getaffinity(0))
@@ -137,9 +109,6 @@ class AO:
         
         with Pool(cpu_ct) as pool:
             pro_sep = pool.starmap(get_pro_sep, all_stars, chunksize=divisor)
-       
-        # End parallelization
-
 
         four_arc = round(self.star_distance * 0.0000193906, 1)  # 4" in AU at distance of primary
         
@@ -616,3 +585,30 @@ class AO:
         self.contrast = contrast_table
 
         return 0
+
+
+
+class AO_detection(AO):
+
+    def __init__(self, companions, star_mass, star_age, 
+                 filter, pa, e_pa, rho, e_rho, dM, e_dM,
+                 obs_date=None):
+        """
+        Given an observed position angle (pa), angular separation (rho),
+        delta mag (dM), and observation filter, reject possible companions
+
+        pa, rho, dM, and filter can be numbers or arrays (all must be the same
+        type and length if appropriate). If multiple detections are provided,
+        then each companion in the prior will be checked against all of them
+        """
+        self.pa = pa
+        self.e_pa = e_pa
+        self.rho = rho 
+        self.e_rho = e_rho 
+        self.dM = dM 
+        self.e_dM = e_dM
+        self.filter = filter
+        self.companions = companions
+        self.obs_date = obs_date
+        self.star_mass = star_mass
+        self.star_age = star_age
