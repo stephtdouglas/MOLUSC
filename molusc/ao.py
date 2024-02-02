@@ -11,7 +11,6 @@ from astropy.coordinates import SkyCoord
 import astropy.units as u
 from astropy.table import Table
 from astroquery.gaia import Gaia
-from time import time
 from astropy.utils.exceptions import AstropyWarning
 from multiprocessing import Process
 from multiprocessing.pool import Pool
@@ -44,7 +43,6 @@ class AO:
             self.a_type = 'gaia'
 
     def analyze(self):
-        t = time()
         num_generated = len(self.mass_ratio)
 
         # Unpack companions' orbital parameters
@@ -64,37 +62,8 @@ class AO:
 
         #todo add error handling for cases of too young and too old
 
-        # Determine low and high mass limits
-        low_mass_limit = self.age_model['M/Ms'][0]
-        high_mass_limit = self.age_model['M/Ms'][-1]
-
-        if self.star_mass > high_mass_limit:
-            return -23
-        elif self.star_mass < low_mass_limit:
-            return -24
-
-        t1 = time()
-
-        # Find model mag of primary star
-        self.star_model_mag = self.find_mag(self.star_mass, self.age_model)
-        #self.star_model_mag = star_model_mag
-        print(f'Current time: {datetime.datetime.now()} -- Star Model Mag {self.star_model_mag}')
-
-        # Get masses of companion stars
-        # TODO: why are we rounding this?
-        cmp_mass = np.round(self.star_mass * self.mass_ratio , 3) # companion mass in solar masses
-        # del(self.mass_ratio)
-
-        # Get companion star magnitudes, assign infinite magnitude if below lowest modeled mass
-        f_mag = scipy.interpolate.interp1d(self.age_model['M/Ms'], self.age_model['Mag'], kind='cubic', 
-                                           fill_value=np.nan, bounds_error=False)
-        cmp_model_mag = f_mag(cmp_mass)
-
-        t2 = time()
-
-        # Find Delta Mag
-        model_contrast = cmp_model_mag - self.star_model_mag
-
+        # Use interior function to calculate the model contrast
+        self._calc_model_contrast()
 
         all_stars = np.stack([T_0,period,phase,e,arg_peri,cos_i,self.a],axis=1)
         
@@ -135,7 +104,7 @@ class AO:
             # Compare the model_contrast to the experimental_delta_K
             # If the model contrast is less than the experimental contrast it would have been seen and can be rejected
             # model contrast < contrast limit = reject (reject list = true)
-            self.reject_list = np.greater(contrast_limit, model_contrast)#, dtype=bool)
+            self.reject_list = np.greater(contrast_limit, self.model_contrast)#, dtype=bool)
             logging.info(self.reject_list)
             
         elif a_type == 'gradient':
@@ -165,15 +134,15 @@ class AO:
             #         new_row = Table(rows=[[float(f(pro_sep[i], x)) for x in column_rates]], names=column_names[1:])
             #         new_row['Sep (AU)'] = pro_sep[i]
             #         # Determine which recovery rates the magnitude falls between, and assign it the lower one
-            #         if model_contrast[i] < new_row[column_names[-1]]:  # Greater than largest recovery rate
+            #         if self.model_contrast[i] < new_row[column_names[-1]]:  # Greater than largest recovery rate
             #             recovery_rate[i] = column_rates[-1]
             #             continue
-            #         elif model_contrast[i] > new_row[column_names[1]]:  # Less than smallest recovery rate
+            #         elif self.model_contrast[i] > new_row[column_names[1]]:  # Less than smallest recovery rate
             #             recovery_rate[i] = 0.
             #             continue
             #         else:
             #             for j in range(1, len(column_names)):
-            #                 if new_row[column_names[j]][0] < model_contrast[i]:
+            #                 if new_row[column_names[j]][0] < self.model_contrast[i]:
             #                     recovery_rate[i] = column_rates[j-2]
             #                     break
 
@@ -182,9 +151,7 @@ class AO:
             # self.reject_list = [True if random[i] < recovery_rate[i] else False for i in range(0, num_generated)]
 
         # Write out information for display or output files
-        self.model_contrast = model_contrast
         self.pro_sep = pro_sep
-        self.low_mass_limit = low_mass_limit
 
         return np.array(self.reject_list)
 
@@ -204,30 +171,8 @@ class AO:
         contrast = self.contrast
         a_type = self.a_type
 
-        # Determine low and high mass limits
-        low_mass_limit = self.age_model['M/Ms'][0]
-        high_mass_limit = self.age_model['M/Ms'][-1]
-
-        if self.star_mass > high_mass_limit:
-            return -23
-        elif self.star_mass < low_mass_limit:
-            return -24
-
-        # Find model mag of primary star
-        self.star_model_mag = self.find_mag(self.star_mass, self.age_model)
-        print(f'Current time: {datetime.datetime.now()} -- Star Model Mag {self.star_model_mag}')  # TESTING
-
-        # Get masses of companion stars
-        cmp_mass = self.star_mass * self.mass_ratio  # companion mass in solar masses
-        cmp_mass = np.round(cmp_mass, 3)
-
-        # Get companion star magnitudes, assign infinite magnitude if below lowest modeled mass
-        f_mag = scipy.interpolate.interp1d(self.age_model['M/Ms'], self.age_model['Mag'], 
-                                           kind='cubic', fill_value=np.inf, bounds_error=False)
-        cmp_model_mag = f_mag(cmp_mass)
-
         # Find Delta Mag
-        model_contrast = cmp_model_mag - self.star_model_mag
+        self._calc_model_contrast()
 
         # Calculate projected separation for each generated companion
 
@@ -324,7 +269,7 @@ class AO:
             rec_contr = calc_contr(pair_contr)
 
             # Determine which recovery rates the magnitude falls between, and assign it the lower one
-            j = np.where(rec_contr<=model_contrast[i])[0]
+            j = np.where(rec_contr<=self.model_contrast[i])[0]
             if len(j)==0:
                 # the model contrast is fainter than any recovery rate limit
                 recovery_rate[i] = 0
@@ -337,11 +282,40 @@ class AO:
         self.reject_list = random < recovery_rate
 
         # Write out information for display or output files
-        self.model_contrast = model_contrast
         self.pro_sep = pro_sep
-        self.low_mass_limit = low_mass_limit
 
         return np.array(self.reject_list)
+
+    def _calc_model_contrast(self):
+
+        # Determine low and high mass limits
+        self.low_mass_limit = self.age_model['M/Ms'][0]
+        self.high_mass_limit = self.age_model['M/Ms'][-1]
+
+        if self.star_mass > self.high_mass_limit:
+            return -23
+        elif self.star_mass < self.low_mass_limit:
+            return -24
+
+        # Find model mag of primary star
+        self.star_model_mag = self.find_mag(self.star_mass, self.age_model)
+        #self.star_model_mag = star_model_mag
+        print(f'Current time: {datetime.datetime.now()} -- Star Model Mag {self.star_model_mag}')
+
+        # Get masses of companion stars
+        # TODO: why are we rounding this?
+        cmp_mass = np.round(self.star_mass * self.mass_ratio , 3) # companion mass in solar masses
+        # del(self.mass_ratio)
+
+        # Get companion star magnitudes, assign infinite magnitude if below lowest modeled mass
+        f_mag = scipy.interpolate.interp1d(self.age_model['M/Ms'], self.age_model['Mag'], kind='cubic', 
+                                           fill_value=np.nan, bounds_error=False)
+        cmp_model_mag = f_mag(cmp_mass)
+
+        # Find Delta Mag
+        self.model_contrast = cmp_model_mag - self.star_model_mag
+
+
 
     def find_mag(self, star_mass, t):
         f_mag = scipy.interpolate.interp1d(t['M/Ms'], t['Mag'], kind='cubic', fill_value='extrapolate')
@@ -589,6 +563,8 @@ class AO:
 
 
 class AO_detection(AO):
+    # Inheriting: get_distance, _calc_model_contrast
+    # technically also read_contrast but there's no point in using it here
 
     def __init__(self, companions, star_mass, star_age, 
                  filter, pa, e_pa, rho, e_rho, dM, e_dM,
@@ -612,3 +588,34 @@ class AO_detection(AO):
         self.obs_date = obs_date
         self.star_mass = star_mass
         self.star_age = star_age
+
+    def analyze(self):
+        
+        num_generated = comps.num_generated
+
+        # Unpack companions' orbital parameters
+        period = self.companions.P
+        e = self.companions.ecc
+        arg_peri = self.companions.arg_peri
+        phase = self.companions.phase
+        cos_i = self.companions.cos_i
+
+        # TODO: we should always care about the observation date
+        if self.obs_date:
+            T_0 = np.full(num_generated,fill_value=self.obs_date)
+        else:
+            T_0 = np.full(num_generated,fill_value=2457388.5)  # epoch 2016.0 in JD
+
+        # Get the appropriate age model(s)
+        # TODO: right now this only assumes one filter at a time. 
+        # I can either run on one filter at a time for consistency, or do them both together
+
+        self._calc_model_contrast()
+
+        # First rejection step - contrast of the prior companion doesn't match
+
+        max_dM = dM + e_dM * 3
+        min_dM = dM - e_dM * 3
+
+        if isinstance(dM, (list, tuple, np.ndarray)):
+

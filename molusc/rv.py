@@ -8,7 +8,6 @@ import numpy as np
 import scipy as scipy
 import scipy.stats as stats
 from astropy.table import Table
-from time import time
 import multiprocessing as mp
 import gc
 from astropy.utils.exceptions import AstropyWarning
@@ -131,8 +130,6 @@ class RV:
         # Determine velocity limit
         
         delta_v = 2.998e5 / self.resolution  # m/s
-
-        t = time()
 
         # Determine contrast
         cmp_mass = np.multiply(self.star_mass, mass_ratio)  # companion mass in solar masses

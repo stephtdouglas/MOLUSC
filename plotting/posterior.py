@@ -47,6 +47,8 @@ if __name__=="__main__":
     files = glob.glob(output_dir+"*kept.csv")
 
     for file in files:
+        if ("JS430" in file)==False:
+            continue
         star_name = file.split("/")[-1].replace("_kept.csv","")
         output_filename = file.replace(".csv",".png")
         yml_filename = file.replace("_kept.csv","_params_output.yml")
