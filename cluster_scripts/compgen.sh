@@ -7,8 +7,8 @@
 #
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=1
-#SBATCH --time=1:00:00
-#SBATCH --mem-per-cpu=16gb
+#SBATCH --time=2:00:00
+#SBATCH --mem-per-cpu=32gb
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=douglste@lafayette.edu
 

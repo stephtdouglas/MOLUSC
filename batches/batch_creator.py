@@ -27,7 +27,7 @@ output_path_drive = os.path.expanduser('~/Shared drives/DouglasGroup/Jared Sofai
 # table_output_path_hpc = os.path.join(repo_path, r'../saves/outputs/tables')
 # scratch_output_path_hpc = os.path.join(repo_path, r'/scratch/sofairj')
 # yml_output_path_hpc = os.path.join(repo_path, r'../saves/outputs/yml')
-output_path_hpc = "/data2/douglaslab/molusc_outputs/"
+output_path_hpc = "/data2/douglaslab/douglste/molusc_outputs/"
 
 pm = Table.read(os.path.join(csv_path_hpc, r'praesepe_merged.csv'))
 targets = Table.read(os.path.join(csv_path_hpc, r'targets_abr.csv'))
@@ -76,10 +76,8 @@ def run_batch_stars(stars=["JS355", "JS364"], yml=True, analysis_options=["ao"],
                 if "rv" in analysis_options: # RV
                     rv_path = os.path.join(rv_table_path_hpc, star.replace(" ", "_"))
                     f.write(f'--rv "{rv_path}.txt" --resolution {res} --rv_floor {rv_floor} ')
-                if "ruwe" in analysis_options: # RUWE
-                    f.write('--gaia ')
                 if "gaia" in analysis_options: # Gaia
-                    f.write('--ruwe ')
+                    f.write('--ruwe --gaia ')
                 
                 # Star info (age, output path, ra, dec, # companions, mass)
                 # Get ra, dec, and mass
@@ -161,12 +159,10 @@ def run_batch_stars(stars=["JS355", "JS364"], yml=True, analysis_options=["ao"],
                         if os.path.exists(rv_path):
                             f.write(f'--rv {rv_path} --resolution {res} --rv_floor {rv_floor} ')
                     if "gaia" in analysis_options: # Gaia
-                        f.write('--gaia ')
-                    if "RUWE" in analysis_options: # RUWE
-                        f.write('--ruwe ')
+                        f.write('--gaia --ruwe ')
 
                     if (comp_file is not None) and (os.path.exists(comp_file)):
-                        f.write('--comps {comp_file} ')
+                        f.write(f'--comps {comp_file} ')
                     
                     # Star info (age, output path, ra, dec, # companions, mass)
                     # Get ra, dec, and mass
@@ -187,17 +183,18 @@ def create_slurm_script(star, yml=True, analysis_options=["ao"],
     Create slurm scripts to run a single star individually
     """
     star_name = star.replace(" ","_")
-    with open(os.path.join(batch_path_hpc, r"run_{star_name}.sh"), 'w') as f:
+    with open(os.path.join(batch_path_hpc, f"run_{star_name}.sh"), 'w') as f:
         f.write('#!/bin/bash\n#\n')
 
-        f.write(r"#SBATCH --job-name={star_name}\n")
-        f.write("#SBATCH --output=/data/douglaslab/douglste/script_logs/slurm-%A.out\n")
+        f.write(f"#SBATCH --job-name={star_name}\n")
+        f.write(f"#SBATCH --output=/data/douglaslab/douglste/script_logs/slurm-%A_{star_name}.out\n")
         f.write("#SBATCH --account=douglaslab\n")
-        f.write("#SBATCH --partition=douglaslab,node\n")
+        f.write("#SBATCH --partition=douglaslab,node,himem\n")
         f.write("#\n")
         f.write("#SBATCH --ntasks=1\n")
-        f.write("#SBATCH --cpus-per-task=11\n")
+        f.write("#SBATCH --cpus-per-task=8\n")
         f.write("#SBATCH --time=3:00:00\n")
+        f.write("#SBATCH --mem-per-cpu=32gb\n")
         f.write("#SBATCH --mail-type=END,FAIL\n")
         f.write("#SBATCH \n")
         f.write("#SBATCH --mail-user=douglste@lafayette.edu\n\n")
@@ -232,12 +229,10 @@ def create_slurm_script(star, yml=True, analysis_options=["ao"],
             if os.path.exists(rv_path):
                 f.write(f'--rv {rv_path} --resolution {res} --rv_floor {rv_floor} ')
         if "gaia" in analysis_options: # Gaia
-            f.write('--gaia ')
-        if "RUWE" in analysis_options: # RUWE
-            f.write('--ruwe ')
+            f.write('--gaia --ruwe ')
 
         if (comp_file is not None) and (os.path.exists(comp_file)):
-            f.write('--comps {comp_file} ')
+            f.write(f'--comps {comp_file} ')
         
         # Star info (age, output path, ra, dec, # companions, mass)
         # Get ra, dec, and mass
@@ -255,16 +250,26 @@ if __name__ == "__main__":
     # rv_targets = 1
     # no_rv_targets = 2
     # run_batch_stars(all_targets, yml=False, analysis_options=["ao"], filt="K", companions=15000, opsys='linux')
-    run_batch_stars(all_targets, yml=False, write_all=True, extra_output=True, 
-                    analysis_options=["ao", "rv", "gaia", "ruwe"], 
-                    filt="K", companions=50_000_000, rv_floor=1000, res=20_000, opsys='linux',
-                    comp_file="/data2/douglaslab/douglste/molusc_cache/MOLUSC_prior_v0_Pflat_50M.hdf5")
+#    run_batch_stars(all_targets, yml=False, write_all=True, extra_output=True, 
+#                    analysis_options=["ao", "rv", "gaia", "ruwe"], 
+#                    filt="K", companions=50_000_000, rv_floor=1000, res=20_000, opsys='linux',
+#                    comp_file="/data2/douglaslab/douglste/molusc_cache/MOLUSC_prior_v0_Pflat_50M.hdf5")
     # run_batch_stars(stars=["JS355", "JS364"], yml=False, 
     # analysis_options=["ao", "gaia", "ruwe", "rv"], write_all=True, 
     # extra_output=True, filt="K", rv_floor=1000, res=20000, companions=10, opsys="linux")
 
-    for name in all_targets:
-        create_slurm_script(name, yml=False, write_all=True, extra_output=True, 
-                    analysis_options=["ao", "rv", "gaia", "ruwe"], 
-                    filt="K", companions=50_000_000, rv_floor=1000, res=20_000, opsys='linux',
-                    comp_file="/data2/douglaslab/douglste/molusc_cache/MOLUSC_prior_v0_Pflat_50M.hdf5")
+    with open("submit_all_again.sh","w") as g:
+        for name in all_targets:
+            star_name = name.replace(" ","_")
+            outfile = f"/data2/douglaslab/douglste/molusc_outputs/{star_name}_kept.csv"
+            if os.path.exists(outfile):
+                continue
+            
+            create_slurm_script(name, yml=False, write_all=True, extra_output=True, 
+                        analysis_options=["ao", "rv", "gaia", "ruwe"], 
+                        filt="K", companions=50_000_000, rv_floor=1000, res=20_000, opsys='linux',
+                        comp_file="/data2/douglaslab/douglste/molusc_cache/MOLUSC_prior_v0_Pflat_50M.hdf5")
+            batch_script = os.path.join(batch_path_hpc,f"run_{star_name}.sh")
+            g.write(f"sbatch {batch_script}\n")
+
+    
