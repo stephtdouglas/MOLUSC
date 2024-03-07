@@ -195,6 +195,7 @@ class Application:
             self.print_out(f'\nCurrent time: {datetime.datetime.now()} -- Finished analyzing AO')
         else:
             self.ao_reject_list = np.array([False]*self.num_generated)
+        self.print_out(f'AO survivors: {len(np.where(self.ao_reject_list==False)[0])}')
 
         #   RV and Jitter
         if self.rv_filename:
@@ -212,6 +213,8 @@ class Application:
         else:
             self.rv_reject_list = np.array([False]*self.num_generated)
             self.jitter_reject_list = np.array([False] * self.num_generated)
+        self.print_out(f'Jitter survivors: {len(np.where(self.jitter_reject_list==False)[0])}')
+        self.print_out(f'RV survivors: {len(np.where(self.rv_reject_list==False)[0])}')
 
         #   RUWE
         if self.ruwe_check:
@@ -264,6 +267,7 @@ class Application:
         else:
             self.ruwe_reject_list = np.array([False]*self.num_generated)
             # logging.debug(f"n is not finite!: {self.ln_ruwe} vs. {ruwe.ln_ruwe}")
+        self.print_out(f'RUWE survivors: {len(np.where(self.ruwe_reject_list==False)[0])}')
 
         #   Gaia Contrast
         if self.gaia_check:
@@ -283,6 +287,7 @@ class Application:
             self.print_out(f'Current time: {datetime.datetime.now()} -- Finished analyzing Gaia contrast')
         else:
             self.gaia_reject_list = np.array([False]*self.num_generated)
+        self.print_out(f'Gaia survivors: {len(np.where(self.gaia_reject_list==False)[0])}')
 
         # Check successes
         w = self.ao_reject_list==-1
@@ -302,8 +307,13 @@ class Application:
             return
 
         # Put together reject lists and output
-        keep = ((self.ao_reject_list==False) & (self.rv_reject_list==False) & 
-                (self.jitter_reject_list==False) & (self.ruwe_reject_list) & (self.gaia_reject_list==False))
+
+        keep = ((self.ao_reject_list==False) 
+               & (self.rv_reject_list==False) 
+               & (self.jitter_reject_list==False) 
+               & (self.ruwe_reject_list==False) 
+               & (self.gaia_reject_list==False)
+               )
         num_kept = len(np.where(keep)[0])
         self.print_out((f'Current time: {datetime.datetime.now()} -- Total number of surviving binaries: ' + str(num_kept)))
 
