@@ -152,7 +152,7 @@ class AO:
             
             contrast.sort('Sep (AU)')
 
-            f_con = scipy.interpolate.interp1d(contrast['Sep (AU)'], contrast['Contrast'], kind='linear', bounds_error=False, fill_value=0)
+            f_con = scipy.interpolate.interp1d(contrast['Sep (AU)'], contrast['Contrast'], kind='linear', bounds_error=False, fill_value=-np.inf)
                     
             # # Parallelziation
             # with Pool(cpu_ct) as pool:
@@ -321,7 +321,6 @@ class AO:
         column_names = contrast.colnames[1:]
         recovery_rate = np.zeros(num_generated)
 
-        # TODO: interp2d is deprecated
         # 2D interpolation for contrast rate as a function of
         # separation and recovery rate
         #print(np.shape(contrast),len(contrast.columns))
@@ -336,12 +335,15 @@ class AO:
             bounds_error=False,fill_value=np.inf)
 
         # closer than lowest limit, recovery rate = 0
+        # because we're insensitive to it
         recovery_rate[pro_sep<contrast['Sep (AU)'][0]] = 0
 
         # further than farthest limit, recovery rate = 1
+        # Because it should be resolved
         recovery_rate[pro_sep>contrast['Sep (AU)'][-1]] = 1
 
-        intermediate_contrast = np.where((pro_sep>=contrast['Sep (AU)'][0]) |
+        # This should be an and, not an or
+        intermediate_contrast = np.where((pro_sep>=contrast['Sep (AU)'][0]) &
                                         (pro_sep<=contrast['Sep (AU)'][-1]))[0]
 
         # Within the appropriate limits, interpolate to find
@@ -365,6 +367,8 @@ class AO:
         # Make Reject list
         # TODO: why is this rejection selection different from rv?
         random = np.random.uniform(0, 1, num_generated)
+        # If recovery_rate is 1, the companion will always be rejected
+        # If recovery_rate is 0, the companion will always be accepted
         self.reject_list = random < recovery_rate
 
         # Write out information for display or output files
