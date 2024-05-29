@@ -120,10 +120,11 @@ class RUWE:
 
 
         # never reject something where the observed ruwe is higher than the predicted (halfnorm)
-        # never reject something that is outside the RUWE Distribution grid        
-        rejection_prob[(delta_g < -0.1) | (delta_g > 7.1)] = 0        
+        # never reject something that is outside the RUWE Distribution grid
+        # TODO: What if delta g or RUWE are nan/inf??
+        rejection_prob[(delta_g < -0.1) | (delta_g > 7.1) | np.isfinite(delta_g)] = 0        
         
-        rejection_prob[(self.projected_sep < np.min(self.ruwe_dist['Sep(AU)'])) | (self.projected_sep > np.max(self.ruwe_dist['Sep(AU)']))] = 0
+        rejection_prob[((self.projected_sep < np.min(self.ruwe_dist['Sep(AU)'])) | (self.projected_sep > np.max(self.ruwe_dist['Sep(AU)']))) & np.isfinite(self.projected_sep)] = 0
         
         self.rejection_prob = rejection_prob
 
