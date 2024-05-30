@@ -43,18 +43,18 @@ def pdf(post_file,yaml_file,star_name,output_filename):
     plt.savefig(output_filename,bbox_inches="tight",dpi=600)
     plt.close()
 
-def posterior(output_dir):
+def posterior(output_dir,star_name=""):
 
-    files = glob.glob(output_dir+"*kept.csv")
+    files = glob.glob(output_dir+f"{star_name}*kept.csv")
     for file in files:
         star_name = file.split("/")[-1].replace("_kept.csv","")
         output_filename = file.replace(".csv",".png")
         yml_filename = file.replace("_kept.csv","_params_output.yml")
         pdf(file,yml_filename,star_name,output_filename)
 
-def prior(output_dir):
+def prior(output_dir,star_name=""):
     
-    files = glob.glob(output_dir+"*all.csv")
+    files = glob.glob(output_dir+f"{star_name}*all.csv")
     for file in files:
         star_name = file.split("/")[-1].replace("_all.csv","")
         output_filename = file.replace(".csv","_prior.png")
@@ -66,4 +66,5 @@ if __name__=="__main__":
     
     output_dir = os.path.expanduser("/data/douglaslab/douglste/molusc_outputs/")
 
+    posterior(output_dir)
     prior(output_dir)

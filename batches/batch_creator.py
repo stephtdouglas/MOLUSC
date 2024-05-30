@@ -184,6 +184,20 @@ def create_slurm_script(star, yml=True, analysis_options=["ao"],
     Create slurm scripts to run a single star individually
     """
     star_name = star.replace(" ","_")
+
+    # Analysis options
+    if "ao" in analysis_options: # HRI
+        ao_path = os.path.join(contrast_path_hpc, star_name)+".txt"
+        # print(ao_path)
+        if os.path.exists(ao_path)==False:
+            analysis_options.remove("ao")
+    if "rv" in analysis_options: # RV
+        rv_path = os.path.join(rv_table_path_hpc, star_name)+".txt"
+        # print(rv_path)
+        if os.path.exists(rv_path)==False:
+            analysis_options.remove("rv")
+
+
     with open(os.path.join(batch_path_hpc, f"run_{star_name}.sh"), 'w') as f:
         f.write('#!/bin/bash\n#\n')
 
@@ -193,9 +207,35 @@ def create_slurm_script(star, yml=True, analysis_options=["ao"],
         f.write("#SBATCH --partition=douglaslab,node\n")
         f.write("#\n")
         f.write("#SBATCH --ntasks=1\n")
-        f.write("#SBATCH --cpus-per-task=11\n")
-        f.write("#SBATCH --time=3:00:00\n")
+
+        # The configuration depends on what data needs to be analyzed
+
+        cpus = 8
+        hours = 0.1
+
+        comp_mult = companions // 1_000_000
+        
+        if (comp_file is None) or (os.path.exists(comp_file))==False:
+            hours += 0.5
+
+        if "ao" in analysis_options:
+            hours += 0.01*comp_mult
+
+        if "gaia" in analysis_options:
+            hours += 0.05*comp_mult
+
+        if "rv" in analysis_options:
+            hours += 0.5*comp_mult
+            cpus = 11
+
+        f.write("#SBATCH --cpus-per-task=")
+        f.write(f"{cpus}\n")
+        f.write("#SBATCH --time=")
+        mins = int((hours % 1)*60)
+        hours = int(hours)
+        f.write(f"{hours}:{mins:02d}:00\n")
         f.write("#SBATCH --mem-per-cpu=16gb\n")
+
         f.write("#SBATCH --mail-type=FAIL\n")
         f.write("#SBATCH \n")
         f.write("#SBATCH --mail-user=douglste@lafayette.edu\n\n")
@@ -259,12 +299,12 @@ if __name__ == "__main__":
     # analysis_options=["ao", "gaia", "ruwe", "rv"], write_all=True, 
     # extra_output=True, filt="K", rv_floor=1000, res=20000, companions=10, opsys="linux")
 
-    with open("submit_all_again.sh","w") as g:
+    with open("submit_all.sh","w") as g:
         for name in all_targets:
             star_name = name.replace(" ","_")
             outfile = f"/data/douglaslab/douglste/molusc_outputs/{star_name}_kept.csv"
-            if os.path.exists(outfile):
-                continue
+            #if os.path.exists(outfile):
+            #    continue
             
             create_slurm_script(name, yml=False, write_all=True, extra_output=True, 
                         analysis_options=["ao", "rv", "gaia", "ruwe"], 
