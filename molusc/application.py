@@ -3,6 +3,7 @@ import datetime
 import argparse
 import warnings
 import os, pathlib
+import json
 import logging
 
 import numpy as np
@@ -11,6 +12,8 @@ import scipy.stats as stats
 from astropy.io import ascii
 import gc
 import yaml
+import h5py
+
 from molusc.ao import AO
 from molusc.companions import Companions
 from molusc.gui import GUI
@@ -318,6 +321,18 @@ class Application:
         self.print_out((f'Current time: {datetime.datetime.now()} -- Total number of surviving binaries: ' + str(num_kept)))
 
         # Write out files
+        # First generate the yaml file with run parameters
+        # (need the string for the hdf5 files)
+        yaml_data = self._generate_yaml_dict()
+        logging.debug(f"\nyaml_data: {yaml_data}\n")
+        
+        yaml_path = os.path.expanduser(self.prefix).replace("tables", "yml").replace(r"\\", "/")
+        yaml_fname = f"{yaml_path}_params_output.yml"
+        with open(yaml_fname,"w") as f:
+            yaml.dump(yaml_data,f)
+        t2 = datetime.datetime.now()
+        self.print_out((f'Current time: {t2} -- Run parameters saved to: ' + self.prefix + '_params_output.yml'))
+
         #   Write out the survivors file
         self.print_out(f'Current time: {datetime.datetime.now()} -- Writing out survivors file...')
         cols = ['mass ratio', 'period(days)', 'semi-major axis(AU)', 'cos_i', 
@@ -326,6 +341,7 @@ class Application:
                                 comps.cos_i[keep], comps.ecc[keep], comps.arg_peri[keep],
                                 comps.phase[keep]))
 
+        # Second, assemble the posterior (the "kept" companions)
         if comps.v0 is not None:
             cols = cols + ["v0"]
             keep_table = np.vstack((keep_table,comps.v0[keep]))
@@ -351,16 +367,29 @@ class Application:
             # keep_table = np.vstack((keep_table, np.transpose(np.array(rv.predicted_RV)[keep])))
             cols = cols + ['RV Amplitude','Binary Type']
             keep_table = np.vstack((keep_table, np.array(rv.amp)[keep], np.array(rv.b_type)[keep]))
-        keep_table = np.transpose(keep_table)
         
-        ascii.write(keep_table, (self.prefix + "_kept.csv"), format='csv', names=cols, overwrite=True)
+        if self.num_generated>=50_000:
+            with h5py.File(self.prefix+".h5","w") as f:
+
+                # Save the run profile as a json-serialized string
+                drp = f.create_group("meta")
+                meta_str = json.dumps(yaml_data)
+                drp.create_dataset("yaml",data=meta_str)
+
+                # Write out columns as individual datasets
+                # TODO: is this the most efficient way to do it?
+                grp = f.create_group("kept")
+                for k,colname in enumerate(cols):
+                    grp.create_dataset(colname,data=keep_table[k])
+        else:
+            keep_table = np.transpose(keep_table)
+            ascii.write(keep_table, (self.prefix + "_kept.csv"), format='csv', names=cols, overwrite=True)
 
         self.print_out((f'Current time: {datetime.datetime.now()} -- Surviving binary parameters saved to: ' + self.prefix + '_kept.csv'))
         
-       
 
         
-        #  Write out the input file
+        #  Third, write out the prior file (inputs, "all" companions)
         self.print_out(f'Current time: {datetime.datetime.now()} -- Writing out input file...')
         if self.all_output:
             cols = ['mass ratio', 'period(days)', 'semi-major axis(AU)', 'cos_i', 'eccentricity', 'arg periastron', 'phase']
@@ -400,9 +429,23 @@ class Application:
             # Add column containing full rejection info
             cols = cols + ['Full Rejected']
             all_table = np.vstack((all_table, np.invert(keep)))
-            all_table = np.transpose(all_table)
                 
-            ascii.write(all_table, (self.prefix + "_all.csv"), format='csv', names=cols, overwrite=True)
+            # If the prior has more than 50,000 companions, write to hdf5, not csv
+            if self.num_generated>=50_000:
+                
+                # Open the file in append mode
+                with h5py.File(self.prefix+".h5","a") as f:
+
+                    # Metadata is the same as before, no change
+
+                    # Write out columns as individual datasets
+                    # TODO: is this the most efficient way to do it?
+                    grp = f.create_group("all")
+                    for k,colname in enumerate(cols):
+                        grp.create_dataset(colname,data=all_table[k])
+            else:
+                all_table = np.transpose(all_table)
+                ascii.write(all_table, (self.prefix + "_all.csv"), format='csv', names=cols, overwrite=True)
             
             # del(self.ao_reject_list)
             # del(self.rv_reject_list)
@@ -411,6 +454,14 @@ class Application:
             # del(self.gaia_reject_list)
 
             self.print_out((f'Current time: {datetime.datetime.now()} -- Generated binary parameters saved to: ' + self.prefix + '_all.csv'))
+
+        self.print_out(f'\nTime started: {t1}\nTime ended: {t2}')        
+        if self.using_gui: self.gui.update_status('Finished - Successful')
+        self.restore_defaults()
+        return
+
+
+    def _generate_yaml_dict(self):
 
         # Write out run inputs to a yaml file
         self.print_out(f'Current time: {datetime.datetime.now()} -- Writing out run inputs to yaml file...')
@@ -481,19 +532,8 @@ class Application:
                                     "ln_ruwe": yaml_ln_ruwe,
                                     }
                     }
-        logging.debug(f"\nyaml_data: {yaml_data}\n")
-        
-        yaml_path = os.path.expanduser(self.prefix).replace("tables", "yml").replace(r"\\", "/")
-        yaml_fname = f"{yaml_path}_params_output.yml"
-        with open(yaml_fname,"w") as f:
-            yaml.dump(yaml_data,f)
-        t2 = datetime.datetime.now()
-        self.print_out((f'Current time: {t2} -- Run parameters saved to: ' + self.prefix + '_params_output.yml'))
-                
-        self.print_out(f'\nTime started: {t1}\nTime ended: {t2}')        
-        if self.using_gui: self.gui.update_status('Finished - Successful')
-        self.restore_defaults()
-        return
+
+        return yaml_data
 
 
     def error_check(self, error_code):

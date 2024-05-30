@@ -78,7 +78,7 @@ def test_infile(monkeypatch):
         acheck = app.parse_input(app.input_args[1:])
         assert app.companions_filename==test_fname
 
-aprefix = "tests/ao_tst"
+aprefix = os.path.join(repo_path,"tests/ao_tst")
 def test_ao(monkeypatch):
     with monkeypatch.context() as m:
         m.setattr(sys, 'argv', [sys.argv[0],"cl", "-a", "--ao", cfile,  
@@ -88,10 +88,10 @@ def test_ao(monkeypatch):
         print(sys.argv)
         app = Application(sys.argv)
         app.start()
-        assert os.path.exists("tests/ao_tst_all.csv")
-cleanup(aprefix)
+        assert os.path.exists(aprefix+"_all.csv")
+    cleanup(aprefix)
 
-rprefix = "tests/rv_tst"
+rprefix = os.path.join(repo_path,"tests/rv_tst")
 def test_rv(monkeypatch):
     with monkeypatch.context() as m:
         m.setattr(sys, 'argv', [sys.argv[0],"cl", "-a", "--rv", rfile,  
@@ -101,6 +101,6 @@ def test_rv(monkeypatch):
         print(sys.argv)
         app = Application(sys.argv)
         app.start()
-        assert os.path.exists("tests/rv_tst_RVs.csv")
-cleanup(rprefix)
+        assert os.path.exists(rprefix+"_RVs.csv")
+    cleanup(rprefix)
 
