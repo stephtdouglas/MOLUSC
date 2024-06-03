@@ -374,7 +374,9 @@ class Application:
                 # Save the run profile as a json-serialized string
                 drp = f.create_group("meta")
                 meta_str = json.dumps(yaml_data)
-                drp.create_dataset("yaml",data=meta_str)
+                ls = len(meta_str)
+                drp.create_dataset("yaml",data=meta_str,
+                                   dtype=h5py.string_dtype('utf-8',ls))
 
                 # Write out columns as individual datasets
                 # TODO: is this the most efficient way to do it?
