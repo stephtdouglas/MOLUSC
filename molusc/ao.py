@@ -601,7 +601,7 @@ class AO:
                 # Rename columns, assuming they are in the correct format of separation, magnitude
                 contrast_table.rename_column(list(contrast_table.columns)[0], 'Sep')
                 # Convert separation from mas to AU, order columns correctly
-                contrast_table['Sep (AU)'] = [round(self.star_distance * np.tan(np.radians(x/(3.6e6))), 1) for x in contrast_table['Sep']]
+                contrast_table['Sep (AU)'] = [self.star_distance * np.tan(np.radians(x/(3.6e6))) for x in contrast_table['Sep']]
                 order = ['Sep (AU)'] + list(contrast_table.columns)[1:-1]
                 contrast_table = contrast_table[order]
         except TypeError:

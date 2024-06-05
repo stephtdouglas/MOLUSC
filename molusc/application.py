@@ -398,7 +398,7 @@ class Application:
             all_table = np.vstack((comps.mass_ratio, comps.P, comps.a, comps.cos_i,
                                    comps.ecc, comps.arg_peri, comps.phase))
             if self.ao_filename[0]:
-                cols = cols + ['Projected Semparation(AU)', 'Model Contrast'] + [('AO Rejected ' + str(i+1)) for i in range(len(ao_reject_lists))]
+                cols = cols + ['Projected Separation(AU)', 'Model Contrast'] + [('AO Rejected ' + str(i+1)) for i in range(len(ao_reject_lists))]
                 all_table = np.vstack((all_table, ao.pro_sep, ao.model_contrast, ao_reject_lists))
             if self.rv_filename:
                 # Write out RV calculations
