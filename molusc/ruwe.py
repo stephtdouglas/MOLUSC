@@ -242,7 +242,7 @@ class RUWE:
         self.ruwe_dist = t
         return
 
-    def _interp_ruwe_projected(self):
+    def _interp_ruwe_projected(self,use_log_sep=True):
         # Do the interpolation in log projected separation space
         # for debugging and potential future speedup
         log_sep = np.unique(np.array(self.ruwe_dist['log(sep)']))
@@ -250,25 +250,22 @@ class RUWE:
         dg = np.unique(np.array(self.ruwe_dist['DeltaG']))
 
         #  2D interpolation functions for ruwe and sigma_ruwe
-        x_edges = log_sep
+        if use_log_sep:
+            x_edges = log_sep
+        else:
+            x_edges = 10**log_sep
         y_edges = dg
         z = np.reshape(np.array(self.ruwe_dist['log(RUWE)']), [len(y_edges), len(x_edges)])
         z_sigma = np.reshape(np.array(self.ruwe_dist['sigma_log(RUWE)']), [len(y_edges), len(x_edges)])
 
-        print(x_edges)
-        print(y_edges)
-        print(np.shape(z))
-
         f_ruwe = scipy.interpolate.RegularGridInterpolator(points=(x_edges, y_edges), values=z.T,
                                                            bounds_error=False,
                                                            fill_value=np.nan)
-        print(f_ruwe.grid)
-        print(f_ruwe.values)
+
         f_sigma = scipy.interpolate.RegularGridInterpolator(points=(x_edges, y_edges),
                                                            values=z_sigma.T,
                                                            bounds_error=False,
                                                            fill_value=np.nan)
-        
         return f_ruwe, f_sigma
 
 
@@ -287,15 +284,15 @@ class RUWE:
         z = np.reshape(np.array(self.ruwe_dist['log(RUWE)']), [len(y_edges), len(x_edges)])
         z_sigma = np.reshape(np.array(self.ruwe_dist['sigma_log(RUWE)']), [len(y_edges), len(x_edges)])
 
-        print(x_edges)
-        print(y_edges)
-        print(np.shape(z))
+        # print(x_edges)
+        # print(y_edges)
+        # print(np.shape(z))
 
         f_ruwe = scipy.interpolate.RegularGridInterpolator(points=(x_edges, y_edges), values=z.T,
                                                            bounds_error=False,
                                                            fill_value=np.nan)
-        print(f_ruwe.grid)
-        print(f_ruwe.values)
+        # print(f_ruwe.grid)
+        # print(f_ruwe.values)
         f_sigma = scipy.interpolate.RegularGridInterpolator(points=(x_edges, y_edges),
                                                            values=z_sigma.T,
                                                            bounds_error=False,
