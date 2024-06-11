@@ -45,7 +45,7 @@ ref_file = os.path.join(repo_path,"reference_data/RuweTableGP.txt")
 ref = at.read(ref_file)
 nref = len(ref)
 
-# This is Mackenna's original code, which uses interp2d
+### This is Mackenna's original code, which uses interp2d ###
 # Read in the reference table
 file_name = ref_file
 t = Table.read(file_name, format='ascii', delimiter=' ')
@@ -57,7 +57,7 @@ star_distance = 1 / (plx) * 2.063e+8 # AU
 ruwe_dist['Sep(AU)'] = [star_distance * np.tan(np.radians(x/(3.6e6))) 
                         for x in np.power(10, ruwe_dist['log(sep)']) ]
 
-# Adding: modify the reference file as well
+# Adding: transform the reference data as well
 ref_inputs = np.array([[float(row["log(sep)"]),float(row["DeltaG"])] 
                       for row in ref])
 ref_inputs_lin = np.copy(ref_inputs)
@@ -85,8 +85,7 @@ pred_sigma2d = np.concatenate([f_sigma2d(ref_inputs_star[i][0],
                                          for i in range(nref)])
 
 
-# Let's try something different. Use the exact same input arrays 
-# but interpolate with the RGI instead
+### Use the exact same input arrays, but interpolate with the RGI instead
 f_ruwe = scipy.interpolate.RegularGridInterpolator(points=(x_edges, y_edges), 
                                                    values=z.T,
                                                    bounds_error=False,
