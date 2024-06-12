@@ -17,6 +17,9 @@ This code requires Python 3 and the following packages:
 - Astropy
 - Astroquery
 
+## To install the development version, clone the git repository, create a conda environment, then cd into the module directory. Then run
+`pip install -e .`
+
 ## Use
 MOLUSC can be used in two ways through the GUI or command line interfaces. The GUI provides a user-friendly interface with which to easily input parameters and read output, and includes slightly more functionality than the command line version, but is not as friendly to large sequences of runs or running on a cluster. The command line option makes it easy to script mutliple runs but is offers slighty fewer user options. 
 Regardless of which interface is used the user will need to provide the following information about the code parameters and target star:

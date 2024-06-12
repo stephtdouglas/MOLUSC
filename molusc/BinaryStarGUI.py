@@ -17,7 +17,7 @@ jobid = int(os.getenv("SLURM_JOB_ID",9999))
 jobname = os.getenv("SLURM_JOB_NAME", 'MOLUSC_999')
 
 logging.basicConfig(level=logging.DEBUG,
-                    filename=f'/data/douglaslab/douglste/script_logs/logger_{jobid}_{arrayid}.log',
+                    filename=f'/data2/labs/douglaslab/douglste/script_logs/logger_{jobid}_{arrayid}.log',
                     # filename=f'logger_{jobid}_{arrayid}.log',
                     format='%(asctime)s %(message)s')
 logging.getLogger("matplotlib").setLevel(logging.WARNING)
