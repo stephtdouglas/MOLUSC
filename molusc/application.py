@@ -198,6 +198,7 @@ class Application:
             self.print_out(f'\nCurrent time: {datetime.datetime.now()} -- Finished analyzing AO')
         else:
             self.ao_reject_list = np.array([False]*self.num_generated)
+            self.print_out("AO test not run")
         self.print_out(f'AO survivors: {len(np.where(self.ao_reject_list==False)[0])}')
 
         #   RV and Jitter
@@ -216,6 +217,8 @@ class Application:
         else:
             self.rv_reject_list = np.array([False]*self.num_generated)
             self.jitter_reject_list = np.array([False] * self.num_generated)
+            print("RV tests not run (includes jitter)")
+            
         self.print_out(f'Jitter survivors: {len(np.where(self.jitter_reject_list==False)[0])}')
         self.print_out(f'RV survivors: {len(np.where(self.rv_reject_list==False)[0])}')
 
@@ -269,6 +272,7 @@ class Application:
             # logging.debug(f"self.ln_ruwe vs. ruwe.ln_ruwe round 2: {self.ln_ruwe} vs. {ruwe.ln_ruwe}")
         else:
             self.ruwe_reject_list = np.array([False]*self.num_generated)
+            self.print_out("RUWE test not run")
             # logging.debug(f"n is not finite!: {self.ln_ruwe} vs. {ruwe.ln_ruwe}")
         self.print_out(f'RUWE survivors: {len(np.where(self.ruwe_reject_list==False)[0])}')
 
@@ -290,6 +294,7 @@ class Application:
             self.print_out(f'Current time: {datetime.datetime.now()} -- Finished analyzing Gaia contrast')
         else:
             self.gaia_reject_list = np.array([False]*self.num_generated)
+            print("Gaia test not run")
         self.print_out(f'Gaia survivors: {len(np.where(self.gaia_reject_list==False)[0])}')
 
         # Check successes
@@ -714,8 +719,7 @@ class Application:
                                metavar='AO_PATH', default=[''])
         my_parser.add_argument('--filter', nargs="*", type=str, help='The filter in which the AO data was taken', required=False,
                                choices=['J','K','H','G', 'Bp','Rp','R','I','L','LL','M'])
-        my_parser.add_argument('--ruwe', action='store_true', help='Apply the RUWE test')
-        my_parser.add_argument('--gaia', action='store_true', help='Apply the GAIA contrast test')
+        my_parser.add_argument('--gaia', action='store_true', help='Apply the GAIA contrast test and RUWE test')
         # Other options
         my_parser.add_argument('-v','--verbose', action='store_true', help='Turn on extra output')
         my_parser.add_argument('-a', '--all', action='store_true', help='Write out all generated companions')
@@ -744,7 +748,8 @@ class Application:
             self.filter = args.filter
             # logging.info(f"args.filter: {args.filter}")
             # logging.info(f"First item in args.filter: {args.filter[0]}")
-            self.ruwe_check = args.ruwe
+            ## If there's Gaia data, look at RUWE and resolved companions
+            self.ruwe_check = args.gaia
             self.gaia_check = args.gaia
             self.companions_filename = args.comps
             # Output Options
@@ -803,7 +808,8 @@ class Application:
                 self.ao_filename = ['']
                 self.filter = None
 
-            self.ruwe_check = data["ruwe_params"]["fit"]
+            ## If we're checking gaia, check RUWE too
+            self.ruwe_check = data["gaia_params"]["fit"]
             self.gaia_check = data["gaia_params"]["fit"]
 
             if "companions_file" in data.keys():
