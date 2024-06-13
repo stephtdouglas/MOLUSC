@@ -387,12 +387,17 @@ class Application:
                 # TODO: is this the most efficient way to do it?
                 grp = f.create_group("kept")
                 for k,colname in enumerate(cols):
-                    grp.create_dataset(colname,data=keep_table[k])
+                    if colname=="Binary Type":
+                        asciilist = [elem.encode("ascii","ignore") for elem in keep_table[k]]
+                        grp.create_dataset(colname,data=asciilist)
+                    else:
+                        grp.create_dataset(colname,data=np.float64(keep_table[k]))
+                self.print_out((f'Current time: {datetime.datetime.now()} -- Surviving binary parameters saved to: {self.prefix}.h5, group "kept"'))
         else:
             keep_table = np.transpose(keep_table)
             ascii.write(keep_table, (self.prefix + "_kept.csv"), format='csv', names=cols, overwrite=True)
 
-        self.print_out((f'Current time: {datetime.datetime.now()} -- Surviving binary parameters saved to: ' + self.prefix + '_kept.csv'))
+            self.print_out((f'Current time: {datetime.datetime.now()} -- Surviving binary parameters saved to: ' + self.prefix + '_kept.csv'))
         
 
         
@@ -448,11 +453,16 @@ class Application:
                     # Write out columns as individual datasets
                     # TODO: is this the most efficient way to do it?
                     grp = f.create_group("all")
-                    for k,colname in enumerate(cols):
-                        grp.create_dataset(colname,data=all_table[k])
+                    if colname=="Binary Type":
+                        asciilist = [elem.encode("ascii","ignore") for elem in all_table[k]]
+                        grp.create_dataset(colname,data=asciilist)
+                    else:
+                        grp.create_dataset(colname,data=np.float64(all_table[k]))
+                self.print_out((f'Current time: {datetime.datetime.now()} -- Generated binary parameters saved to: {self.prefix}.h5, group "all"'))
             else:
                 all_table = np.transpose(all_table)
                 ascii.write(all_table, (self.prefix + "_all.csv"), format='csv', names=cols, overwrite=True)
+                self.print_out((f'Current time: {datetime.datetime.now()} -- Generated binary parameters saved to: ' + self.prefix + '_all.csv'))
             
             # del(self.ao_reject_list)
             # del(self.rv_reject_list)
@@ -460,7 +470,6 @@ class Application:
             # del(self.ruwe_reject_list)
             # del(self.gaia_reject_list)
 
-            self.print_out((f'Current time: {datetime.datetime.now()} -- Generated binary parameters saved to: ' + self.prefix + '_all.csv'))
 
         self.print_out(f'\nTime started: {t1}\nTime ended: {t2}')        
         if self.using_gui: self.gui.update_status('Finished - Successful')
