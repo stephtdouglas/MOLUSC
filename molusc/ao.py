@@ -140,8 +140,11 @@ class AO:
        
         # End parallelization
 
-
-        four_arc = round(self.star_distance * 0.0000193906, 1)  # 4" in AU at distance of primary
+        if (np.isfinite(self.star_distance) and
+            (self.star_distance is not np.ma.masked)):
+            four_arc = round(self.star_distance * 0.0000193906, 1)  # 4" in AU at distance of primary
+        else:
+            return -54
         
         if a_type == 'hard limit':
             # Find Delta Mag limits, and/or recovery fraction
@@ -394,7 +397,7 @@ class AO:
         # gaia_info.show_in_browser(jsviewer=True)
         # print(f"----------------------\nHere is the gaia info table thing: {gaia_info}\n----------------------")
 
-        if np.isfinite(parallax):
+        if np.isfinite(parallax) and (parallax is not np.ma.masked):
             # Convert star parallax to distance in AU: d[AU] = 1/p["] * 206265 AU/parsec
             star_distance = 1 / (parallax / 1000) * 206265
             self.star_distance = star_distance
@@ -428,7 +431,14 @@ class AO:
                     #    choose the closest one to the picked star
                     nearest_neighbor_dist = gaia_info['separation'][1]  # distance to n.n. in mas
                     #   convert from mas to AU
-                    self.nearest_neighbor_dist = round(self.star_distance * np.tan(np.radians(nearest_neighbor_dist/(3.6e6))), 1)  # distance to n.n. in AU
+                    #TODO: this is failing for one star saying there's a MaskedConstant in round
+                    if (np.isfinite(nearest_neighbor_dist) and
+                        (nearest_neighbor_dist is not np.ma.masked) and
+                        np.isfinite(self.star_distance) and
+                        (self.star_distance is not np.ma.masked)):
+                        self.nearest_neighbor_dist = round(self.star_distance * np.tan(np.radians(nearest_neighbor_dist/(3.6e6))), 1)  # distance to n.n. in AU
+                    else:
+                        return -54
                     return -52
                 else:
                     # Only once source in search area. Nearest neighbor distance is set to search width

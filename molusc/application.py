@@ -687,6 +687,13 @@ class Application:
             else:
                 self.print_out('Finished - Unsuccessful')
             return True
+        elif error_code == -54:
+            self.print_out('ERROR: Star is in Gaia but either it or its nearest neighbor has a masked parallax')
+            if self.using_gui:
+                self.gui.update_status('Finished - Unsuccessful')
+            else:
+                self.print_out('Finished - Unsuccessful')
+            return True
     
         self.print_out(f'Current time: {datetime.datetime.now()} -- Finished error check')
     

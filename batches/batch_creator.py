@@ -10,6 +10,7 @@ import numpy as np
 
 import molusc
 repo_path = pathlib.Path(molusc.__file__).resolve().parent.parent
+data_path = os.getenv("DATA_PATH")
 
 csv_path_hpc = os.path.join(repo_path, 'csvs')
 contrast_path_hpc = os.path.join(repo_path, 'prae_keck')
@@ -27,7 +28,7 @@ output_path_drive = os.path.expanduser('~/Shared drives/DouglasGroup/Jared Sofai
 # table_output_path_hpc = os.path.join(repo_path, r'../saves/outputs/tables')
 # scratch_output_path_hpc = os.path.join(repo_path, r'/scratch/sofairj')
 # yml_output_path_hpc = os.path.join(repo_path, r'../saves/outputs/yml')
-output_path_hpc = "/data2/labs/douglaslab/douglste/molusc_outputs/"
+output_path_hpc = os.path.join(data_path,"molusc_outputs/")
 
 pm = Table.read(os.path.join(csv_path_hpc, r'praesepe_merged.csv'))
 targets = Table.read(os.path.join(csv_path_hpc, r'targets_abr.csv'))
@@ -203,30 +204,42 @@ def create_slurm_script(star, yml=True, analysis_options=["ao"],
 
         f.write(f"#SBATCH --job-name={star_name}\n")
         f.write(f"#SBATCH --output=/data2/labs/douglaslab/douglste/script_logs/slurm-%A_{star_name}.out\n")
-#        f.write("#SBATCH --account=douglaslab\n")
-#        f.write("#SBATCH --partition=douglaslab,node\n")
+        f.write("#SBATCH --account=douglste-laf-lab\n")
+        f.write("#SBATCH --partition=douglste-laf-lab\n")
         f.write("#\n")
         f.write("#SBATCH --ntasks=1\n")
 
         # The configuration depends on what data needs to be analyzed
 
         cpus = 8
-        hours = 0.1
+        hours = 0.25
 
-        comp_mult = companions // 1_000_000
+        if companions<=4_000_000:
+            cpus = 4
+            mem_cpu = 12
+            hours += 0.25
+        elif companions<=40_000_000:
+            cpus = 8
+            mem_cpu = 23
+            hours += 0.5
+        elif companions<=50_000_000:
+            print("WARNING: this will require the himem queue, which is currently failing")
+            cpus = 12
+            mem_cpu = 36
+            hours += 0.75
+        else:
+            print("WARNING: make sure this isn't an overkill request")
+            cpus = 16
+            mem_cpu = 32
+            hours += 2
+            
         
         if (comp_file is None) or (os.path.exists(comp_file))==False:
             hours += 0.5
 
-        if "ao" in analysis_options:
-            hours += 0.001*comp_mult
-
-        if "gaia" in analysis_options:
-            hours += 0.005*comp_mult
-
         if "rv" in analysis_options:
-            hours += 0.05*comp_mult
-            cpus = 11
+            hours += 1
+            mem_cpu = mem_cpu * 2.5
 
         f.write("#SBATCH --cpus-per-task=")
         f.write(f"{cpus}\n")
@@ -234,17 +247,24 @@ def create_slurm_script(star, yml=True, analysis_options=["ao"],
         mins = int((hours % 1)*60)
         hours = int(hours)
         f.write(f"{hours}:{mins:02d}:00\n")
-        f.write("#SBATCH --mem-per-cpu=16gb\n")
+        mem_cpu = int(mem_cpu)
+        f.write(f"#SBATCH --mem-per-cpu={mem_cpu}gb\n")
 
-        f.write("#SBATCH --mail-type=FAIL\n")
+        f.write("#SBATCH --mail-type=END,FAIL\n")
         f.write("#SBATCH \n")
         f.write("#SBATCH --mail-user=douglste@lafayette.edu\n\n")
 
         f.write("srun hostname\n\n")
         f.write("source ~/.bashrc\n\n")
         f.write("source activate molusc\n\n")
-        f.write("cd ~/projects/MOLUSC/\n\n")
+#        f.write("cd ~/projects/MOLUSC/\n\n")
+        f.write("cd /scratch/ \n\n")
+        f.write(f"mkdir douglste_{star_name} \n\n")
+        f.write("ls \n\n")
 
+        comp_file_short = comp_file.split("/")[-1]
+        comp_file_scratch = f"/scratch/douglste_{star_name}/{comp_file_short}"
+        f.write(f"cp {comp_file} {comp_file_scratch} \n\n")
 
         
         # Call the python application, set to command line mode
@@ -273,7 +293,7 @@ def create_slurm_script(star, yml=True, analysis_options=["ao"],
             f.write('--gaia ')
 
         if (comp_file is not None) and (os.path.exists(comp_file)):
-            f.write(f'--comps {comp_file} ')
+            f.write(f'--comps {comp_file_scratch} ')
         
         # Star info (age, output path, ra, dec, # companions, mass)
         # Get ra, dec, and mass
@@ -282,9 +302,15 @@ def create_slurm_script(star, yml=True, analysis_options=["ao"],
         mass = np.round(targets["M/Ms"][np.where(targets["name"] == star)[0][0]], 3)
         age = targets["age"][np.where(targets["name"] == star)[0][0]]
         
-        out_path_hpc = os.path.join(output_path_hpc, star_name)
+#        out_path_hpc = os.path.join(output_path_hpc, star_name)
+        out_path_hpc = f"/scratch/douglste_{star_name}/{star_name}"
         f.write(f'--age {age} -- {out_path_hpc} {ra} +{dec} {companions} {mass}\n\n')
 
+        f.write(f"ls /scratch/douglste_{star_name} \n\n")
+        f.write(f"mv /scratch/douglste_{star_name}/{star_name}* {output_path_hpc} \n\n")
+        f.write(f"rm -f /scratch/douglste_{star_name}/MOLUSC_prior*.hdf5 \n\n")
+        f.write(f"rmdir /scratch/douglste_{star_name} -v --ignore-fail-on-non-empty \n\n")
+        
 
 if __name__ == "__main__": 
     all_targets = targets["name"]
@@ -302,14 +328,15 @@ if __name__ == "__main__":
     with open("submit_all.sh","w") as g:
         for name in all_targets:
             star_name = name.replace(" ","_")
-            outfile = f"/data2/labs/douglaslab/douglste/molusc_outputs/{star_name}_kept.csv"
-            #if os.path.exists(outfile):
-            #    continue
+            outfile1 = os.path.join(data_path,f"molusc_outputs/{star_name}_kept.csv")
+            outfile2 = os.path.join(data_path,f"molusc_outputs/{star_name}.h5")
+            if os.path.exists(outfile1) or os.path.exists(outfile2):
+                continue
             
             create_slurm_script(name, yml=False, write_all=True, extra_output=True, 
-                        analysis_options=["ao", "rv", "gaia", "ruwe"], 
-                        filt="K", companions=5_000_000, rv_floor=1000, res=20_000, opsys='linux',
-                        comp_file="/data2/labs/douglaslab/douglste/molusc_cache/MOLUSC_prior_v0_Pflat_50M.hdf5")
+                        analysis_options=["ao", "gaia", "ruwe"], 
+                        filt="K", companions=10_000_000, rv_floor=1000, res=20_000, opsys='linux',
+                        comp_file=os.path.join(data_path,"molusc_cache/MOLUSC_prior_v0_Pflat_50M.hdf5"))
             batch_script = os.path.join(batch_path_hpc,f"run_{star_name}.sh")
             g.write(f"sbatch {batch_script}\n")
 
