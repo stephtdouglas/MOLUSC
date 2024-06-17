@@ -121,11 +121,11 @@ def corner_plot(star, file_out=True, given_params='auto', smoothing=False, color
     cos_i = np.abs(t['cos_i'])
     a  = t['semi-major axis(AU)']
     # Get data ranges
-    P_range = [min(P), max(P)]
-    e_range = [min(e), max(e)]
-    a_range =  [min(a), max(a)]
-    i_range = [min(cos_i), max(cos_i)]
-    m_range = [min(mass_ratio), max(mass_ratio)]
+    P_range = [np.min(P), np.max(P)]
+    e_range = [np.min(e), np.max(e)]
+    a_range =  [np.min(a), np.max(a)]
+    i_range = [np.min(cos_i), np.max(cos_i)]
+    m_range = [np.min(mass_ratio), np.max(mass_ratio)]
     
     # Choose color scheme
     if color == 'blue':  # default option
@@ -573,11 +573,17 @@ def survivor_plot(star, param, file_out=False):
 
 def plotter(star, corner=True, detlims=True, survivor=True):
     if corner:
+        print("Starting Corner")
         corner_plot(star, given_params='all', smoothing=True, file_out=True)
+        print("Corner plot done")
     if detlims:
+        print("Starting limits")
         detection_limits(star, file_out=True, mark_P=False)
+        print("Limits plot done")
     if survivor:
+        print("Starting survivor")
         survivor_plot(star, param='P', file_out=True)
+        print("Survivor plot done")
     
 
 if __name__ == '__main__':
@@ -591,10 +597,10 @@ if __name__ == '__main__':
         # If specified, get graphs 1-3 for star(s)
         # Make sure to include n and mass
 
-    # files = glob.glob(output_dir+"*.yml")
-    # print(files)
-    # stars_raw = [fname.split("/")[-1][:-18] for fname in files]
-    # stars = np.unique(stars_raw)
+    files = glob.glob(output_dir+"*.yml")
+    print(files[0])
+    stars_raw = [fname.split("/")[-1][:-18] for fname in files]
+    stars = np.unique(stars_raw)
         
     # # star = "JS355"
     for star in stars:
