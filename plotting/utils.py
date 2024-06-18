@@ -3,7 +3,7 @@ import os
 import numpy as np
 import yaml
 
-output_dir = os.getenv("MOLOUT", './')
+data_dir = os.getenv("MOLOUT", './')
 
 # Convenience functions
 def jup_mass_to_sol(jupiter_mass):
@@ -24,7 +24,7 @@ def a_to_period(a):
     return np.sqrt((4*np.pi**2 * a**3) / (2*G)) * 365
 
 
-def get_info(star):
+def get_info(star,output_dir=data_dir):
     output_path1 = output_dir #os.path.join(output_dir, "tables/")
     output_path2 = output_dir #os.path.join(output_dir, "graphs/")
     output_path3 = output_dir #os.path.join(output_dir, "yml/")

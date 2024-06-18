@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from matplotlib import rcParams
 import numpy as np
 import astropy.io.ascii as at
+from astropy.table import Table
 import h5py
 import yaml
 
@@ -15,8 +16,9 @@ rcParams['font.weight'] = 'bold'
 rcParams['axes.labelweight'] = 'bold'
 rcParams['axes.linewidth'] = 1
 
-# output_dir = os.get_env("DATA_PATH","./")
-output_dir = "/Users/douglste/Google Drive/Shared drives/DouglasGroup/data"
+output_dir = os.getenv("DATA_PATH","./")
+molout = os.getenv("MOLOUT","./")
+#output_dir = "/Users/douglste/Google Drive/Shared drives/DouglasGroup/data"
 
 def setup_axes():
     """
@@ -27,8 +29,8 @@ def setup_axes():
     rcParams['axes.labelsize'] = 10
 
     fig, ax = plt.subplots(figsize=(5,3)) 
-    ax.set_ylim(60, 700)
-    ax.set_xlim(0.05,2e9)
+    ax.set_ylim(6, 700)
+    ax.set_xlim(1,2e9)
 
     # Add a secondary axis, showing mass in solar masses
     secax = ax.secondary_yaxis('right', functions=(jup_mass_to_sol, sol_mass_to_jup))
@@ -47,17 +49,16 @@ def setup_axes():
 
     return ax
 
-def calc_limits(star,percentile):
+def calc_limits(star,percentile,data_dir=molout):
     """
     Calculate the percentile limit for a selected star. 
 
     Currently, only one percentile value (a float or integer) can be provided
     """
-    file_in = get_info(star)[0] #survivors
-    star_mass = get_info(star)[5]
+    file_in = get_info(star.replace(" ","_"),data_dir)[0] #survivors
+    star_mass = get_info(star.replace(" ","_"),data_dir)[5]
     # print(f"Star mass: {star_mass}")
 
-    fig, ax = plt.subplots(figsize=(3.352242, 2.514181))  # this is sized to fit in one column of AAS journal format
     # Read in survivor data
     if file_in.endswith(".csv"):
         survivors = Table.read(file_in, format='ascii.csv')
@@ -96,11 +97,15 @@ def calc_limits(star,percentile):
 
     return period, perc
 
-def plot_limits(ax, period, perc, **plot_kwargs):
+def plot_limits(ax, period, perc, rv=False):
     """
     Plot the percentile limit for a selected star onto the provided axis
     """
-    ax.plot(period, perc, **plot_kwargs)
+    if rv:
+        ax.plot(period, perc,color="C4",marker="o",lw=1,alpha=0.5)
+    else:
+        ax.plot(period, perc,color="grey",marker="o",lw=1,alpha=0.5)
+#    return ax
 
 def plot_detections():
     """
@@ -258,14 +263,52 @@ def read_sample(data_dir=output_dir):
 if __name__=="__main__":
     all_new, keck_douglas, keck_alldet, keck_allmult, keck_mask = read_sample()
 
-    ax = setup_axes()
+    no_det = np.setdiff1d(keck_douglas["Name"],all_new)
     
-    for name in all_new:
+    ax = setup_axes()
+#    plt.savefig(os.path.join(output_dir,"z_test_blank.png"),
+#                bbox_inches="tight",dpi=300)
+    
+    for i,name in enumerate(no_det):
+        if ("BD" in name) or ("+" in name) or ("-" in name) or ("Hyades" in name):
+            continue
+        
         try:
             period, perc = calc_limits(name,90)
-            plot_limits(ax, period, perc)
+            plot_limits(ax, period, perc)#, {"color":"grey","alpha":0.5,
+#                                           "marker":"o","lw":1})
+            print(name,"done")
         except:
             print(name,"results not found")
-            continue
 
-    plt.show()
+    plt.savefig(os.path.join(output_dir,"z_test_multiplot.png"),
+                bbox_inches="tight",dpi=1200)
+
+    au80 = a_to_period(80)
+    ax.axvline(au80,color="C4",linestyle="--")
+    plt.savefig(os.path.join(output_dir,"z_test_multiplot80.png"),
+                bbox_inches="tight",dpi=1200)
+    
+#    rv_list_file = os.path.join(output_dir,"rv_list")
+#    rv_dir = os.path.join(os.getenv("DATA_PATH"),"molusc_outputs_bak")
+#    with open(rv_list_file,"r") as f:
+#        l = f.readline()
+#        #while l!="":
+#        i = 0
+#        while i<3:
+#            name = l.strip().split("/")[-1]
+#            try:
+#                print(get_info(name,output_dir=rv_dir))
+#            except:
+#                print(name,"results not found")
+#                
+#            try:
+#                period, perc = calc_limits(name,90,data_dir=rv_dir)
+#                plot_limits(ax,period,perc,rv=True)
+#            except:
+#                print(name,"results not found")
+#            l = f.readline()
+#            i += 1
+#
+#    plt.savefig(os.path.join(output_dir,"z_test_multiplot_RVs.png"),
+#                bbox_inches="tight",dpi=300)
