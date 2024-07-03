@@ -388,8 +388,8 @@ class Application:
                 grp = f.create_group("kept")
                 print("keeping",cols)
                 for k,colname in enumerate(cols):
-                    print(k,colname)
-                    print(keep_table[k][0])
+                    #print(k,colname)
+                    #print(keep_table[k][0])
                     if colname=="Binary Type":
                         asciilist = [elem.encode("ascii","ignore") for elem in keep_table[k]]
                         grp.create_dataset(colname,data=asciilist)
@@ -419,6 +419,7 @@ class Application:
                 # Write out RV calculations
                 cols = cols + ['RV Amplitude','Binary Type','RV Rejected']
                 all_table = np.vstack((all_table, rv.amp, rv.b_type, self.rv_reject_list))
+                print(len(np.where(self.rv_reject_list==False)[0]))
                 # Uncomment to  include RV Calcualations in output file (makes it obnoxiously large)
                 # cols = cols + ['rv' + str(i) for i in range(0, len(rv.MJD))]
                 # all_table = np.vstack((all_table, np.transpose(np.array(rv.predicted_RV))))
@@ -463,21 +464,38 @@ class Application:
                     # TODO: is this the most efficient way to do it?
                     grp = f.create_group("all")
                     for k,colname in enumerate(cols):
-                        print(k,colname)
-                        print(all_table[k])
-                        try:
-                            grp.create_dataset(colname,data=np.float64(all_table[k]))
-                        except:
+#                        print(k,colname)
+#                        print(all_table[k])
+                        if "Rejected" in colname:
+                            boolist = np.zeros(self.num_generated,dtype="int")
+                            # TODO: fix these column types
+                            # TODO: reformat the whole table and output it using pytables
+                            if "AO" in colname:
+                                tru_val = '1.0'
+                            else:
+                                tru_val = "True"
+                            print(all_table[k][:10])
+                            print(all_table[k][:10]==tru_val)
+                            boolist[all_table[k]==tru_val] = 1
+                            grp.create_dataset(colname,data=boolist)
+                            print(k,colname,tru_val,"Bool rejected")
+                        else:
                             try:
-                                boolist = np.zeros(self.num_generated,dtype="int")
-                                boolist[all_table[k]==True] = 1
-                                grp.create_dataset(colname,data=boolist)
+                                grp.create_dataset(colname,data=np.float64(all_table[k]))
+                                #print(k,colname,"Float")
                             except:
                                 try:
-                                    asciilist = [elem.encode("ascii","ignore") for elem in all_table[k]]
-                                    grp.create_dataset(colname,data=asciilist)
+                                    boolist = np.zeros(self.num_generated,dtype="int")
+                                    boolist[all_table[k]==True] = 1
+                                    grp.create_dataset(colname,data=boolist)
+                                    #print(k,colname,"Bool")
                                 except:
-                                    raise
+                                    try:
+                                        asciilist = [elem.encode("ascii","ignore") for elem in all_table[k]]
+                                        grp.create_dataset(colname,data=asciilist)
+                                        #print(k,colname,"byte")
+                                    except:
+                                        raise
                                 
                 self.print_out((f'Current time: {datetime.datetime.now()} -- Generated binary parameters saved to: {self.prefix}.h5, group "all"'))
             else:

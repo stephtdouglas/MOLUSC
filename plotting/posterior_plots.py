@@ -14,10 +14,11 @@ import tables as tb
 
 from sample_limits import setup_axes, calc_limits
 
-data_path = os.getenv("DATA_PATH","/Users/douglste/data2/molusc_outputs")
-output_dir = os.path.join(data_path,"molusc_outputs/")
+#data_path = os.getenv("DATA_PATH","/Users/douglste/data2/molusc_outputs")
+#output_dir = os.path.join(data_path,"molusc_outputs/")
 
-h5file = "JS187.h5"
+output_dir = "/scratch/douglste_JS117/"
+h5file = "JS117_test.h5"
 
 filename = os.path.join(output_dir,h5file)
 #res = h5py.File(filename,"r+")
@@ -27,6 +28,7 @@ res = res0.root
 #print(res.keys())
 #print(res["all"].keys())
 
+# TODO: get metadata from .hdf5 header so this is no longer hardcoded
 star_mass = 0.593
 
 def calc_limits2(mass_ratio, star_mass, period, colnames,percentile=95):
@@ -42,6 +44,7 @@ def calc_limits2(mass_ratio, star_mass, period, colnames,percentile=95):
     else:
         select0 = np.ones(len(mass_ratio),bool)
         for colname in colnames:
+            print(colname,len(np.where(res["all"][colname])[0]))
             select0 = select0 & (res["all"][colname][:]==0)
         select = np.where(select0)[0]
 
@@ -86,7 +89,7 @@ for percentile in [90]:
     per_ao, perc_ao = calc_limits2(res["all"]['mass ratio'][:],
                                    star_mass,
                                    res["all"]['period(days)'][:],
-                                   ["AO Rejected 1","Gaia Rejected","RUWE Rejected"],percentile=percentile)
+                                   ["AO Rejected 1","Gaia Rejected","RV Rejected"],percentile=percentile)
     # WHY are they all just showing the same as AO??
     ax.plot(per_ao,np.asarray(perc_ao)*1047.35,'o')
 plt.savefig(os.path.join(output_dir,h5file.replace(".h5",".png")))
