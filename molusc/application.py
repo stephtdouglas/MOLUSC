@@ -386,7 +386,10 @@ class Application:
                 # Write out columns as individual datasets
                 # TODO: is this the most efficient way to do it?
                 grp = f.create_group("kept")
+                print("keeping",cols)
                 for k,colname in enumerate(cols):
+                    print(k,colname)
+                    print(keep_table[k][0])
                     if colname=="Binary Type":
                         asciilist = [elem.encode("ascii","ignore") for elem in keep_table[k]]
                         grp.create_dataset(colname,data=asciilist)
@@ -407,9 +410,11 @@ class Application:
             cols = ['mass ratio', 'period(days)', 'semi-major axis(AU)', 'cos_i', 'eccentricity', 'arg periastron', 'phase']
             all_table = np.vstack((comps.mass_ratio, comps.P, comps.a, comps.cos_i,
                                    comps.ecc, comps.arg_peri, comps.phase))
+            print(cols)
             if self.ao_filename[0]:
                 cols = cols + ['Projected Separation(AU)', 'Model Contrast'] + [('AO Rejected ' + str(i+1)) for i in range(len(ao_reject_lists))]
                 all_table = np.vstack((all_table, ao.pro_sep, ao.model_contrast, ao_reject_lists))
+                print(cols)
             if self.rv_filename:
                 # Write out RV calculations
                 cols = cols + ['RV Amplitude','Binary Type','RV Rejected']
@@ -417,6 +422,7 @@ class Application:
                 # Uncomment to  include RV Calcualations in output file (makes it obnoxiously large)
                 # cols = cols + ['rv' + str(i) for i in range(0, len(rv.MJD))]
                 # all_table = np.vstack((all_table, np.transpose(np.array(rv.predicted_RV))))
+                print(cols)
             if self.ruwe_check:
                 if 'Projected Separation(AU)' not in cols:
                     cols = cols + ['Projected Separation(AU)','DeltaG','Predicted RUWE','RUWE Rejected','RUWE Rejection Prob']
@@ -424,6 +430,7 @@ class Application:
                 else:
                     cols = cols + ['DeltaG','Predicted RUWE','RUWE Rejected','RUWE Rejection Prob']
                     all_table = np.vstack((all_table, ruwe.delta_g, ruwe.predicted_ruwe, self.ruwe_reject_list, ruwe.rejection_prob))
+                print(cols)
 
             if self.gaia_check:
                 if 'Model Contrast' in cols:
@@ -437,11 +444,13 @@ class Application:
                 else:
                     cols = cols + ['Projected Separation(AU)', 'DeltaG', 'Gaia Rejected']
                     all_table = np.vstack((all_table, gaia.pro_sep, gaia.model_contrast, self.gaia_reject_list))
+                print(cols)
                     
             # Add column containing full rejection info
             cols = cols + ['Full Rejected']
             all_table = np.vstack((all_table, np.invert(keep)))
-                
+            print(cols)
+            print(np.shape(all_table))
             # If the prior has more than 50,000 companions, write to hdf5, not csv
             if self.num_generated>=50_000:
                 
@@ -453,11 +462,23 @@ class Application:
                     # Write out columns as individual datasets
                     # TODO: is this the most efficient way to do it?
                     grp = f.create_group("all")
-                    if colname=="Binary Type":
-                        asciilist = [elem.encode("ascii","ignore") for elem in all_table[k]]
-                        grp.create_dataset(colname,data=asciilist)
-                    else:
-                        grp.create_dataset(colname,data=np.float64(all_table[k]))
+                    for k,colname in enumerate(cols):
+                        print(k,colname)
+                        print(all_table[k])
+                        try:
+                            grp.create_dataset(colname,data=np.float64(all_table[k]))
+                        except:
+                            try:
+                                boolist = np.zeros(self.num_generated,dtype="int")
+                                boolist[all_table[k]==True] = 1
+                                grp.create_dataset(colname,data=boolist)
+                            except:
+                                try:
+                                    asciilist = [elem.encode("ascii","ignore") for elem in all_table[k]]
+                                    grp.create_dataset(colname,data=asciilist)
+                                except:
+                                    raise
+                                
                 self.print_out((f'Current time: {datetime.datetime.now()} -- Generated binary parameters saved to: {self.prefix}.h5, group "all"'))
             else:
                 all_table = np.transpose(all_table)
