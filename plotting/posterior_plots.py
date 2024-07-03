@@ -17,7 +17,7 @@ from sample_limits import setup_axes, calc_limits
 data_path = os.getenv("DATA_PATH","/Users/douglste/data2/molusc_outputs")
 output_dir = os.path.join(data_path,"molusc_outputs/")
 
-h5file = "JS117.h5"
+h5file = "JS187.h5"
 
 filename = os.path.join(output_dir,h5file)
 #res = h5py.File(filename,"r+")
@@ -29,47 +29,40 @@ res = res0.root
 
 star_mass = 0.593
 
-
-"""
-try:
-    res["all"]['mass (M_Jup)'] = res["all"]['mass ratio'][:]*star_mass*1047.35
-except:
-    print("mass (M_Jup) array already exists!")
-    raise
-
-try:
-    res["all"]['logPeriod'] = np.log10(res["all"]['period(days)'])
-except:
-    print("logPeriod array already exists!")
+def calc_limits2(mass_ratio, star_mass, period, colnames,percentile=95):
     
-try:
-    res["all"]['mass (M_Sun)'] = res["all"]['mass ratio'][:]*star_mass
-except:
-    print("mass (M_Sun) array already exists!")
-#     raise
-"""
-
-def calc_limits2(mass,logperiod,select,percentile=95):
     # Need to split into logarithmic period bins 
     # and take the desired percentile of the masses in each bin
     bins = np.arange(0., 10., .5)
     # Create a subchart for each bin. Find the desired percentile mass in that bin, and the median period
 
-    bin_idx = np.digitize(logperiod[:],bins=bins,right=False)
+    # Select which stars to include. We want to keep things that were not rejected.
+    if isinstance(colnames,str):
+        select = np.where(res["all"][colnames][:]==0)[0]
+    else:
+        select0 = np.ones(len(mass_ratio),bool)
+        for colname in colnames:
+            select0 = select0 & (res["all"][colname][:]==0)
+        select = np.where(select0)[0]
+
+    mass_msun = mass_ratio[select]*star_mass
+    logperiod = np.log10(period[select])
+
+    bin_idx = np.digitize(logperiod,bins=bins,right=False)
     
     nbins = len(bins)-1
-    period, perc = np.zeros(nbins), np.zeros(nbins)
+    per_out, perc = np.zeros(nbins), np.zeros(nbins)
     
     for i in range(nbins):
         in_bin = np.where(bin_idx==i)[0]
         nbin = len(in_bin)
 #        print(i,nbin)
         if nbin > 0:
-            perc[i] = np.percentile(mass[in_bin], percentile)
-            period[i] = np.median(res["all"]['period(days)'][select][in_bin])
+            perc[i] = np.percentile(mass_msun[in_bin], percentile)
+            per_out[i] = np.median(period[select][in_bin])
 #        print("done",i)
 
-    return period, perc
+    return per_out, perc
 
 
 #for val in [0,1]:
@@ -77,12 +70,24 @@ def calc_limits2(mass,logperiod,select,percentile=95):
 
 
 
-select = np.where((res["all"]["AO Rejected 1"][:]==0))[0]
+#select = np.where((res["all"]["AO Rejected 1"][:]==0))[0]
 ax = setup_axes()
-for percentile in [60,80,90,95]:
-    per_ao, perc_ao = calc_limits2(res["all"]['mass (M_Sun)'][:][select],
-                                   res["all"]['logPeriod'][:][select],
-                                   select,percentile=percentile)
+for percentile in [90]:
+    per_ao, perc_ao = calc_limits2(res["all"]['mass ratio'][:],
+                                   star_mass,
+                                   res["all"]['period(days)'][:],
+                                   ["AO Rejected 1"],percentile=percentile)
+    ax.plot(per_ao,np.asarray(perc_ao)*1047.35,'o')
+    per_ao, perc_ao = calc_limits2(res["all"]['mass ratio'][:],
+                                   star_mass,
+                                   res["all"]['period(days)'][:],
+                                   ["AO Rejected 1","Gaia Rejected"],percentile=percentile)
+    ax.plot(per_ao,np.asarray(perc_ao)*1047.35,'o')
+    per_ao, perc_ao = calc_limits2(res["all"]['mass ratio'][:],
+                                   star_mass,
+                                   res["all"]['period(days)'][:],
+                                   ["AO Rejected 1","Gaia Rejected","RUWE Rejected"],percentile=percentile)
+    # WHY are they all just showing the same as AO??
     ax.plot(per_ao,np.asarray(perc_ao)*1047.35,'o')
 plt.savefig(os.path.join(output_dir,h5file.replace(".h5",".png")))
 
