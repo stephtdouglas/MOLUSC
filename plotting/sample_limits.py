@@ -30,7 +30,7 @@ def setup_axes():
 
     fig, ax = plt.subplots(figsize=(5,3)) 
     ax.set_ylim(6, 700)
-    ax.set_xlim(1,2e9)
+    ax.set_xlim(1,2e8)
 
     # Add a secondary axis, showing mass in solar masses
     secax = ax.secondary_yaxis('right', functions=(jup_mass_to_sol, sol_mass_to_jup))

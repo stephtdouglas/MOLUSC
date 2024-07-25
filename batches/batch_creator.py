@@ -196,7 +196,9 @@ def create_slurm_script(star, yml=True, analysis_options=["ao"],
         rv_path = os.path.join(rv_table_path_hpc, star_name)+".txt"
         # print(rv_path)
         if os.path.exists(rv_path)==False:
-            analysis_options.remove("rv")
+#            analysis_options.remove("rv")
+            # ignoring anything without rvs right now
+            return False
 
 
     with open(os.path.join(batch_path_hpc, f"run_{star_name}.sh"), 'w') as f:
@@ -238,9 +240,12 @@ def create_slurm_script(star, yml=True, analysis_options=["ao"],
             hours += 0.5
 
         if "rv" in analysis_options:
+#            hours += 1
+#            mem_cpu = mem_cpu * 2.5
             hours += 1
-            mem_cpu = mem_cpu * 2.5
-
+            mem_cpu = 23
+            cpus = 8
+            
         f.write("#SBATCH --cpus-per-task=")
         f.write(f"{cpus}\n")
         f.write("#SBATCH --time=")
@@ -310,7 +315,8 @@ def create_slurm_script(star, yml=True, analysis_options=["ao"],
         f.write(f"mv /scratch/douglste_{star_name}/{star_name}* {output_path_hpc} \n\n")
         f.write(f"rm -f /scratch/douglste_{star_name}/MOLUSC_prior*.hdf5 \n\n")
         f.write(f"rmdir /scratch/douglste_{star_name} -v --ignore-fail-on-non-empty \n\n")
-        
+
+        return True
 
 if __name__ == "__main__": 
     all_targets = targets["name"]
@@ -333,11 +339,13 @@ if __name__ == "__main__":
             if os.path.exists(outfile1) or os.path.exists(outfile2):
                 continue
             
-            create_slurm_script(name, yml=False, write_all=True, extra_output=True, 
-                        analysis_options=["ao", "gaia", "ruwe"], 
+            to_run = create_slurm_script(name, yml=False, write_all=True, extra_output=True, 
+                        analysis_options=["ao", "gaia", "ruwe", "rv"], 
                         filt="K", companions=10_000_000, rv_floor=1000, res=20_000, opsys='linux',
                         comp_file=os.path.join(data_path,"molusc_cache/MOLUSC_prior_v0_Pflat_50M.hdf5"))
-            batch_script = os.path.join(batch_path_hpc,f"run_{star_name}.sh")
-            g.write(f"sbatch {batch_script}\n")
+
+            if to_run:
+                batch_script = os.path.join(batch_path_hpc,f"run_{star_name}.sh")
+                g.write(f"sbatch {batch_script}\n")
 
     
