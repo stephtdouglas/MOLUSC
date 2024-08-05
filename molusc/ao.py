@@ -43,10 +43,12 @@ class AO:
     a = []
     a_type = ''
     obs_date = None
+    is_detect = False
 
     # Input file must be in mas and mags
 
-    def __init__(self, filename, companions, star_mass, star_age, star_ra, star_dec, filter, gaia=False):
+    def __init__(self, filename, companions, star_mass, star_age, star_ra, star_dec, 
+                 filter, gaia=False, detection=False):
         self.ao_filename = filename
         self.mass_ratio = companions.mass_ratio
         self.a = companions.a
@@ -58,6 +60,9 @@ class AO:
         self.age_model = self.load_stellar_model(filter, star_age)
         if gaia:
             self.a_type = 'gaia'
+        if detection:
+            self.is_detect = True
+
 
     def analyze(self):
         t = time()
@@ -157,21 +162,22 @@ class AO:
             
             contrast.sort('Sep (AU)')
 
-            f_con = scipy.interpolate.interp1d(contrast['Sep (AU)'], contrast['Contrast'], kind='linear', bounds_error=False, fill_value=-np.inf)
-                    
-            # # Parallelziation
-            # with Pool(cpu_ct) as pool:
-            #     contrast_limit = pool.map(f_con, pro_sep, chunksize=divisor)
+            f_con = scipy.interpolate.interp1d(contrast['Sep (AU)'], contrast['Contrast'], 
+                                               kind='linear', bounds_error=False, fill_value=-np.inf)
 
             contrast_limit = f_con(pro_sep)
-                
-                
-            # End parallelization
                 
             # Compare the model_contrast to the experimental_delta_K
             # If the model contrast is less than the experimental contrast it would have been seen and can be rejected
             # model contrast < contrast limit = reject (reject list = true)
-            self.reject_list = np.greater(contrast_limit, model_contrast)#, dtype=bool)
+            if is_detect:
+                # Actual detection - we want both the separation and the contrast of the model
+                # To match the observed values
+
+
+
+            else:
+                self.reject_list = np.greater(contrast_limit, model_contrast)#, dtype=bool)
             logging.info(self.reject_list)
             
         elif a_type == 'gradient':
@@ -597,6 +603,8 @@ class AO:
         # If a date is included it should be the first line of the file, starting with a # and followed by the JD date
         if os.path.exists(self.ao_filename)==False:
             return -21
+
+        # TODO: Update to read in a detection instead
 
         try:
             with open(self.ao_filename, 'r') as f:
