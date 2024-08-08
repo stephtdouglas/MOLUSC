@@ -604,8 +604,6 @@ class AO:
         if os.path.exists(self.ao_filename)==False:
             return -21
 
-        # TODO: Update to read in a detection instead
-
         try:
             with open(self.ao_filename, 'r') as f:
                 read_data = f.read()
@@ -642,3 +640,49 @@ class AO:
         self.contrast = contrast_table
 
         return 0
+
+    def read_detection(self):
+
+        # TODO: Update to read in a detection instead
+        # Each line should have a filter, a separation (in mas), an uncertainty, 
+        # a magnitude contrast, an uncertainty, and 
+        # (optionally) position angle (in deg), uncertainty, and/or a JD date
+        # Header should be (last 3 are optional)
+        # filt Sep e_Sep dmag e_dmag pa e_pa JD
+        if os.path.exists(self.ao_filename)==False:
+            return -21
+        elif self.a_type=='gaia':
+            return -55
+
+        try:
+            contrast_table = Table.read(read_data, format='ascii', delimiter=' ', fast_reader=False)
+            # Convert separation from mas to AU, order columns correctly
+            contrast_table['Sep (AU)'] = [self.star_distance * np.tan(np.radians(x/(3.6e6))) for x in contrast_table['Sep']]
+        except TypeError:
+            return -22
+
+
+        # If there is more than one line with different filters (same obs date), 
+        # Then we can use color in addition to magnitude contrast
+        if (len(contrast_table)>2) and (len(np.unique(contrast_table["filt"])>1)):
+            if "JD" in contrast_table.dtype.names:
+                dates = np.unique(contrast_table["JD"])
+                filt_pairs = []
+                for date in dates:
+                    filts = np.unique(contrast_table["filt"][contrast_table["JD"]==date])
+                    # TODO: this should care about wavelength order, but for now it won't
+                    for i in range(len(filts)-1):
+                        filt_pairs.append(f"{filts[i]}-{filts[i+1]}")
+
+                filt_pairs = np.unique(filt_pairs)
+                if len(filt_pairs)>0:
+                    for date in dates:
+                        loc = np.where(contrast_table["JD"]==date)[0]
+                        if len(loc)>1:
+                            # go through filter pairs and subtract
+                            # I think this will end up needing a separate table or some more work on the current one
+
+
+
+
+        self.contrast = contrast_table
