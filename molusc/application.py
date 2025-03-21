@@ -733,6 +733,13 @@ class Application:
             else:
                 self.print_out('Finished - Unsuccessful')
             return True
+        elif error_code == -55:
+            self.print_out('ERROR: Gaia detections are not supported at this time')
+            if self.using_gui:
+                self.gui.update_status('Finished - Unsuccessful')
+            else:
+                self.print_out('Finished - Unsuccessful')
+            return True
     
         self.print_out(f'Current time: {datetime.datetime.now()} -- Finished error check')
     
