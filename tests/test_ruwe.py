@@ -52,7 +52,7 @@ comps.generate()
 def test_init():
     ruwe = RUWE(star_ra, star_dec, star_age, star_mass, comps)
     assert ((star_ra==ruwe.star_ra) and (star_dec==ruwe.star_dec)
-            and (star_age==star_age) and (star_mass==star_mass))
+            and (star_age==ruwe.star_age) and (star_mass==ruwe.star_mass))
 
 def test_init2():
     ruwe = RUWE(star_ra, star_dec, star_age, star_mass, comps)

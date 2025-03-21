@@ -177,7 +177,7 @@ class Application:
                     self.print_out(f'Current time: {datetime.datetime.now()} -- Analyzing contrast curve in {self.ao_filename[i]}')
                     ao = AO(self.ao_filename[i], comps, self.star_mass, self.star_age, self.star_ra, self.star_dec, self.filter[i])
                     # Determine distance
-                    failure = self.error_check(ao.get_distance(self.star_ra, self.star_dec, self.parallax))
+                    failure = self.error_check(ao.get_distance(self.parallax))
                     if failure: return
                     if self.extra_output: self.print_out((f'Current time: {datetime.datetime.now()} -- Calculated distance to star: %.0f pc' % (ao.star_distance*4.84e-6)))
                     # Read contrast file
@@ -282,7 +282,7 @@ class Application:
             #todo improve gaia contrast
             gaia = AO(f'{os.path.join(repo_path, "reference_data/gaia_contrast.txt")}', comps, self.star_mass, self.star_age, self.star_ra, self.star_dec, 'G', gaia=True)
             # Determine distance
-            failure = self.error_check(gaia.get_distance(self.star_ra, self.star_dec, self.parallax))
+            failure = self.error_check(gaia.get_distance(self.parallax))
             if failure: return
             if self.extra_output: self.print_out((f'Current time: {datetime.datetime.now()} -- Calculated distance to star: %.0f pc' % (gaia.star_distance*4.84e-6)))
             # Read contrast file

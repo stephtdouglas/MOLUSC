@@ -52,6 +52,8 @@ class AO:
         self.a = companions.a
         self.companions = companions
         self.star_mass = star_mass
+        self.star_ra = star_ra
+        self.star_dec = star_dec
         # Get the appropriate model and year
         self.age_model = self.load_stellar_model(filter, star_age)
         if gaia:
@@ -387,7 +389,7 @@ class AO:
         return mag
 
 
-    def get_distance(self, star_RA, star_DEC, parallax=np.nan):
+    def get_distance(self, parallax=np.nan):
         # coordinate = SkyCoord(star_RA, star_DEC, frame='icrs')
         # width = u.Quantity(10, u.arcsecond)
         # height = u.Quantity(10, u.arcsecond)
@@ -404,7 +406,7 @@ class AO:
             self.nearest_neighbor_dist = np.nan
 
         else:
-            coordinate = SkyCoord(star_RA, star_DEC, frame='icrs')
+            coordinate = SkyCoord(self.star_ra, self.star_dec, frame='icrs')
             width = u.Quantity(10, u.arcsecond)
             height = u.Quantity(10, u.arcsecond)
             job_str = ("SELECT TOP 10 DISTANCE(POINT('ICRS', %f, %f), POINT('ICRS', ra, dec)) AS dist, * FROM gaiaedr3.gaia_source WHERE 1=CONTAINS(POINT('ICRS', %f, %f),CIRCLE('ICRS', ra, dec, 0.08333333)) ORDER BY dist ASC)" % (coordinate.ra.degree, coordinate.dec.degree, coordinate.ra.degree, coordinate.dec.degree))
