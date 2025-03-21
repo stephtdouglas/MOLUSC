@@ -61,4 +61,14 @@ def test_read():
     ao = AO(ex_file, comps, star_mass, star_age, star_ra, 
               star_dec, "K", gaia=False)
     read_fail = ao.read_contrast()
-    assert (read_fail==0) and (self.a_type=='hard_limit')
+    assert (read_fail==0) and (ao.a_type=='hard limit')
+
+def test_ao_analyze():
+    # Just making sure it runs
+    ao = AO(ex_file, comps, star_mass, star_age, star_ra, 
+              star_dec, "K", gaia=False)
+    dist_fail = ao.get_distance(plx)
+    read_fail = ao.read_contrast()
+    res = ao.analyze()
+    assert res is not None
+
