@@ -57,6 +57,43 @@ def calc_limits2(res, mass_ratio, star_mass, period, colnames, percentile=95):
     return per_out, perc
 
 
+def calc_limits_q(res, mass_ratio, period, colnames, percentile=95):
+    
+    # Need to split into logarithmic period bins 
+    # and take the desired percentile of the masses in each bin
+    bins = np.arange(0., 10., .5)
+    # Create a subchart for each bin. Find the desired percentile mass in that bin, and the median period
+
+    # Select which stars to include. We want to keep things that were not rejected.
+    if isinstance(colnames,str):
+        select = np.where(res["all"][colnames][:]==0)[0]
+    else:
+        select0 = np.ones(len(mass_ratio),bool)
+        for colname in colnames:
+            #print(colname,len(np.where(res["all"][colname])[0]))
+            select0 = select0 & (res["all"][colname][:]==0)
+        select = np.where(select0)[0]
+
+    mass_rat = mass_ratio[select]
+    logperiod = np.log10(period[select])
+
+    bin_idx = np.digitize(logperiod,bins=bins,right=False)
+    
+    nbins = len(bins)-1
+    per_out, perc = np.zeros(nbins), np.zeros(nbins)
+    
+    for i in range(nbins):
+        in_bin = np.where(bin_idx==i)[0]
+        nbin = len(in_bin)
+#        print(i,nbin)
+        if nbin > 0:
+            perc[i] = np.percentile(mass_rat[in_bin], percentile)
+            per_out[i] = np.median(period[select][in_bin])
+#        print("done",i)
+
+    return per_out, perc
+
+
 def plot_one(filename):
 #    filename = os.path.join(output_dir,h5file)
     #print(os.path.exists(filename))
@@ -94,7 +131,7 @@ def plot_one(filename):
 
 def plot_all(file_list,output_filename,percentile=90):
 
-    ax = setup_axes()
+    ax = setup_axes("q")
     col_combos = [["AO Rejected 1"],["AO Rejected 1","Gaia Rejected"],
                   ["AO Rejected 1","Gaia Rejected","RV Rejected"]]
     colors = ["C0","C1","C2"]
@@ -114,11 +151,12 @@ def plot_all(file_list,output_filename,percentile=90):
         star_mass = meta["star"]["mass"]
 
         for i,cc in enumerate(col_combos):
-            per_ao, perc_ao = calc_limits2(res,res["all"]['mass ratio'][:],
-                                           star_mass,
+            per_ao, perc_ao = calc_limits_q(res,res["all"]['mass ratio'][:],
+                                           #star_mass,
                                            res["all"]['period(days)'][:],
                                            cc,percentile=percentile)
-            ax.plot(per_ao,np.asarray(perc_ao)*1047.35,'-',color=colors[i],
+            ax.plot(per_ao,np.asarray(perc_ao),#*1047.35,
+                    '-',color=colors[i],
                     alpha=0.5,zorder=i*50)
 
         res0.close()
@@ -135,5 +173,6 @@ if __name__=="__main__":
 #        plot_one(filename)
 #        break
 
-    plot_all(h5list,output_filename=os.path.join(output_dir,"posterior_limits_all.png"))
+#    plot_all(h5list,output_filename=os.path.join(output_dir,"posterior_limits_all.png"))
+    plot_all(h5list,output_filename=os.path.join(output_dir,"posterior_limits_q_all.png"))
     

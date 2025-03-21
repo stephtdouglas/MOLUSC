@@ -20,7 +20,7 @@ output_dir = os.getenv("DATA_PATH","./")
 molout = os.getenv("MOLOUT","./")
 #output_dir = "/Users/douglste/Google Drive/Shared drives/DouglasGroup/data"
 
-def setup_axes():
+def setup_axes(yvar="mass"):
     """
     Make a figure/axis object with appropriate limits
     """
@@ -29,12 +29,17 @@ def setup_axes():
     rcParams['axes.labelsize'] = 10
 
     fig, ax = plt.subplots(figsize=(5,3)) 
-    ax.set_ylim(6, 700)
     ax.set_xlim(1,2e8)
 
-    # Add a secondary axis, showing mass in solar masses
-    secax = ax.secondary_yaxis('right', functions=(jup_mass_to_sol, sol_mass_to_jup))
-    secax.set_ylabel(r'Mass ($M_\odot$)')
+    if yvar=="mass":
+        ax.set_ylim(6, 700)
+        # Add a secondary axis, showing mass in solar masses
+        secax = ax.secondary_yaxis('right', functions=(jup_mass_to_sol, sol_mass_to_jup))
+        secax.set_ylabel(r'Mass ($M_\odot$)')
+        ax.set_ylabel(r'Mass $(M_{Jup})$')
+    elif yvar=="q":
+        ax.set_ylim(0.01,1.1)
+        ax.set_ylabel("Mass ratio q")
     # Add a secondary x axis, showing semi-major axis for a solar mass companion
     triax = ax.secondary_xaxis('top', functions=(period_to_a, a_to_period))
     triax.set_xlabel('a (AU)')
@@ -43,7 +48,6 @@ def setup_axes():
     ax.set_xscale('log')
     ax.set_yscale('log')
     ax.set_xlabel('Period (days)')
-    ax.set_ylabel(r'Mass $(M_{Jup})$')
     plt.xticks()
     plt.yticks()
 
