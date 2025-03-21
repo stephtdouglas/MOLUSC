@@ -405,6 +405,8 @@ class AO:
             self.star_distance = star_distance
             self.nearest_neighbor_dist = np.nan
 
+            return 0
+
         else:
             coordinate = SkyCoord(self.star_ra, self.star_dec, frame='icrs')
             width = u.Quantity(10, u.arcsecond)
