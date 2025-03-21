@@ -57,3 +57,8 @@ def test_parallax():
     assert ((dist_fail==0) and 
             (pytest.approx(dist_au,rel=1e-4)==ao.star_distance))
 
+def test_read():
+    ao = AO(ex_file, comps, star_mass, star_age, star_ra, 
+              star_dec, "K", gaia=False)
+    read_fail = ao.read_contrast()
+    assert (read_fail==0) and (self.a_type=='hard_limit')
