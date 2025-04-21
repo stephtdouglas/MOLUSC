@@ -281,59 +281,72 @@ class AO:
             too_faint = contrast[colname] > completeness_mag
             contrast[colname][too_faint] = completeness_mag
 
-        # Comment this section if you want nearest neighbor limits
-        contrast['100%'] = np.zeros(len(contrast))
-        contrast['100%'][contrast['Sep (AU)']>=four_arc] = completeness_mag
-        new_row = np.full(len(contrast.colnames),fill_value=completeness_mag)
-        new_row[0] = four_arc
-        contrast.add_row(new_row)
-        new_row[0] = self.star_distance
-        contrast.add_row(new_row)
-        contrast.sort('Sep (AU)')
+        print("clipped too faint\n",contrast)
+        # # Comment this section if you want nearest neighbor limits
+        # contrast['100%'] = np.zeros(len(contrast))
+        # contrast['100%'][contrast['Sep (AU)']>=four_arc] = completeness_mag
+        # new_row = np.full(len(contrast.colnames),fill_value=completeness_mag)
+        # new_row[0] = four_arc
+        # contrast.add_row(new_row)
+        # new_row[0] = self.star_distance
+        # contrast.add_row(new_row)
+        # contrast.sort('Sep (AU)')
 
         #  end neighbor-less segment
 
         # Uncomment this section if you want nearest neighbor limits
-        # if self.nearest_neighbor_dist < four_arc:
-        #     # If the nearest neighbor is less than 4 arcseconds away, I need to not add a 4" row, and truncate
-        #     # the existing rows to a maximum of the nearest neighbor distance
-        #     # first, find out what the interpolated limits are at the distance of the nearest neighbor
-        #     column_rates = [float(x.strip('%')) / 100.0 for x in list(contrast.columns)[1:]]
-        #     column_names = contrast.colnames[1:]
-        #
-        #     f_neighbor = scipy.interpolate.interp2d(contrast['Sep (AU)'], column_rates, [contrast[x] for x in column_names])
-        #
-        #     l = [round(float(f_neighbor(self.nearest_neighbor_dist, x)),2) for x in column_rates]
-        #     contrast.add_row(([self.nearest_neighbor_dist]+l))
-        #
-        #     # Sort by separation
-        #     contrast.sort('Sep (AU)')
-        #     # Remove all rows after the nearest neighbor. There probably won't be any, since I'm assuming no
-        #     # one is going to give me a contrast curve that has another star in it, but the code is here anyways
-        #     ind = list(contrast['Sep (AU)']).index(self.nearest_neighbor_dist)
-        #     contrast.remove_rows(slice(ind+1, len(contrast)))
-        #
-        # else:
-        #     # Add two rows at the bottom, reaching from 4" to the nearest neighbor
-        #     contrast['100%'] = [0.0]*len(contrast)
-        #     contrast.add_row(([four_arc]+[completeness_mag]*(len(contrast.colnames)-1)))
-        #     contrast.add_row(([self.nearest_neighbor_dist]+[completeness_mag]*(len(contrast.colnames)-1)))
-        # # end nearest neighbor segment
+        if np.isnan(self.nearest_neighbor_dist):
+            print("Nearest neighbor distance must be a finite value")
+            print("No gaia neighbor analysis will be completed")
+        elif (self.nearest_neighbor_dist < four_arc):
+            # If the nearest neighbor is less than 4 arcseconds away, I need to not add a 4" row, and truncate
+            # the existing rows to a maximum of the nearest neighbor distance
+            # first, find out what the interpolated limits are at the distance of the nearest neighbor
+            column_rates = [float(x.strip('%')) / 100.0 for x in list(contrast.columns)[1:]]
+            column_names = contrast.colnames[1:]
+        
+            f_neighbor = scipy.interpolate.interp2d(contrast['Sep (AU)'], column_rates, [contrast[x] for x in column_names])
+        
+            l = [round(float(f_neighbor(self.nearest_neighbor_dist, x)),2) for x in column_rates]
+            contrast.add_row(([self.nearest_neighbor_dist]+l))
+            print("added row\n",contrast)
+        
+            # Sort by separation
+            contrast.sort('Sep (AU)')
+            print("sorted\n",contrast)
+            # Remove all rows after the nearest neighbor. There probably won't be any, since I'm assuming no
+            # one is going to give me a contrast curve that has another star in it, but the code is here anyways
+            ind = list(contrast['Sep (AU)']).index(self.nearest_neighbor_dist)
+            contrast.remove_rows(slice(ind+1, len(contrast)))
+            print("clipped again\n",contrast)
+        
+        else:
+            # Add two rows at the bottom, reaching from 4" to the nearest neighbor
+            contrast['100%'] = [0.0]*len(contrast)
+            contrast.add_row(([four_arc]+[completeness_mag]*(len(contrast.colnames)-1)))
+            contrast.add_row(([self.nearest_neighbor_dist]+[completeness_mag]*(len(contrast.colnames)-1)))
+            print("added 2 rows\n",contrast)
+        # end nearest neighbor segment
+        print(contrast)
 
-        # Get column names and recovery rates
-        # Column headers are recovery rates as percentages
+        # # Get column names and recovery rates
+        # # Column headers are recovery rates as percentages
+        contrast.sort('Sep (AU)')
         column_rates = [float(x.strip('%')) / 100.0 for x in list(contrast.columns)[1:]]
         column_names = contrast.colnames[1:]
         recovery_rate = np.zeros(num_generated)
 
         # 2D interpolation for contrast rate as a function of
         # separation and recovery rate
-        #print(np.shape(contrast),len(contrast.columns))
+        print(np.shape(contrast),len(contrast.columns))
         contr_map = np.asarray(contrast[column_names])
         contr_map = np.full((len(contrast),len(column_names)),fill_value=99.9)
         for i,colname in enumerate(column_names):
             contr_map[:,i] = contrast[colname]
         #contr_map = np.vstack([np.asarray(row) for row in contrast[column_names]])
+        print(contr_map)
+        print(contrast['Sep (AU)'])
+        print(column_rates)
         calc_contr = scipy.interpolate.RegularGridInterpolator(
             (np.asarray(contrast['Sep (AU)']),column_rates),
             contr_map,
@@ -389,7 +402,7 @@ class AO:
         return mag
 
 
-    def get_distance(self, parallax=np.nan):
+    def get_distance(self, parallax=np.nan, force_search=False):
         # coordinate = SkyCoord(star_RA, star_DEC, frame='icrs')
         # width = u.Quantity(10, u.arcsecond)
         # height = u.Quantity(10, u.arcsecond)
@@ -399,7 +412,7 @@ class AO:
         # gaia_info.show_in_browser(jsviewer=True)
         # print(f"----------------------\nHere is the gaia info table thing: {gaia_info}\n----------------------")
 
-        if np.isfinite(parallax) and (parallax is not np.ma.masked):
+        if (force_search is False) and np.isfinite(parallax) and (parallax is not np.ma.masked):
             # Convert star parallax to distance in AU: d[AU] = 1/p["] * 206265 AU/parsec
             star_distance = 1 / (parallax / 1000) * 206265
             self.star_distance = star_distance
