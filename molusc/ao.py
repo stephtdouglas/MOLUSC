@@ -170,11 +170,10 @@ class AO:
             # Compare the model_contrast to the experimental_delta_K
             # If the model contrast is less than the experimental contrast it would have been seen and can be rejected
             # model contrast < contrast limit = reject (reject list = true)
-            if is_detect:
+            if self.is_detect:
                 # Actual detection - we want both the separation and the contrast of the model
                 # To match the observed values
-
-
+                pass
 
             else:
                 self.reject_list = np.greater(contrast_limit, model_contrast)#, dtype=bool)
@@ -680,8 +679,8 @@ class AO:
                         loc = np.where(contrast_table["JD"]==date)[0]
                         if len(loc)>1:
                             # go through filter pairs and subtract
-                            # I think this will end up needing a separate table or some more work on the current one
-
+                            # TODO: I think this will end up needing a separate table or some more work on the current one
+                            pass
 
 
 
