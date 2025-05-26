@@ -295,6 +295,7 @@ class AO:
         #  end neighbor-less segment
 
         # Uncomment this section if you want nearest neighbor limits
+        # TODO: also need the nearest_neighbor distance provided, or skip if it's np.nan
         if np.isnan(self.nearest_neighbor_dist):
             print("Nearest neighbor distance must be a finite value")
             print("No gaia neighbor analysis will be completed")
