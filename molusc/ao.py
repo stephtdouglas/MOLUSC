@@ -43,7 +43,6 @@ class AO:
     a = []
     a_type = ''
     obs_date = None
-    is_detect = False
 
     # Input file must be in mas and mags
 
@@ -61,7 +60,7 @@ class AO:
         if gaia:
             self.a_type = 'gaia'
         if detection:
-            self.is_detect = True
+            self.a_type = 'detection'
 
 
     def analyze(self):
@@ -168,16 +167,37 @@ class AO:
             contrast_limit = f_con(pro_sep)
                 
             # Compare the model_contrast to the experimental_delta_K
-            # If the model contrast is less than the experimental contrast it would have been seen and can be rejected
+            # If the model contrast is less than the experimental contrast
+            # it would have been seen and can be rejected
             # model contrast < contrast limit = reject (reject list = true)
-            if self.is_detect:
-                # Actual detection - we want both the separation and the contrast of the model
-                # To match the observed values
-                pass
-
-            else:
-                self.reject_list = np.greater(contrast_limit, model_contrast)#, dtype=bool)
+            self.reject_list = np.greater(contrast_limit, model_contrast)#, dtype=bool)
             logging.info(self.reject_list)
+
+        elif a_type == 'detection':
+            logging.info("Imaging detection")
+
+            # The model contrast and separation each have to be within the errors of the data
+            # model contrast = model_contrast
+            # model separation = pro_sep
+
+            contrast_diff = abs(model_contrast - contrast["Deltam"])
+            separation_diff = abs(pro_sep - contrast["Sep (AU)"])
+
+            # Simple method: is it within X sigma of the observation
+            sigma_threshold = 3
+            contrast_match = contrast_diff <= (sigma_threshold*contrast["e_Deltam"])
+            separation_match = separation_diff <= (sigma_threshold*contrast["e_Sep (AU)"])
+
+            # If the _match values are True, that companion is allowed
+            # If the _match values are False, that companion is excluded by the detection
+            self.reject_list = (contrast_match==False) | (separation_match==False)
+            logging.info(self.reject_list)
+
+            # TODO: More complicated method: calculate a rejection probability based on
+            # normally distributed error distribution (e.g., if it's 3sigma away it's
+            # less probable than if it's <1 sigma away)
+
+
             
         elif a_type == 'gradient':
             # Commented out just to be sure it doesn't go here for now :)
@@ -642,46 +662,48 @@ class AO:
 
     def read_detection(self):
 
-        # TODO: Update to read in a detection instead
+        # Update to read in a detection instead
+        # Just needs to be readable by astropy, I'm going to be looser about the format
         # Each line should have a filter, a separation (in mas), an uncertainty, 
         # a magnitude contrast, an uncertainty, and 
         # (optionally) position angle (in deg), uncertainty, and/or a JD date
-        # Header should be (last 3 are optional)
-        # filt Sep e_Sep dmag e_dmag pa e_pa JD
+        # MJD,Filter,Sep,e_Sep,PA,e_PA,Deltam,e_Deltam
+        # Extra columns will be ignored
         if os.path.exists(self.ao_filename)==False:
             return -21
         elif self.a_type=='gaia':
             return -55
 
         try:
-            contrast_table = Table.read(read_data, format='ascii', delimiter=' ', fast_reader=False)
+            contrast_table = Table.read(self.ao_filename)
             # Convert separation from mas to AU, order columns correctly
             contrast_table['Sep (AU)'] = [self.star_distance * np.tan(np.radians(x/(3.6e6))) for x in contrast_table['Sep']]
+            contrast_table['e_Sep (AU)'] = [self.star_distance * np.tan(np.radians(x/(3.6e6))) for x in contrast_table['e_Sep']]
+
         except TypeError:
             return -22
 
 
-        # If there is more than one line with different filters (same obs date), 
-        # Then we can use color in addition to magnitude contrast
-        if (len(contrast_table)>2) and (len(np.unique(contrast_table["filt"])>1)):
-            if "JD" in contrast_table.dtype.names:
-                dates = np.unique(contrast_table["JD"])
-                filt_pairs = []
-                for date in dates:
-                    filts = np.unique(contrast_table["filt"][contrast_table["JD"]==date])
-                    # TODO: this should care about wavelength order, but for now it won't
-                    for i in range(len(filts)-1):
-                        filt_pairs.append(f"{filts[i]}-{filts[i+1]}")
+        # # If there is more than one line with different filters (same obs date), 
+        # # Then we can use color in addition to magnitude contrast
+        # if (len(contrast_table)>2) and (len(np.unique(contrast_table["filt"])>1)):
+        #     if "JD" in contrast_table.dtype.names:
+        #         dates = np.unique(contrast_table["JD"])
+        #         filt_pairs = []
+        #         for date in dates:
+        #             filts = np.unique(contrast_table["filt"][contrast_table["JD"]==date])
+        #             # TODO: this should care about wavelength order, but for now it won't
+        #             for i in range(len(filts)-1):
+        #                 filt_pairs.append(f"{filts[i]}-{filts[i+1]}")
 
-                filt_pairs = np.unique(filt_pairs)
-                if len(filt_pairs)>0:
-                    for date in dates:
-                        loc = np.where(contrast_table["JD"]==date)[0]
-                        if len(loc)>1:
-                            # go through filter pairs and subtract
-                            # TODO: I think this will end up needing a separate table or some more work on the current one
-                            pass
-
-
+        #         filt_pairs = np.unique(filt_pairs)
+        #         if len(filt_pairs)>0:
+        #             for date in dates:
+        #                 loc = np.where(contrast_table["JD"]==date)[0]
+        #                 if len(loc)>1:
+        #                     # go through filter pairs and subtract
+        #                     # TODO: I think this will end up needing a separate table or some more work on the current one
+        #                     pass
 
         self.contrast = contrast_table
+        return 0
