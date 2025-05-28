@@ -175,13 +175,16 @@ class Application:
             for i in range(len(self.ao_filename)):
                 if self.ao_filename[i]:
                     self.print_out(f'Current time: {datetime.datetime.now()} -- Analyzing contrast curve in {self.ao_filename[i]}')
-                    ao = AO(self.ao_filename[i], comps, self.star_mass, self.star_age, self.star_ra, self.star_dec, self.filter[i])
+                    ao = AO(self.ao_filename[i], comps, self.star_mass, self.star_age, self.star_ra, self.star_dec, self.filter[i],detection=self.is_ao_detection)
                     # Determine distance
                     failure = self.error_check(ao.get_distance(self.parallax))
                     if failure: return
                     if self.extra_output: self.print_out((f'Current time: {datetime.datetime.now()} -- Calculated distance to star: %.0f pc' % (ao.star_distance*4.84e-6)))
                     # Read contrast file
-                    failure = self.error_check(ao.read_contrast())
+                    if self.is_ao_detection:
+                        failure = self.error_check(ao.read_detection())
+                    else:
+                        failure = self.error_check(ao.read_contrast())
                     if failure: return
                     if self.extra_output:
                         self.print_out(f'Current time: {datetime.datetime.now()} -- AO Contrast Loaded')
@@ -474,11 +477,11 @@ class Application:
                                 tru_val = '1.0'
                             else:
                                 tru_val = "True"
-                            print(all_table[k][:10])
-                            print(all_table[k][:10]==tru_val)
+                            logging.debug(all_table[k][:10])
+                            logging.debug(all_table[k][:10]==tru_val)
                             boolist[all_table[k]==tru_val] = 1
                             grp.create_dataset(colname,data=boolist)
-                            print(k,colname,tru_val,"Bool rejected")
+                            logging.debug(k,colname,tru_val,"Bool rejected")
                         else:
                             try:
                                 grp.create_dataset(colname,data=np.float64(all_table[k]))
@@ -570,7 +573,8 @@ class Application:
                      
                      "ao_params":{"fit": is_ao,
                                   "ao_file": self.ao_filename,
-                                  "filter": self.filter},
+                                  "filter": self.filter,
+                                  "detection": self.is_ao_detection},
                      
                      "ruwe_params":{"fit": self.ruwe_check},
 
@@ -781,6 +785,7 @@ class Application:
                                metavar='AO_PATH', default=[''])
         my_parser.add_argument('--filter', nargs="*", type=str, help='The filter in which the AO data was taken', required=False,
                                choices=['J','K','H','G', 'Bp','Rp','R','I','L','LL','M'])
+        my_parser.add_argument('--detect', action='store_true', help='AO file represents a detection not a limit')
         my_parser.add_argument('--gaia', action='store_true', help='Apply the GAIA contrast test and RUWE test')
         # Other options
         my_parser.add_argument('-v','--verbose', action='store_true', help='Turn on extra output')
@@ -808,6 +813,7 @@ class Application:
             # logging.info(f"First item in ao_filename list: {self.ao_filename[0]}")
             # logging.info(f"Length of ao_filename: {len(self.ao_filename)}")
             self.filter = args.filter
+            self.is_ao_detection = args.detect
             # logging.info(f"args.filter: {args.filter}")
             # logging.info(f"First item in args.filter: {args.filter[0]}")
             ## If there's Gaia data, look at RUWE and resolved companions
@@ -866,9 +872,14 @@ class Application:
                     #self.ao_filename = data["ao_params"]["ao_file"]
 
                 self.filter = data["ao_params"]["filter"]
+                try:
+                    self.is_ao_detection = data["ao_params"]["detection"]
+                except:
+                    self.is_ao_detection = False
             else:
                 self.ao_filename = ['']
                 self.filter = None
+                self.is_ao_detection = False
 
             ## If we're checking gaia, check RUWE too
             self.ruwe_check = data["gaia_params"]["fit"]

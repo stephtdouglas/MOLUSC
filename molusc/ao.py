@@ -247,7 +247,7 @@ class AO:
         self.pro_sep = pro_sep
         self.low_mass_limit = low_mass_limit
 
-        return np.array(self.reject_list)
+        return np.array(self.reject_list,dtype="bool")
 
     def analyze_gaia(self, gaia_limit):
         # Unpack companions' orbital parameters
