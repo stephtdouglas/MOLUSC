@@ -481,7 +481,7 @@ class Application:
                             logging.debug(all_table[k][:10]==tru_val)
                             boolist[all_table[k]==tru_val] = 1
                             grp.create_dataset(colname,data=boolist)
-                            logging.debug(k,colname,tru_val,"Bool rejected")
+                            logging.debug(f"{k},{colname},{tru_val},Bool rejected")
                         else:
                             try:
                                 grp.create_dataset(colname,data=np.float64(all_table[k]))

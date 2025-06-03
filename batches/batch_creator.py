@@ -2,7 +2,7 @@
 """
 Created on Thu Jun 30 11:25:37 2022
 
-@author: Jared
+@author: Jared Sofair, Stephanie Douglas
 """
 import os, pathlib
 from astropy.table import Table
@@ -14,6 +14,7 @@ data_path = os.getenv("DATA_PATH")
 
 csv_path_hpc = os.path.join(repo_path, 'csvs')
 contrast_path_hpc = os.path.join(repo_path, 'prae_keck')
+detection_path_hpc = os.path.join(repo_path, 'prae_keck_detect')
 rv_table_path_hpc = os.path.join(repo_path, 'prae_rvs')
 slurm_path_hpc = os.path.join(repo_path, 'cluster_scripts')
 
@@ -188,26 +189,31 @@ def create_slurm_script(star, yml=True, analysis_options=["ao"],
 
     # Analysis options
     if "ao" in analysis_options: # HRI
-        ao_path = os.path.join(contrast_path_hpc, star_name)+".txt"
+        # If a detection exists, use that instead of the contrast limits
+        det_path = os.path.join(detection_path_hpc, star_name)+"_detection.csv"
         # print(ao_path)
+        if os.path.exists(det_path):
+            ao_path = det_path
+        else:
+            ao_path = os.path.join(contrast_path_hpc, star_name)+".txt"    
         if os.path.exists(ao_path)==False:
             analysis_options.remove("ao")
     if "rv" in analysis_options: # RV
         rv_path = os.path.join(rv_table_path_hpc, star_name)+".txt"
         # print(rv_path)
         if os.path.exists(rv_path)==False:
-#            analysis_options.remove("rv")
+            analysis_options.remove("rv")
             # ignoring anything without rvs right now
-            return False
+#            return False
 
 
     with open(os.path.join(batch_path_hpc, f"run_{star_name}.sh"), 'w') as f:
         f.write('#!/bin/bash\n#\n')
 
         f.write(f"#SBATCH --job-name={star_name}\n")
-        f.write(f"#SBATCH --output=/data2/labs/douglaslab/douglste/script_logs/slurm-%A_{star_name}.out\n")
+        f.write(f"#SBATCH --output=/data/labs/douglaslab/douglste/script_logs/slurm-%A_{star_name}.out\n")
         f.write("#SBATCH --account=douglste-laf-lab\n")
-        f.write("#SBATCH --partition=douglste-laf-lab\n")
+        f.write("#SBATCH --partition=douglste-laf-lab,compute,unowned\n")
         f.write("#\n")
         f.write("#SBATCH --ntasks=1\n")
 
@@ -217,8 +223,8 @@ def create_slurm_script(star, yml=True, analysis_options=["ao"],
         hours = 0.25
 
         if companions<=4_000_000:
-            cpus = 4
-            mem_cpu = 12
+            cpus = 2
+            mem_cpu = 24
             hours += 0.25
         elif companions<=40_000_000:
             cpus = 8
@@ -226,25 +232,23 @@ def create_slurm_script(star, yml=True, analysis_options=["ao"],
             hours += 0.5
         elif companions<=50_000_000:
             print("WARNING: this will require the himem queue, which is currently failing")
-            cpus = 12
+            cpus = 6
             mem_cpu = 36
             hours += 0.75
         else:
             print("WARNING: make sure this isn't an overkill request")
-            cpus = 16
-            mem_cpu = 32
-            hours += 2
+            cpus = 6
+            mem_cpu = 40
+            hours += 3
             
         
         if (comp_file is None) or (os.path.exists(comp_file))==False:
             hours += 0.5
 
         if "rv" in analysis_options:
-#            hours += 1
-#            mem_cpu = mem_cpu * 2.5
-            hours += 1
-            mem_cpu = 23
-            cpus = 8
+            hours += 2.5
+            mem_cpu +=30
+            cpus +=2
             
         f.write("#SBATCH --cpus-per-task=")
         f.write(f"{cpus}\n")
@@ -264,7 +268,24 @@ def create_slurm_script(star, yml=True, analysis_options=["ao"],
         f.write("source activate molusc\n\n")
 #        f.write("cd ~/projects/MOLUSC/\n\n")
         f.write("cd /scratch/ \n\n")
-        f.write(f"mkdir douglste_{star_name} \n\n")
+
+        # make some other things easier by assigning
+        # the star name to a bash variable
+        f.write(f'sname="{star_name}"\n')
+        f.write(f'sdir="douglste_$sname"\n')
+        
+#        f.write(f"mkdir douglste_{star_name} \n\n")
+        f.write('if [ -d "$sdir" ]; then\n')
+        f.write('    echo "Deleting old files"\n')
+        f.write('    rm -fr "$sdir"\n')
+        f.write('fi\n\n')
+        f.write('if [ -f "$sname"_RVs.csv ]; then\n')
+        f.write('    echo "Deleting old RV file"\n')
+        f.write('    rm -f "$sname"_RVs.csv \n')
+        f.write('fi\n\n')
+        f.write('mkdir "$sdir" \n\n')
+
+        f.write('echo "ls result"\n')
         f.write("ls \n\n")
 
         comp_file_short = comp_file.split("/")[-1]
@@ -285,10 +306,12 @@ def create_slurm_script(star, yml=True, analysis_options=["ao"],
         
         # Analysis options
         if "ao" in analysis_options: # HRI
-            ao_path = os.path.join(contrast_path_hpc, star_name)+".txt"
+            # ao_path = os.path.join(contrast_path_hpc, star_name)+".txt"
             # print(ao_path)
             if os.path.exists(ao_path):
                 f.write(f'--ao {ao_path} --filter {filt} ')
+            if "detect" in ao_path:
+                f.write("--detect ")
         if "rv" in analysis_options: # RV
             rv_path = os.path.join(rv_table_path_hpc, star_name)+".txt"
             # print(rv_path)
@@ -336,16 +359,16 @@ if __name__ == "__main__":
             star_name = name.replace(" ","_")
             outfile1 = os.path.join(data_path,f"molusc_outputs/{star_name}_kept.csv")
             outfile2 = os.path.join(data_path,f"molusc_outputs/{star_name}.h5")
-            if os.path.exists(outfile1) or os.path.exists(outfile2):
-                continue
+            #if os.path.exists(outfile1) or os.path.exists(outfile2):
+            #    continue
             
             to_run = create_slurm_script(name, yml=False, write_all=True, extra_output=True, 
                         analysis_options=["ao", "gaia", "ruwe", "rv"], 
-                        filt="K", companions=10_000_000, rv_floor=1000, res=20_000, opsys='linux',
-                        comp_file=os.path.join(data_path,"molusc_cache/MOLUSC_prior_v0_Pflat_50M.hdf5"))
+                        filt="K", companions=100_000_000, rv_floor=1000, res=20_000, opsys='linux',
+                        comp_file=os.path.join(data_path,"molusc_cache/MOLUSC_prior_v0_Pflat_100M.hdf5"))
 
             if to_run:
                 batch_script = os.path.join(batch_path_hpc,f"run_{star_name}.sh")
                 g.write(f"sbatch {batch_script}\n")
 
-    
+
