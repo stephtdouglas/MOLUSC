@@ -62,7 +62,7 @@ def test_read_types():
             (det.dtype["Deltam"]=="float") and 
             (det.dtype["e_Deltam"]=="float"))
 
-def test_det_analyze():
+def test_det_analysis_runs():
     # Just making sure it runs
     ao = AO(ex_file, comps, star_mass, star_age, star_ra, 
               star_dec, "K", gaia=False, detection=True)
@@ -71,3 +71,12 @@ def test_det_analyze():
     res = ao.analyze()
     assert res is not None
 
+def test_det_analyze():
+    # Just making sure it runs
+    ao = AO(ex_file, comps, star_mass, star_age, star_ra, 
+              star_dec, "K", gaia=False, detection=True)
+    dist_fail = ao.get_distance(plx)
+    read_fail = ao.read_detection()
+    res = ao.analyze()
+    reject = np.where(res)[0]
+    assert (len(reject)>0) & (len(reject)<100)

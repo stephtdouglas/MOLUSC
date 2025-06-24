@@ -177,26 +177,19 @@ class AO:
             logging.info("Imaging detection")
 
             # The model contrast and separation each have to be within the errors of the data
-            # model contrast = model_contrast
-            # model separation = pro_sep
 
-            contrast_diff = abs(model_contrast - contrast["Deltam"])
-            separation_diff = abs(pro_sep - contrast["Sep (AU)"])
-
-            # Simple method: is it within X sigma of the observation
-            sigma_threshold = 3
-            contrast_match = contrast_diff <= (sigma_threshold*contrast["e_Deltam"])
-            separation_match = separation_diff <= (sigma_threshold*contrast["e_Sep (AU)"])
-
-            # If the _match values are True, that companion is allowed
-            # If the _match values are False, that companion is excluded by the detection
-            self.reject_list = (contrast_match==False) | (separation_match==False)
-            logging.info(self.reject_list)
-
-            # TODO: More complicated method: calculate a rejection probability based on
+            # Calculate a rejection probability based on
             # normally distributed error distribution (e.g., if it's 3sigma away it's
             # less probable than if it's <1 sigma away)
+            # Copying the version from ruwe.py, except using a multivariate normal distribution
 
+            multnorm = stats.multivariate_normal(mean=[contrast["Deltam"][0],contrast["Sep (AU)"][0]],
+                                                 cov=[contrast["e_Deltam"][0], contrast["e_Sep (AU)"][0]])
+            mod_arrs = np.array([model_contrast, pro_sep])
+            mod_pairs = mod_arrs.T
+            rejection_prob = multnorm.cdf(mod_pairs)
+            rejection = np.random.rand(num_generated)
+            self.reject_list = np.less(rejection,rejection_prob)
 
             
         elif a_type == 'gradient':
