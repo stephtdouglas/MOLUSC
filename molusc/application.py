@@ -17,6 +17,7 @@ import h5py
 from molusc.ao import AO
 from molusc.companions import Companions
 from molusc.gui import GUI
+from molusc.gaia import Gaia
 from molusc.ruwe import RUWE
 from molusc.rv import RV
 from molusc.utils import set_null_limits
@@ -283,7 +284,7 @@ class Application:
         if self.gaia_check:
             self.print_out(f'\nCurrent time: {datetime.datetime.now()} -- Analyzing Gaia Contrast...')
             #todo improve gaia contrast
-            gaia = AO(f'{os.path.join(repo_path, "reference_data/gaia_contrast.txt")}', comps, self.star_mass, self.star_age, self.star_ra, self.star_dec, 'G', gaia=True)
+            gaia = Gaia(os.path.join(repo_path, "reference_data/gaia_contrast.txt"), comps, self.star_mass, self.star_age, self.star_ra, self.star_dec, 'G', gaia=True)
             # Determine distance
             failure = self.error_check(gaia.get_distance(self.parallax))
             if failure: return
@@ -739,6 +740,13 @@ class Application:
             return True
         elif error_code == -55:
             self.print_out('ERROR: Gaia detections are not supported at this time')
+            if self.using_gui:
+                self.gui.update_status('Finished - Unsuccessful')
+            else:
+                self.print_out('Finished - Unsuccessful')
+            return True
+        elif error_code == -56:
+            self.print_out('ERROR: Something went wrong with the Gaia nearest neighbor check/settings')
             if self.using_gui:
                 self.gui.update_status('Finished - Unsuccessful')
             else:
