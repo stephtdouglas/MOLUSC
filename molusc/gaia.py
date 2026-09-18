@@ -121,7 +121,7 @@ class Gaia(AO):
             f_neighbor = scipy.interpolate.RegularGridInterpolator((np.asarray(contrast['Sep (AU)']),column_rates),
                                                                     contr_map)#,bounds_error=False,fill_value=np.inf)
         
-            l = [round(float(f_neighbor(self.nearest_neighbor_dist, x)),2) for x in column_rates]
+            l = [round(float(f_neighbor((self.nearest_neighbor_dist, x))),2) for x in column_rates]
             contrast.add_row(([self.nearest_neighbor_dist]+l))
         
             # Sort by separation

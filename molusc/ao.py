@@ -248,7 +248,7 @@ class AO:
         return mag
 
 
-    def get_distance(self, parallax=np.nan):
+    def get_distance(self, parallax=np.nan, get_neighbor=False):
         # coordinate = SkyCoord(star_RA, star_DEC, frame='icrs')
         # width = u.Quantity(10, u.arcsecond)
         # height = u.Quantity(10, u.arcsecond)
@@ -258,7 +258,7 @@ class AO:
         # gaia_info.show_in_browser(jsviewer=True)
         # print(f"----------------------\nHere is the gaia info table thing: {gaia_info}\n----------------------")
 
-        if np.isfinite(parallax) and (parallax is not np.ma.masked):
+        if np.isfinite(parallax) and (parallax is not np.ma.masked) and (get_neighbor is False):
             # Convert star parallax to distance in AU: d[AU] = 1/p["] * 206265 AU/parsec
             star_distance = 1 / (parallax / 1000) * 206265
             self.star_distance = star_distance
@@ -311,7 +311,6 @@ class AO:
                     self.star_distance = star_distance
                     self.gaia_id = gaia_info["source_id"][0]
 
-
                     # Set nearest neighbor distance to search distance
                     nearest_neighbor_dist = width.to('mas').value
                     #   convert from mas to AU
@@ -319,6 +318,8 @@ class AO:
                     return 0
             else:
                 return -51
+
+            return 0
 
     def load_stellar_model(self, filter, star_age):
         print('LOADING STELLAR MODEL...')
@@ -475,10 +476,8 @@ class AO:
                 contrast_table.rename_column(list(contrast_table.columns)[0], 'Sep')
                 # Convert separation from mas to AU, order columns correctly
                 contrast_table['Sep (AU)'] = [self.star_distance * np.tan(np.radians(x/(3.6e6))) for x in contrast_table['Sep']]
-                print(contrast_table['Sep (AU)'])
                 order = ['Sep (AU)'] + list(contrast_table.columns)[1:-1]
                 contrast_table = contrast_table[order]
-                print(contrast_table['Sep (AU)'])
         except TypeError:
             return -22
 
