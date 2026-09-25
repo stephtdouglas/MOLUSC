@@ -93,5 +93,5 @@ def test_neighbors():
     dist_fail = gg.get_distance(plx,get_neighbor=True)
     read_fail = gg.read_contrast()
     res = gg.analyze_gaia(gaia_limit,nearest_neighbor=True)
-    assert res is not None
+    assert (np.all(gg.pro_sep[res==False]<nn_sep_au))
 
